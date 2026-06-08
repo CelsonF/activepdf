@@ -1,8 +1,32 @@
 "use client";
 import { useRef, useState } from "react";
+import {
+  FilePdf,
+  UploadSimple,
+  Lock,
+  PencilSimple,
+  ArrowsOut,
+  Export,
+  Cursor,
+  GraduationCap,
+  SquaresFour,
+  SignOut,
+} from "@phosphor-icons/react";
 import { useEditor } from "@/store";
+import { Button } from "@/components/ui/Button";
+import type { SessionRole } from "@/types";
 
-export function UploadScreen() {
+const STEPS: { icon: typeof FilePdf; text: string }[] = [
+  { icon: UploadSimple, text: "Carregue seu PDF (livro, apostila, lista de exercícios)" },
+  { icon: Cursor,       text: "Navegue até a página com o exercício" },
+  { icon: PencilSimple, text: "Clique e arraste sobre cada espaço em branco — um campo editável aparece" },
+  { icon: ArrowsOut,    text: "Arraste e redimensione cada campo como quiser" },
+  { icon: Export,       text: "Escolha o tipo de export e baixe o PDF pronto" },
+];
+
+interface Props { role: SessionRole; name: string; }
+
+export function UploadScreen({ role, name }: Props) {
   const { loadPdf } = useEditor();
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -26,104 +50,149 @@ export function UploadScreen() {
     setLoading(false);
   }
 
+  async function handleLogout() {
+    if (!confirm("Sair da sessão?")) return;
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.href = "/login";
+  }
+
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "24px", background: "linear-gradient(135deg, #f0f4ff 0%, #f8fafc 60%, #faf5ff 100%)" }}>
-      <div style={{ maxWidth: 640, width: "100%" }}>
+    <div className="min-h-screen bg-upload-gradient">
+      {/* Top bar */}
+      <header className="bg-white/80 backdrop-blur-sm border-b border-slate-200 px-4 h-[52px] flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
+            <FilePdf size={14} weight="bold" color="white" />
+          </div>
+          <span className="font-extrabold text-[15px] text-slate-900 tracking-[-0.3px]">ActivePDF</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <a href="/dashboard" className="flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-brand transition-colors px-2 py-1 rounded-lg hover:bg-slate-100">
+            <SquaresFour size={13} /> Painel
+          </a>
+          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200">
+            <GraduationCap size={12} weight="bold" className="text-brand" />
+            <span className="text-xs font-semibold text-slate-700">{name}</span>
+          </div>
+          <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors" title="Sair">
+            <SignOut size={14} />
+          </button>
+        </div>
+      </header>
+
+    <div className="flex items-center justify-center p-6">
+      <div className="w-full max-w-[600px]">
 
         {/* Logo */}
-        <div className="animate-fadeUp" style={{ textAlign: "center", marginBottom: 40 }}>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <div style={{ width: 44, height: 44, borderRadius: 12, background: "var(--brand)", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 4px 14px rgba(79,70,229,0.4)" }}>
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
-                <line x1="9" y1="12" x2="15" y2="12"/>
-                <line x1="9" y1="16" x2="15" y2="16"/>
-              </svg>
+        <div className="animate-fadeUp text-center mb-10">
+          <div className="inline-flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 rounded-[14px] bg-brand flex items-center justify-center shadow-brand-lg">
+              <FilePdf size={26} weight="bold" color="white" />
             </div>
-            <h1 style={{ fontSize: 26, fontWeight: 800, color: "#0f172a", letterSpacing: "-0.5px" }}>ActivePDF</h1>
+            <h1 className="text-[28px] font-extrabold text-slate-900 tracking-[-0.5px]">
+              ActivePDF
+            </h1>
           </div>
-          <p style={{ fontSize: 17, color: "#475569", lineHeight: 1.5, maxWidth: 480, margin: "0 auto" }}>
+          <p className="text-base text-slate-600 leading-relaxed max-w-[460px] mx-auto">
             Adicione campos de resposta interativos em qualquer PDF — sem servidor, sem cadastro.
           </p>
         </div>
 
         {/* Drop zone */}
         <div
-          className="animate-fadeUp"
-          style={{ animationDelay: "0.05s" }}
+          className="animate-fadeUp [animation-delay:0.05s]"
           onClick={() => !loading && inputRef.current?.click()}
           onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
           onDragLeave={() => setDragging(false)}
-          onDrop={(e) => { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) handleFile(f); }}
+          onDrop={(e) => {
+            e.preventDefault(); setDragging(false);
+            const f = e.dataTransfer.files[0];
+            if (f) handleFile(f);
+          }}
         >
-          <input ref={inputRef} type="file" accept="application/pdf" style={{ display: "none" }} onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }} />
-          <div style={{
-            border: `2px dashed ${dragging ? "var(--brand)" : "#cbd5e1"}`,
-            borderRadius: 16,
-            padding: "52px 32px",
-            textAlign: "center",
-            cursor: loading ? "default" : "pointer",
-            background: dragging ? "var(--brand-light)" : "white",
-            transition: "all 0.2s",
-            boxShadow: dragging ? "0 0 0 4px rgba(79,70,229,0.1)" : "0 1px 3px rgba(0,0,0,0.06)",
-          }}>
-            <div style={{ width: 80, height: 80, borderRadius: "50%", background: dragging ? "var(--brand-light)" : "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto 20px", transition: "all 0.2s" }}>
+          <input
+            ref={inputRef}
+            type="file"
+            accept="application/pdf"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+          />
+
+          <div
+            className={[
+              "border-2 border-dashed rounded-[18px] px-8 py-[52px] text-center transition-all duration-200",
+              loading ? "cursor-default" : "cursor-pointer",
+              dragging
+                ? "border-brand bg-brand-light shadow-[0_0_0_4px_rgba(79,70,229,0.1),0_4px_20px_rgba(79,70,229,0.08)]"
+                : "border-slate-300 bg-white shadow-[0_2px_8px_rgba(0,0,0,0.06)]",
+            ].join(" ")}
+          >
+            <div
+              className={[
+                "w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-5 transition-all duration-200",
+                dragging ? "bg-brand/10" : "bg-slate-100",
+              ].join(" ")}
+            >
               {loading ? (
-                <div style={{ width: 32, height: 32, border: "3px solid #e2e8f0", borderTopColor: "var(--brand)", borderRadius: "50%", animation: "spin 0.8s linear infinite" }} />
+                <div
+                  className="ui-spinner"
+                  style={{ width: 32, height: 32, borderWidth: 3, borderColor: "#e2e8f0", borderTopColor: "#4f46e5" }}
+                />
               ) : (
-                <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke={dragging ? "var(--brand)" : "#64748b"} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                  <polyline points="17 8 12 3 7 8"/>
-                  <line x1="12" y1="3" x2="12" y2="15"/>
-                </svg>
+                <UploadSimple size={36} color={dragging ? "#4f46e5" : "#64748b"} />
               )}
             </div>
-            <h3 style={{ fontSize: 20, fontWeight: 700, color: "#0f172a", marginBottom: 8 }}>
+
+            <h3 className="text-xl font-bold text-slate-900 mb-2">
               {loading ? "Carregando PDF..." : "Arraste seu PDF aqui"}
             </h3>
-            <p style={{ color: "#64748b", marginBottom: 24, fontSize: 14 }}>
+            <p className="text-slate-600 mb-6 text-sm">
               {loading ? "Processando páginas..." : "ou clique para selecionar do seu computador"}
             </p>
+
             {!loading && (
-              <button
-                style={{ background: "var(--brand)", color: "white", border: "none", borderRadius: 10, padding: "10px 22px", fontWeight: 600, fontSize: 14, cursor: "pointer", display: "inline-flex", alignItems: "center", gap: 8, boxShadow: "0 2px 8px rgba(79,70,229,0.35)", transition: "all 0.15s" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "var(--brand-dark)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "var(--brand)")}
+              <Button
+                variant="primary"
+                size="md"
+                icon={<FilePdf size={16} weight="bold" />}
+                onClick={(e) => { e.stopPropagation(); inputRef.current?.click(); }}
               >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
                 Escolher arquivo
-              </button>
+              </Button>
             )}
-            <p style={{ fontSize: 12, color: "#94a3b8", marginTop: 20 }}>🔒 Seus arquivos ficam apenas no seu navegador</p>
+
+            <div className="inline-flex items-center gap-[5px] text-xs text-slate-400 mt-5">
+              <Lock size={12} />
+              Seus arquivos ficam apenas no seu navegador
+            </div>
           </div>
         </div>
 
         {error && (
-          <div style={{ marginTop: 12, padding: "10px 14px", background: "#fef2f2", border: "1px solid #fecaca", borderRadius: 8, fontSize: 14, color: "#b91c1c" }}>
+          <div className="mt-3 px-3.5 py-2.5 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700">
             {error}
           </div>
         )}
 
-        {/* How it works */}
-        <div className="animate-fadeUp" style={{ animationDelay: "0.1s", marginTop: 24, background: "white", borderRadius: 14, border: "1px solid #e2e8f0", padding: "20px 24px", boxShadow: "0 1px 3px rgba(0,0,0,0.05)" }}>
-          <h4 style={{ fontSize: 14, fontWeight: 700, color: "#0f172a", marginBottom: 14 }}>⚡ Como funciona</h4>
-          <ol style={{ listStyle: "none", display: "flex", flexDirection: "column", gap: 10 }}>
-            {[
-              ["1", "Carregue seu PDF (livro, apostila, lista de exercícios)"],
-              ["2", "Navegue até a página com o exercício"],
-              ["3", "Clique e arraste sobre cada espaço em branco — um campo editável aparece ali"],
-              ["4", "Arraste e redimensione cada campo como quiser"],
-              ["5", "Escolha o tipo de export e baixe o PDF pronto"],
-            ].map(([n, txt]) => (
-              <li key={n} style={{ display: "flex", gap: 12, alignItems: "flex-start", fontSize: 14, color: "#475569" }}>
-                <span style={{ fontWeight: 700, color: "var(--brand)", minWidth: 20 }}>{n}.</span>
-                <span dangerouslySetInnerHTML={{ __html: txt.replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/(Clique e arraste|Arraste e redimensione|Escolha)/g, "<b>$1</b>") }} />
+        {/* Como funciona */}
+        <div className="animate-fadeUp [animation-delay:0.1s] mt-5 bg-white rounded-2xl border border-slate-200 p-5 shadow-card">
+          <h4 className="text-[13px] font-bold text-slate-900 mb-3.5 flex items-center gap-1.5">
+            <span className="text-brand">⚡</span> Como funciona
+          </h4>
+          <ol className="list-none flex flex-col gap-2.5">
+            {STEPS.map(({ icon: Icon, text }, i) => (
+              <li key={i} className="flex gap-3 items-start text-[13px] text-slate-600">
+                <span className="flex items-center justify-center w-6 h-6 rounded-[6px] bg-brand-light text-brand shrink-0 mt-px">
+                  <Icon size={13} weight="bold" />
+                </span>
+                <span className="leading-[1.5]">{text}</span>
               </li>
             ))}
           </ol>
         </div>
+
       </div>
+    </div>
     </div>
   );
 }

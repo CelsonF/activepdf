@@ -1,5 +1,13 @@
 export type FieldType = "input" | "question";
 
+export type UserRole = "teacher" | "student";
+export type SessionRole = "teacher" | "student";
+
+export interface AuthUser {
+  name: string;
+  role: UserRole;
+}
+
 export interface PdfField {
   id: string;
   name: string;

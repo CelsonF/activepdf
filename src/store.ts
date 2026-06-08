@@ -33,6 +33,7 @@ export interface EditorState {
 
   // Actions
   loadPdf: (doc: PDFDocumentProxy, bytes: ArrayBuffer, name: string, pages: number) => void;
+  loadExerciseFields: (fields: PdfField[], answers?: Record<string, string>) => void;
   resetPdf: () => void;
   setPage: (n: number) => void;
   setViewport: (vp: Viewport, vs: PageViewSize) => void;
@@ -71,6 +72,9 @@ export const useEditor = create<EditorState>((set, get) => ({
 
   loadPdf: (doc, bytes, name, pages) =>
     set({ pdfDoc: doc, pdfBytes: bytes, pdfName: name, totalPages: pages, currentPage: 1, fields: [], fieldCounter: 0, selectedFieldId: null, appMode: "design", fieldValues: {}, ocrResults: {} }),
+
+  loadExerciseFields: (fields, answers = {}) =>
+    set({ fields, fieldCounter: fields.length, selectedFieldId: null, appMode: "fill", fieldValues: answers }),
 
   resetPdf: () =>
     set({ pdfDoc: null, pdfBytes: null, pdfName: "documento", currentPage: 1, totalPages: 0, fields: [], fieldCounter: 0, selectedFieldId: null, pageViewport: null, pageViewSize: null, appMode: "design", fieldValues: {}, ocrOpen: false, ocrResults: {} }),

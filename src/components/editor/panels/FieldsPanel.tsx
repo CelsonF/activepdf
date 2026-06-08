@@ -1,6 +1,7 @@
 "use client";
+import { X } from "@phosphor-icons/react";
 import { useEditor } from "@/store";
-import { asideStyle, headerStyle, fillInputStyle, deleteBtnStyle } from "./styles";
+import { asideStyle, headerStyle, fillInputStyle } from "./styles";
 import { EmptyState, FieldIcon, Muted, SectionLabel } from "./helpers";
 
 export function FieldsPanel() {
@@ -21,7 +22,9 @@ export function FieldsPanel() {
       <aside style={asideStyle}>
         <div style={headerStyle("#f0fdf4")}>
           <h3 style={{ fontSize: 12, fontWeight: 700, color: "#065f46", margin: 0 }}>Preenchimento</h3>
-          <p style={{ fontSize: 11, color: "#047857", marginTop: 3 }}>Preencha os campos ou clique no PDF.</p>
+          <p style={{ fontSize: 11, color: "#047857", marginTop: 3, lineHeight: 1.4 }}>
+            Preencha os campos ou clique no PDF.
+          </p>
         </div>
         <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
           {fields.length === 0 ? (
@@ -30,7 +33,9 @@ export function FieldsPanel() {
             <>
               {pageFields.length > 0 && (
                 <>
-                  <SectionLabel color="#059669">Página {currentPage} <Muted>({pageFields.length})</Muted></SectionLabel>
+                  <SectionLabel color="#059669">
+                    Página {currentPage} <Muted>({pageFields.length})</Muted>
+                  </SectionLabel>
                   {pageFields.map((f) => {
                     const val = fieldValues[f.id] ?? "";
                     return (
@@ -38,7 +43,7 @@ export function FieldsPanel() {
                         {f.fieldType === "question" && (
                           <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>
                             {f.label || f.name}
-                            {f.label && <span style={{ color: "#9ca3af", fontWeight: 400 }}> ({f.name})</span>}
+                            {f.label && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> ({f.name})</span>}
                           </label>
                         )}
                         {f.multiline ? (
@@ -46,7 +51,6 @@ export function FieldsPanel() {
                             value={val}
                             onChange={(e) => setFieldValue(f.id, e.target.value)}
                             rows={3}
-                            placeholder=""
                             style={fillInputStyle(!!val, true)}
                           />
                         ) : (
@@ -54,7 +58,6 @@ export function FieldsPanel() {
                             type="text"
                             value={val}
                             onChange={(e) => setFieldValue(f.id, e.target.value)}
-                            placeholder=""
                             style={fillInputStyle(!!val, false)}
                           />
                         )}
@@ -65,9 +68,11 @@ export function FieldsPanel() {
               )}
               {otherFields.length > 0 && (
                 <>
-                  <SectionLabel color="#94a3b8" borderTop>Outras páginas <Muted>({otherFields.length})</Muted></SectionLabel>
+                  <SectionLabel color="var(--text-muted)" borderTop>
+                    Outras páginas <Muted>({otherFields.length})</Muted>
+                  </SectionLabel>
                   {pages.filter((p) => p !== currentPage).map((p) => (
-                    <div key={p} style={{ fontSize: 11, color: "#94a3b8", padding: "3px 4px" }}>
+                    <div key={p} style={{ fontSize: 11, color: "var(--text-muted)", padding: "3px 4px" }}>
                       Pág. {p}: {byPage[p].filter((f) => fieldValues[f.id]?.trim()).length}/{byPage[p].length} preenchido(s)
                     </div>
                   ))}
@@ -83,18 +88,25 @@ export function FieldsPanel() {
   return (
     <aside style={asideStyle}>
       <div style={headerStyle()}>
-        <h3 style={{ fontSize: 12, fontWeight: 700, color: "#0f172a", margin: 0 }}>Campos</h3>
-        <p style={{ fontSize: 11, color: "#64748b", marginTop: 3 }}>Arraste sobre o PDF para criar.</p>
+        <h3 style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Campos</h3>
+        <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3, lineHeight: 1.4 }}>
+          Arraste sobre o PDF para criar.
+        </p>
       </div>
       <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
         {fields.length === 0 ? (
-          <EmptyState message="Nenhum campo ainda." hint="Arraste sobre um espaço em branco do PDF." icon={<FieldIcon />} />
+          <EmptyState
+            message="Nenhum campo ainda."
+            hint="Arraste sobre um espaço em branco do PDF."
+            icon={<FieldIcon />}
+          />
         ) : (
           pages.map((p) => (
             <div key={p}>
               {pages.length > 1 && (
-                <SectionLabel color="#64748b">
-                  {p === currentPage ? "Esta página" : `Página ${p}`} <Muted>({byPage[p].length})</Muted>
+                <SectionLabel color="var(--text-muted)">
+                  {p === currentPage ? "Esta página" : `Página ${p}`}{" "}
+                  <Muted>({byPage[p].length})</Muted>
                 </SectionLabel>
               )}
               {byPage[p].map((f) => {
@@ -102,30 +114,52 @@ export function FieldsPanel() {
                 return (
                   <div
                     key={f.id}
+                    className="ui-field-item"
+                    data-selected={isSelected ? "true" : "false"}
                     onClick={() => selectField(f.id)}
-                    style={{
-                      padding: "7px 9px", borderRadius: 7, marginBottom: 3,
-                      border: `1px solid ${isSelected ? "var(--brand)" : "#e2e8f0"}`,
-                      background: isSelected ? "var(--brand-light)" : "white",
-                      cursor: "pointer", transition: "all 0.12s",
-                      display: "flex", alignItems: "center", justifyContent: "space-between", gap: 6,
-                    }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: "#0f172a", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <div
+                        style={{
+                          fontSize: 12,
+                          fontWeight: 600,
+                          color: "var(--text-primary)",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
                         {f.name}
-                        {f.label && <span style={{ color: "#94a3b8", fontWeight: 400 }}> — {f.label}</span>}
+                        {f.label && (
+                          <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
+                            {" "}— {f.label}
+                          </span>
+                        )}
                       </div>
-                      <div style={{ fontSize: 10, color: "#94a3b8", marginTop: 1 }}>
-                        {Math.round(f.pdfW)}×{Math.round(f.pdfH)}pt · {f.fontSize}pt{f.multiline ? " · ML" : ""}
+                      <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+                        {Math.round(f.pdfW)}×{Math.round(f.pdfH)}pt · {f.fontSize}pt
+                        {f.multiline ? " · ML" : ""}
                       </div>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteField(f.id); }}
-                      style={deleteBtnStyle}
+                      style={{
+                        padding: "3px 4px",
+                        borderRadius: 4,
+                        border: "1px solid #fecaca",
+                        background: "#fef2f2",
+                        color: "#b91c1c",
+                        cursor: "pointer",
+                        flexShrink: 0,
+                        display: "flex",
+                        alignItems: "center",
+                        transition: "all 0.12s",
+                      }}
                       onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
                       onMouseLeave={(e) => (e.currentTarget.style.background = "#fef2f2")}
-                    >✕</button>
+                    >
+                      <X size={11} weight="bold" />
+                    </button>
                   </div>
                 );
               })}

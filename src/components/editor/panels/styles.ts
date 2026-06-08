@@ -1,9 +1,9 @@
 import type React from "react";
 
 export const asideStyle: React.CSSProperties = {
-  width: 220,
+  width: 224,
   background: "white",
-  borderRight: "1px solid #e2e8f0",
+  borderRight: "1px solid var(--border)",
   display: "flex",
   flexDirection: "column",
   flexShrink: 0,
@@ -11,24 +11,30 @@ export const asideStyle: React.CSSProperties = {
 };
 
 export function headerStyle(bg = "white"): React.CSSProperties {
-  return { padding: "10px 12px", borderBottom: "1px solid #e2e8f0", background: bg, flexShrink: 0 };
+  return {
+    padding: "12px 14px",
+    borderBottom: "1px solid var(--border)",
+    background: bg,
+    flexShrink: 0,
+  };
 }
 
 export const propInputStyle: React.CSSProperties = {
   width: "100%",
-  padding: "5px 8px",
-  border: "1px solid #e2e8f0",
+  padding: "6px 9px",
+  border: "1px solid var(--border)",
   borderRadius: 6,
   fontSize: 12,
-  color: "#0f172a",
+  color: "var(--text-primary)",
   background: "white",
   outline: "none",
-  transition: "border-color 0.15s",
+  transition: "border-color 0.15s, box-shadow 0.15s",
+  fontFamily: "inherit",
   boxSizing: "border-box",
 };
 
 export const deleteBtnStyle: React.CSSProperties = {
-  padding: "2px 5px",
+  padding: "3px 6px",
   borderRadius: 5,
   fontSize: 10,
   border: "1px solid #fecaca",
@@ -37,16 +43,17 @@ export const deleteBtnStyle: React.CSSProperties = {
   cursor: "pointer",
   flexShrink: 0,
   transition: "all 0.12s",
+  lineHeight: 1,
 };
 
 export function fillInputStyle(filled: boolean, multiline: boolean): React.CSSProperties {
   return {
     width: "100%",
-    padding: "5px 7px",
-    border: filled ? "1.5px solid #10b981" : "1px solid #e2e8f0",
+    padding: "6px 9px",
+    border: filled ? "1.5px solid #10b981" : "1px solid var(--border)",
     borderRadius: 6,
     fontSize: 12,
-    color: "#0f172a",
+    color: "var(--text-primary)",
     background: "white",
     outline: "none",
     resize: multiline ? "vertical" : undefined,
