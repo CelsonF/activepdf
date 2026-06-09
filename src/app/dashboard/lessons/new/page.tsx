@@ -76,7 +76,7 @@ function NewLessonForm() {
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">Conteúdo da aula</label>
-              <textarea className="ui-input resize-none" rows={3} placeholder="Ex: Unit 5 — Modal verbs, job interview vocabulary" value={form.content} onChange={(e) => set("content", e.target.value)} />
+              <textarea className="ui-input resize-none" rows={3} placeholder="Ex: Unidade 5 — Verbos modais, vocabulário para entrevista de emprego" value={form.content} onChange={(e) => set("content", e.target.value)} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">Lição de casa</label>

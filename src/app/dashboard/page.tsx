@@ -1,53 +1,54 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { GraduationCap, BookOpen, FilePdf, CalendarBlank, Plus, ArrowRight, VideoCamera, CheckCircle } from "@phosphor-icons/react/dist/ssr";
+import { serverFetch } from "@/lib/api";
+import { GraduationCap, BookOpen, FilePdf, CalendarBlank, Plus, ArrowRight, VideoCamera, CheckCircle, Books } from "@phosphor-icons/react/dist/ssr";
 import { LogoutButton } from "./_components/LogoutButton";
 
-function formatDate(date: Date) {
+function formatDate(date: string) {
   return new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
-function formatTime(date: Date) {
+function formatTime(date: string) {
   return new Date(date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
 async function TeacherDashboard({ professorId }: { professorId: string }) {
-  const [professor, exercises] = await Promise.all([
-    prisma.professor.findUnique({
-      where: { id: professorId },
-      include: {
-        students: {
-          include: {
-            learningPlan: true,
-            lessons: { orderBy: { scheduledAt: "asc" }, take: 1, where: { status: "SCHEDULED" } },
-            _count: { select: { lessons: true } },
-          },
-        },
-        lessons: {
-          where: { status: "SCHEDULED", scheduledAt: { gte: new Date() } },
-          orderBy: { scheduledAt: "asc" },
-          take: 5,
-          include: { student: true, subject: true },
-        },
-      },
-    }),
-    prisma.exercise.findMany({
-      where: { professorId },
-      select: {
-        id: true, title: true, pdfName: true, status: true, createdAt: true,
-        student: { select: { name: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take: 10,
-    }),
-  ]);
-
+  const { professor, exercises, subjectsCount } = await serverFetch<any>("/api/dashboard/teacher");
   if (!professor) return null;
+
+  const navCards = [
+    {
+      href: "/dashboard/subjects",
+      icon: <Books size={18} weight="bold" className="text-indigo-600" />,
+      iconBg: "bg-indigo-50",
+      title: "Matérias",
+      count: `${subjectsCount ?? 0} matéria${(subjectsCount ?? 0) !== 1 ? "s" : ""}`,
+    },
+    {
+      href: "/dashboard/students",
+      icon: <GraduationCap size={18} weight="bold" className="text-violet-600" />,
+      iconBg: "bg-violet-50",
+      title: "Alunos",
+      count: `${professor.students.length} aluno${professor.students.length !== 1 ? "s" : ""}`,
+    },
+    {
+      href: "/dashboard/lessons",
+      icon: <CalendarBlank size={18} weight="bold" className="text-blue-600" />,
+      iconBg: "bg-blue-50",
+      title: "Aulas",
+      count: `${professor.lessons.length} agendada${professor.lessons.length !== 1 ? "s" : ""}`,
+    },
+    {
+      href: "/dashboard/exercises",
+      icon: <FilePdf size={18} weight="bold" className="text-emerald-600" />,
+      iconBg: "bg-emerald-50",
+      title: "Exercícios",
+      count: `${exercises.length} exercício${exercises.length !== 1 ? "s" : ""}`,
+    },
+  ];
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-8 animate-fadeUp">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Olá, {professor.name.split(" ")[0]} 👋</h1>
@@ -63,7 +64,22 @@ async function TeacherDashboard({ professorId }: { professorId: string }) {
         </div>
       </div>
 
-      {/* Exercises created by teacher */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
+        {navCards.map((card) => (
+          <Link
+            key={card.href}
+            href={card.href}
+            className="p-4 bg-white rounded-2xl border border-slate-200 hover:border-brand hover:shadow-sm transition-all duration-150 group"
+          >
+            <div className={`w-9 h-9 rounded-lg ${card.iconBg} flex items-center justify-center mb-3`}>
+              {card.icon}
+            </div>
+            <p className="text-sm font-bold text-slate-800 group-hover:text-brand transition-colors">{card.title}</p>
+            <p className="text-xs text-slate-500 mt-0.5">{card.count}</p>
+          </Link>
+        ))}
+      </div>
+
       {exercises.length > 0 && (
         <section className="mb-8">
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Exercícios criados</h2>
@@ -86,15 +102,17 @@ async function TeacherDashboard({ professorId }: { professorId: string }) {
         </section>
       )}
 
-      {/* Upcoming lessons */}
       {professor.lessons.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Próximas aulas</h2>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide">Próximas aulas</h2>
+            <Link href="/dashboard/lessons" className="text-xs text-brand font-semibold hover:underline">Ver todas</Link>
+          </div>
           <div className="flex flex-col gap-2">
             {professor.lessons.map((lesson: any) => (
               <div key={lesson.id} className="flex items-center gap-2">
                 <Link
-                  href={`/dashboard/students/${lesson.studentId}`}
+                  href={`/dashboard/lessons/${lesson.id}`}
                   className="flex-1 flex items-center gap-3 px-4 py-3 bg-white rounded-xl border border-slate-200 hover:border-brand hover:bg-brand-light transition-all duration-150 min-w-0"
                 >
                   <div className="w-9 h-9 rounded-lg bg-brand-light flex items-center justify-center shrink-0">
@@ -120,7 +138,6 @@ async function TeacherDashboard({ professorId }: { professorId: string }) {
         </section>
       )}
 
-      {/* Students */}
       <section>
         <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Meus alunos</h2>
         {professor.students.length === 0 ? (
@@ -173,35 +190,16 @@ async function TeacherDashboard({ professorId }: { professorId: string }) {
 }
 
 async function StudentDashboard({ studentId }: { studentId: string }) {
-  const [student, exercises] = await Promise.all([
-    prisma.student.findUnique({
-      where: { id: studentId },
-      include: {
-        professor: true,
-        learningPlan: true,
-        subjects: { include: { subject: true } },
-        lessons: {
-          orderBy: { scheduledAt: "desc" },
-          take: 6,
-          include: { subject: true, vocabularyEntries: true },
-        },
-      },
-    }),
-    prisma.exercise.findMany({
-      where: { studentId },
-      select: { id: true, title: true, pdfName: true, status: true, createdAt: true },
-      orderBy: { createdAt: "desc" },
-    }),
-  ]);
-
+  const { student, exercises } = await serverFetch<any>("/api/dashboard/student");
   if (!student) return null;
 
-  const upcoming = student.lessons.filter((l) => l.status === "SCHEDULED").sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-  const past = student.lessons.filter((l) => l.status === "COMPLETED");
+  const upcoming = student.lessons
+    .filter((l: any) => l.status === "SCHEDULED")
+    .sort((a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  const past = student.lessons.filter((l: any) => l.status === "COMPLETED");
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-8 animate-fadeUp">
-      {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="text-2xl font-bold text-slate-900">Olá, {student.name.split(" ")[0]} 👋</h1>
@@ -211,12 +209,11 @@ async function StudentDashboard({ studentId }: { studentId: string }) {
         </div>
       </div>
 
-      {/* Exercises assigned by teacher */}
       {exercises.length > 0 && (
         <section className="mb-6">
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Exercícios</h2>
           <div className="flex flex-col gap-2">
-            {exercises.map((ex) => (
+            {exercises.map((ex: any) => (
               <Link
                 key={ex.id}
                 href={`/?exerciseId=${ex.id}`}
@@ -238,7 +235,6 @@ async function StudentDashboard({ studentId }: { studentId: string }) {
         </section>
       )}
 
-      {/* Learning plan */}
       {student.learningPlan && (
         <section className="mb-6 p-5 bg-white rounded-2xl border border-slate-200">
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Plano de aprendizado</h2>
@@ -257,14 +253,13 @@ async function StudentDashboard({ studentId }: { studentId: string }) {
             </div>
           </div>
           <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-100">
-            {student.subjects.map(({ subject }) => (
+            {student.subjects.map(({ subject }: any) => (
               <span key={subject.id} className="ui-badge ui-badge-brand ui-badge-sm">{subject.name}</span>
             ))}
           </div>
         </section>
       )}
 
-      {/* Next lesson */}
       {upcoming[0] && (
         <section className="mb-6">
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Próxima aula</h2>
@@ -293,12 +288,11 @@ async function StudentDashboard({ studentId }: { studentId: string }) {
         </section>
       )}
 
-      {/* Past lessons */}
       {past.length > 0 && (
         <section>
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Aulas anteriores</h2>
           <div className="flex flex-col gap-2">
-            {past.map((lesson) => (
+            {past.map((lesson: any) => (
               <div key={lesson.id} className="p-4 bg-white rounded-xl border border-slate-200">
                 <div className="flex items-center gap-2 mb-2">
                   <CheckCircle size={14} weight="fill" className="text-emerald-500 shrink-0" />
@@ -308,7 +302,7 @@ async function StudentDashboard({ studentId }: { studentId: string }) {
                 {lesson.content && <p className="text-sm text-slate-600 truncate pl-5">{lesson.content}</p>}
                 {lesson.vocabularyEntries.length > 0 && (
                   <div className="flex flex-wrap gap-1 mt-2 pl-5">
-                    {lesson.vocabularyEntries.slice(0, 4).map((v) => (
+                    {lesson.vocabularyEntries.slice(0, 4).map((v: any) => (
                       <span key={v.id} className="ui-badge ui-badge-neutral ui-badge-sm">{v.word}</span>
                     ))}
                     {lesson.vocabularyEntries.length > 4 && (
@@ -331,7 +325,6 @@ export default async function DashboardPage() {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Top bar */}
       <header className="bg-white border-b border-slate-200 px-4 h-[52px] flex items-center justify-between shadow-[0_1px_0_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">

@@ -1,16 +1,16 @@
 import { redirect, notFound } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
+import { serverFetch } from "@/lib/api";
 import {
   ArrowLeft, CalendarBlank, Plus, VideoCamera,
-  CheckCircle, Clock, BookOpen, FilePdf, GraduationCap
+  CheckCircle, Clock, BookOpen, FilePdf, Pencil
 } from "@phosphor-icons/react/dist/ssr";
 
-function fmt(date: Date) {
+function fmt(date: string) {
   return new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
-function fmtTime(date: Date) {
+function fmtTime(date: string) {
   return new Date(date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 }
 
@@ -18,26 +18,20 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   const session = await getSession();
   if (!session || session.role !== "teacher") redirect("/dashboard");
 
-  const student = await prisma.student.findUnique({
-    where: { id: params.id, professorId: session.userId },
-    include: {
-      learningPlan: true,
-      subjects: { include: { subject: true } },
-      lessons: {
-        orderBy: { scheduledAt: "desc" },
-        include: { subject: true, vocabularyEntries: true },
-      },
-    },
-  });
+  let student: any;
+  try {
+    student = await serverFetch(`/api/students/${params.id}`);
+  } catch {
+    notFound();
+  }
 
-  if (!student) notFound();
-
-  const scheduled = student.lessons.filter((l) => l.status === "SCHEDULED").sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-  const completed = student.lessons.filter((l) => l.status === "COMPLETED");
+  const scheduled = student.lessons
+    .filter((l: any) => l.status === "SCHEDULED")
+    .sort((a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  const completed = student.lessons.filter((l: any) => l.status === "COMPLETED");
 
   return (
     <div className="min-h-screen bg-slate-50">
-      {/* Nav */}
       <header className="bg-white border-b border-slate-200 px-4 h-[52px] flex items-center gap-3 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
         <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
           <FilePdf size={14} weight="bold" color="white" />
@@ -52,7 +46,6 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-8 animate-fadeUp">
-        {/* Student header */}
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-brand-light flex items-center justify-center font-bold text-brand text-lg">
@@ -68,7 +61,6 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           </Link>
         </div>
 
-        {/* Learning plan */}
         {student.learningPlan ? (
           <section className="mb-6 p-5 bg-white rounded-2xl border border-slate-200">
             <div className="flex items-center justify-between mb-3">
@@ -96,7 +88,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
               )}
             </div>
             <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-100">
-              {student.subjects.map(({ subject }) => (
+              {student.subjects.map(({ subject }: any) => (
                 <span key={subject.id} className="ui-badge ui-badge-brand ui-badge-sm">{subject.name}</span>
               ))}
             </div>
@@ -108,38 +100,46 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           </Link>
         )}
 
-        {/* Upcoming lessons */}
         {scheduled.length > 0 && (
           <section className="mb-6">
             <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Próximas aulas</h2>
             <div className="flex flex-col gap-2">
-              {scheduled.map((lesson) => (
-                <div key={lesson.id} className="flex items-center gap-3 p-4 bg-brand-light border border-[#c7d2fe] rounded-xl">
-                  <Clock size={16} weight="bold" className="text-brand shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-brand">{fmt(lesson.scheduledAt)} às {fmtTime(lesson.scheduledAt)}</p>
-                    {lesson.subject && <p className="text-xs text-indigo-600">{lesson.subject.name}</p>}
-                    {lesson.content && <p className="text-xs text-slate-600 truncate mt-0.5">{lesson.content}</p>}
+              {scheduled.map((lesson: any) => (
+                <div key={lesson.id} className="flex items-center gap-2">
+                  <Link
+                    href={`/dashboard/lessons/${lesson.id}`}
+                    className="flex-1 flex items-center gap-3 p-4 bg-brand-light border border-[#c7d2fe] rounded-xl hover:border-brand transition-all duration-150 min-w-0"
+                  >
+                    <Clock size={16} weight="bold" className="text-brand shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-semibold text-brand">{fmt(lesson.scheduledAt)} às {fmtTime(lesson.scheduledAt)}</p>
+                      {lesson.subject && <p className="text-xs text-indigo-600">{lesson.subject.name}</p>}
+                      {lesson.content && <p className="text-xs text-slate-600 truncate mt-0.5">{lesson.content}</p>}
+                    </div>
+                  </Link>
+                  <div className="flex gap-1 shrink-0">
+                    {lesson.meetLink && (
+                      <a href={lesson.meetLink} target="_blank" rel="noopener" className="ui-btn ui-btn-primary ui-btn-xs gap-1">
+                        <VideoCamera size={11} /> Meet
+                      </a>
+                    )}
+                    <Link href={`/dashboard/lessons/${lesson.id}/edit`} className="ui-btn ui-btn-ghost ui-btn-xs">
+                      <Pencil size={12} />
+                    </Link>
                   </div>
-                  {lesson.meetLink && (
-                    <a href={lesson.meetLink} target="_blank" rel="noopener" className="ui-btn ui-btn-primary ui-btn-xs gap-1 shrink-0">
-                      <VideoCamera size={11} /> Meet
-                    </a>
-                  )}
                 </div>
               ))}
             </div>
           </section>
         )}
 
-        {/* Completed lessons */}
         {completed.length > 0 && (
           <section>
             <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">
               Aulas realizadas ({completed.length})
             </h2>
             <div className="flex flex-col gap-2">
-              {completed.map((lesson) => (
+              {completed.map((lesson: any) => (
                 <div key={lesson.id} className="p-4 bg-white rounded-xl border border-slate-200">
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle size={14} weight="fill" className="text-emerald-500 shrink-0" />
@@ -163,7 +163,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                     <div className="mt-2 pl-5">
                       <p className="text-[11px] text-slate-400 mb-1.5">Vocabulário desta aula</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {lesson.vocabularyEntries.map((v) => (
+                        {lesson.vocabularyEntries.map((v: any) => (
                           <span key={v.id} title={v.definition ?? ""} className="ui-badge ui-badge-neutral ui-badge-sm cursor-help">{v.word}</span>
                         ))}
                       </div>

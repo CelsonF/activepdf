@@ -104,7 +104,7 @@ export function SaveExerciseModal({ isOpen, onClose, pdfName, pdfBytes, fields, 
               className="ui-input text-sm"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Unit 5 — Vocabulary Exercise"
+              placeholder="Ex: Gramática — Verbos Modais, Unidade 5"
               autoFocus
             />
           </div>
