@@ -1,24 +1,83 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { FilePdf, GraduationCap, BookOpen, ArrowRight } from "@phosphor-icons/react";
+import Link from "next/link";
+import {
+  ArrowRight,
+  ArrowLeft,
+  Eye,
+  EyeSlash,
+  GraduationCap,
+  BookOpen,
+  Buildings,
+  Code,
+  CheckCircle,
+  ChatCircle,
+  Briefcase,
+  Exam,
+  TextT,
+  Headphones,
+} from "@phosphor-icons/react";
+import { Logo } from "@/components/ui/Logo";
+import { cn } from "@/lib/cn";
 
-type Role = "teacher" | "student";
+type Role = "teacher" | "student" | "company" | "dev";
+type Goal = "conversation" | "business" | "tech" | "exam" | "grammar" | "listening";
+type Level = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
+
+const ROLES = [
+  { id: "teacher" as Role, icon: <GraduationCap size={22} weight="bold" />, name: "Professor(a)", desc: "Atribuir e acompanhar turmas" },
+  { id: "student" as Role, icon: <BookOpen size={22} weight="bold" />, name: "Aluno / Autodidata", desc: "Aprender com meu material" },
+  { id: "company" as Role, icon: <Buildings size={22} weight="bold" />, name: "Empresa / RH", desc: "Capacitar meu time" },
+  { id: "dev" as Role, icon: <Code size={22} weight="bold" />, name: "Dev / Tech", desc: "Inglês técnico" },
+];
+
+const LEVELS: { id: Level; label: string }[] = [
+  { id: "A1", label: "Iniciante" }, { id: "A2", label: "Básico" },
+  { id: "B1", label: "Intermediário" }, { id: "B2", label: "Inter. alto" },
+  { id: "C1", label: "Avançado" }, { id: "C2", label: "Proficiente" },
+];
+
+const GOALS = [
+  { id: "conversation" as Goal, icon: <ChatCircle size={16} weight="bold" />, label: "Conversação" },
+  { id: "business" as Goal, icon: <Briefcase size={16} weight="bold" />, label: "Inglês de negócios" },
+  { id: "tech" as Goal, icon: <Code size={16} weight="bold" />, label: "Inglês técnico" },
+  { id: "exam" as Goal, icon: <Exam size={16} weight="bold" />, label: "Provas (TOEFL/IELTS)" },
+  { id: "grammar" as Goal, icon: <TextT size={16} weight="bold" />, label: "Gramática" },
+  { id: "listening" as Goal, icon: <Headphones size={16} weight="bold" />, label: "Listening" },
+];
+
+const STEP_LABELS = ["Conta", "Perfil", "Objetivos"];
 
 export default function RegisterPage() {
   const router = useRouter();
-  const [role, setRole] = useState<Role | null>(null);
+  const [step, setStep] = useState(0);
+  const [showPassword, setShowPassword] = useState(false);
+
+  // Step 0 — account
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [teacherEmail, setTeacherEmail] = useState("");
+
+  // Step 1 — profile
+  const [role, setRole] = useState<Role | null>(null);
+
+  // Step 2 — goals
+  const [level, setLevel] = useState<Level>("B1");
+  const [goals, setGoals] = useState<Goal[]>(["conversation"]);
+
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
-  const canSubmit = role && name.trim() && email && password.length >= 6;
+  const toggleGoal = (id: Goal) =>
+    setGoals((g) => (g.includes(id) ? g.filter((x) => x !== id) : [...g, id]));
 
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
+  const canNext0 = name.trim().length > 0 && email.includes("@") && password.length >= 6;
+  const canNext1 = role !== null;
+  const canSubmit = canNext0 && canNext1 && goals.length > 0;
+
+  async function handleSubmit() {
     if (!canSubmit) return;
     setError("");
     setLoading(true);
@@ -26,10 +85,14 @@ export default function RegisterPage() {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role, teacherEmail: teacherEmail || undefined }),
+        body: JSON.stringify({
+          name, email, password, role,
+          teacherEmail: teacherEmail || undefined,
+          level, goals,
+        }),
       });
       const data = await res.json();
-      if (!res.ok) { setError(data.error); return; }
+      if (!res.ok) { setError(data.error ?? "Erro ao criar conta."); setStep(0); return; }
       router.push("/dashboard");
       router.refresh();
     } finally {
@@ -38,88 +101,261 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-indigo-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm animate-fadeUp">
-        <div className="flex items-center justify-center gap-2.5 mb-8">
-          <div className="w-10 h-10 rounded-xl bg-brand flex items-center justify-center shadow-brand">
-            <FilePdf size={20} weight="bold" color="white" />
-          </div>
-          <span className="font-extrabold text-[22px] text-slate-900 tracking-[-0.4px]">ActivePDF</span>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-12">
+      <div className="w-full max-w-md animate-fadeUp">
+        <Link href="/landing" className="inline-flex justify-center mb-8 w-full">
+          <Logo size={30} />
+        </Link>
+
+        {/* Step indicator */}
+        <div className="flex items-center justify-center gap-2 mb-8">
+          {STEP_LABELS.map((label, i) => (
+            <div key={i} className="flex items-center gap-2">
+              <div
+                className={cn(
+                  "flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold transition-all",
+                  i < step
+                    ? "bg-brand text-white"
+                    : i === step
+                    ? "bg-brand text-white ring-4 ring-brand/20"
+                    : "bg-slate-200 text-slate-500"
+                )}
+              >
+                {i < step ? <CheckCircle size={13} weight="fill" /> : i + 1}
+              </div>
+              <span
+                className={cn(
+                  "text-xs font-medium",
+                  i === step ? "text-slate-800" : "text-slate-400"
+                )}
+              >
+                {label}
+              </span>
+              {i < STEP_LABELS.length - 1 && (
+                <div className={cn("w-8 h-px ml-1", i < step ? "bg-brand" : "bg-slate-200")} />
+              )}
+            </div>
+          ))}
         </div>
 
-        <form
-          onSubmit={handleSubmit}
-          className="bg-white rounded-3xl shadow-[0_4px_32px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)] p-8"
-        >
-          <h1 className="text-xl font-bold text-slate-900 text-center mb-1">Criar conta</h1>
-          <p className="text-sm text-slate-500 text-center mb-6">Selecione seu perfil</p>
+        <div className="bg-white rounded-3xl shadow-[0_4px_32px_rgba(0,0,0,0.08),0_1px_4px_rgba(0,0,0,0.04)] p-8">
 
           {error && (
-            <div className="mb-4 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
+            <div className="mb-5 px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">
               {error}
             </div>
           )}
 
-          {/* Role selector */}
-          <div className="grid grid-cols-2 gap-2.5 mb-5">
-            {(["teacher", "student"] as Role[]).map((r) => (
-              <button
-                key={r}
-                type="button"
-                onClick={() => setRole(r)}
-                className={[
-                  "flex flex-col items-center gap-2 py-4 px-3 rounded-xl border-2 cursor-pointer transition-all duration-150 outline-none",
-                  role === r
-                    ? "border-brand bg-brand-light"
-                    : "border-slate-200 bg-white hover:border-slate-300",
-                ].join(" ")}
-              >
-                {r === "teacher"
-                  ? <GraduationCap size={22} weight="bold" className={role === r ? "text-brand" : "text-slate-400"} />
-                  : <BookOpen size={22} weight="bold" className={role === r ? "text-brand" : "text-slate-400"} />
-                }
-                <span className={`text-xs font-semibold ${role === r ? "text-brand" : "text-slate-600"}`}>
-                  {r === "teacher" ? "Professor" : "Aluno"}
-                </span>
-              </button>
-            ))}
-          </div>
+          {/* ── Step 0 — Conta ───────────────────────── */}
+          {step === 0 && (
+            <>
+              <h1 className="text-xl font-bold text-slate-900 mb-1">Criar conta</h1>
+              <p className="text-sm text-slate-500 mb-6">Começa em menos de 1 minuto.</p>
 
-          <div className="flex flex-col gap-3.5 mb-5">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Nome completo</label>
-              <input type="text" className="ui-input text-sm py-2.5" placeholder="Seu nome" value={name} onChange={(e) => setName(e.target.value)} required maxLength={60} />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Email</label>
-              <input type="email" className="ui-input text-sm py-2.5" placeholder="seu@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required autoComplete="email" />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Senha <span className="text-slate-400 font-normal">(mín. 6 caracteres)</span></label>
-              <input type="password" className="ui-input text-sm py-2.5" placeholder="Crie uma senha" value={password} onChange={(e) => setPassword(e.target.value)} required minLength={6} autoComplete="new-password" />
-            </div>
-
-            {role === "student" && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                  Email do professor <span className="text-slate-400 font-normal">(opcional)</span>
-                </label>
-                <input type="email" className="ui-input text-sm py-2.5" placeholder="professor@email.com" value={teacherEmail} onChange={(e) => setTeacherEmail(e.target.value)} autoComplete="off" />
-                <p className="text-[11px] text-slate-400 mt-1">Informe para ser vinculado automaticamente ao seu professor.</p>
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">Nome completo</label>
+                  <input
+                    type="text" className="ui-input py-2.5 text-sm"
+                    placeholder="Seu nome" value={name}
+                    onChange={(e) => setName(e.target.value)} maxLength={60}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">E-mail</label>
+                  <input
+                    type="email" className="ui-input py-2.5 text-sm"
+                    placeholder="voce@email.com" value={email}
+                    onChange={(e) => setEmail(e.target.value)} autoComplete="email"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Senha <span className="text-slate-400 font-normal">(mín. 6 caracteres)</span>
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      className="ui-input pr-10 py-2.5 text-sm"
+                      placeholder="Crie uma senha" value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      minLength={6} autoComplete="new-password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword((v) => !v)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                      tabIndex={-1}
+                    >
+                      {showPassword ? <EyeSlash size={15} /> : <Eye size={15} />}
+                    </button>
+                  </div>
+                </div>
               </div>
-            )}
-          </div>
 
-          <button type="submit" disabled={!canSubmit || loading} className="ui-btn ui-btn-primary ui-btn-lg w-full">
-            {loading ? <div className="ui-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} /> : (
-              <>Criar conta <ArrowRight size={16} weight="bold" /></>
-            )}
-          </button>
-        </form>
+              <button
+                type="button"
+                disabled={!canNext0}
+                onClick={() => setStep(1)}
+                className="ui-btn ui-btn-primary ui-btn-lg w-full mt-6"
+              >
+                Próximo <ArrowRight size={16} weight="bold" />
+              </button>
+            </>
+          )}
+
+          {/* ── Step 1 — Perfil ──────────────────────── */}
+          {step === 1 && (
+            <>
+              <h1 className="text-xl font-bold text-slate-900 mb-1">Qual é o seu perfil?</h1>
+              <p className="text-sm text-slate-500 mb-6">Personalizamos a experiência para você.</p>
+
+              <div className="grid grid-cols-2 gap-2.5 mb-2">
+                {ROLES.map((r) => (
+                  <button
+                    key={r.id}
+                    type="button"
+                    onClick={() => setRole(r.id)}
+                    className={cn(
+                      "flex flex-col items-center gap-2 py-4 px-3 rounded-xl border-2 cursor-pointer transition-all duration-150 outline-none text-center",
+                      role === r.id
+                        ? "border-brand bg-brand-light"
+                        : "border-slate-200 bg-white hover:border-slate-300"
+                    )}
+                  >
+                    <span className={cn("transition-colors", role === r.id ? "text-brand" : "text-slate-400")}>
+                      {r.icon}
+                    </span>
+                    <span className={cn("text-xs font-semibold leading-snug", role === r.id ? "text-brand" : "text-slate-700")}>
+                      {r.name}
+                    </span>
+                    <span className="text-[11px] text-slate-400 leading-tight">{r.desc}</span>
+                  </button>
+                ))}
+              </div>
+
+              {role === "student" && (
+                <div className="mt-4">
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    E-mail do professor <span className="text-slate-400 font-normal">(opcional)</span>
+                  </label>
+                  <input
+                    type="email" className="ui-input py-2.5 text-sm"
+                    placeholder="professor@email.com" value={teacherEmail}
+                    onChange={(e) => setTeacherEmail(e.target.value)}
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Informe para ser vinculado automaticamente.
+                  </p>
+                </div>
+              )}
+
+              <div className="flex gap-2.5 mt-6">
+                <button
+                  type="button"
+                  onClick={() => setStep(0)}
+                  className="ui-btn ui-btn-secondary ui-btn-lg gap-1.5"
+                >
+                  <ArrowLeft size={15} weight="bold" /> Voltar
+                </button>
+                <button
+                  type="button"
+                  disabled={!canNext1}
+                  onClick={() => setStep(2)}
+                  className="ui-btn ui-btn-primary ui-btn-lg flex-1"
+                >
+                  Próximo <ArrowRight size={16} weight="bold" />
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── Step 2 — Objetivos ───────────────────── */}
+          {step === 2 && (
+            <>
+              <h1 className="text-xl font-bold text-slate-900 mb-1">Seus objetivos</h1>
+              <p className="text-sm text-slate-500 mb-5">Selecione seu nível e o que quer praticar.</p>
+
+              <div className="mb-5">
+                <label className="block text-xs font-semibold text-slate-700 mb-2">Nível de inglês</label>
+                <div className="grid grid-cols-6 gap-1.5">
+                  {LEVELS.map((l) => (
+                    <button
+                      key={l.id}
+                      type="button"
+                      onClick={() => setLevel(l.id)}
+                      className={cn(
+                        "flex flex-col items-center gap-0.5 py-2 rounded-lg border-2 text-center transition-all",
+                        level === l.id
+                          ? "border-brand bg-brand-light"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      )}
+                    >
+                      <span className={cn("text-xs font-bold tabular-nums", level === l.id ? "text-brand" : "text-slate-700")}>
+                        {l.id}
+                      </span>
+                      <span className="text-[9px] text-slate-400 leading-tight">{l.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label className="block text-xs font-semibold text-slate-700 mb-2">O que quer praticar?</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {GOALS.map((g) => (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => toggleGoal(g.id)}
+                      className={cn(
+                        "flex items-center gap-2.5 px-3 py-2.5 rounded-lg border-2 text-left transition-all",
+                        goals.includes(g.id)
+                          ? "border-brand bg-brand-light"
+                          : "border-slate-200 bg-white hover:border-slate-300"
+                      )}
+                    >
+                      <span className={cn("shrink-0", goals.includes(g.id) ? "text-brand" : "text-slate-400")}>
+                        {g.icon}
+                      </span>
+                      <span className={cn("text-xs font-semibold", goals.includes(g.id) ? "text-brand" : "text-slate-700")}>
+                        {g.label}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="ui-btn ui-btn-secondary ui-btn-lg gap-1.5"
+                >
+                  <ArrowLeft size={15} weight="bold" /> Voltar
+                </button>
+                <button
+                  type="button"
+                  disabled={!canSubmit || loading}
+                  onClick={handleSubmit}
+                  className="ui-btn ui-btn-primary ui-btn-lg flex-1"
+                >
+                  {loading ? (
+                    <div className="ui-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+                  ) : (
+                    <>Criar conta <ArrowRight size={16} weight="bold" /></>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
 
         <p className="text-center text-sm text-slate-500 mt-5">
           Já tem conta?{" "}
-          <a href="/login" className="font-semibold text-brand hover:underline">Entrar</a>
+          <Link href="/login" className="font-semibold text-brand hover:underline">
+            Entrar
+          </Link>
         </p>
       </div>
     </div>

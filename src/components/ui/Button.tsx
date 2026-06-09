@@ -1,5 +1,6 @@
 "use client";
 import React from "react";
+import { cn } from "@/lib/cn";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger" | "outline" | "success";
 export type ButtonSize = "xs" | "sm" | "md" | "lg";
@@ -30,7 +31,7 @@ export function Button({
 
   return (
     <button
-      className={`ui-btn ui-btn-${variant} ui-btn-${size}${fullWidth ? " w-full" : ""}${className ? " " + className : ""}`}
+      className={cn(`ui-btn ui-btn-${variant} ui-btn-${size}`, fullWidth && "w-full", className)}
       disabled={disabled || loading}
       style={style}
       {...props}

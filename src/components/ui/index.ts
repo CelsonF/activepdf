@@ -10,3 +10,12 @@ export { Badge } from "./Badge";
 export type { BadgeVariant, BadgeSize } from "./Badge";
 
 export { Divider, GhostBtn, PrimaryBtn, ModeBtn, TypeBtn, PageNavBtn } from "./Buttons";
+
+export { Logo } from "./Logo";
+export type { } from "./Logo";
+
+export { Avatar } from "./Avatar";
+
+export { ProgressRing } from "./ProgressRing";
+
+export { StatCard } from "./StatCard";

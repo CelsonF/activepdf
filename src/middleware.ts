@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
-const PUBLIC = ["/login", "/register", "/api/auth/login", "/api/auth/register"];
+const PUBLIC = ["/login", "/register", "/landing", "/api/auth/login", "/api/auth/register"];
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET ?? "activepdf-dev-secret-change-in-production"
 );
@@ -10,6 +10,7 @@ const SECRET = new TextEncoder().encode(
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
+  if (pathname === "/") return NextResponse.redirect(new URL("/landing", request.url));
   if (PUBLIC.some((p) => pathname.startsWith(p))) return NextResponse.next();
   if (pathname.startsWith("/_next") || pathname.startsWith("/favicon")) return NextResponse.next();
 
