@@ -4,6 +4,8 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import { FilePdf, ArrowLeft } from "@phosphor-icons/react";
 
+interface Subject { id: string; name: string; }
+
 function toDatetimeLocal(date: string | Date) {
   const d = new Date(date);
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -15,6 +17,7 @@ export default function EditLessonPage() {
   const { id } = useParams<{ id: string }>();
 
   const [form, setForm] = useState({
+    subjectId: "",
     scheduledAt: "",
     meetLink: "",
     content: "",
@@ -23,23 +26,28 @@ export default function EditLessonPage() {
     status: "SCHEDULED",
   });
   const [studentName, setStudentName] = useState("");
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
-    fetch(`/api/dashboard/lessons/${id}`)
-      .then((r) => r.json())
-      .then((data) => {
-        setStudentName(data.student?.name ?? "");
+    Promise.all([
+      fetch(`/api/dashboard/lessons/${id}`).then((r) => r.json()),
+      fetch("/api/dashboard/subjects").then((r) => r.json()),
+    ])
+      .then(([lesson, subs]) => {
+        setStudentName(lesson.student?.name ?? "");
         setForm({
-          scheduledAt: toDatetimeLocal(data.scheduledAt),
-          meetLink: data.meetLink ?? "",
-          content: data.content ?? "",
-          homework: data.homework ?? "",
-          notes: data.notes ?? "",
-          status: data.status,
+          subjectId: lesson.subjectId ?? "",
+          scheduledAt: toDatetimeLocal(lesson.scheduledAt),
+          meetLink: lesson.meetLink ?? "",
+          content: lesson.content ?? "",
+          homework: lesson.homework ?? "",
+          notes: lesson.notes ?? "",
+          status: lesson.status,
         });
+        if (Array.isArray(subs)) setSubjects(subs);
       })
       .finally(() => setFetching(false));
   }, [id]);
@@ -54,10 +62,11 @@ export default function EditLessonPage() {
     setError("");
     setLoading(true);
     try {
+      const body = { ...form, subjectId: form.subjectId || null };
       const res = await fetch(`/api/dashboard/lessons/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
@@ -102,18 +111,23 @@ export default function EditLessonPage() {
 
           <div className="p-5 bg-white rounded-2xl border border-slate-200 flex flex-col gap-3.5">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Status
-              </label>
-              <select
-                className="ui-input"
-                value={form.status}
-                onChange={(e) => set("status", e.target.value)}
-              >
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Status</label>
+              <select className="ui-input" value={form.status} onChange={(e) => set("status", e.target.value)}>
                 <option value="SCHEDULED">Agendada</option>
                 <option value="COMPLETED">Concluída</option>
               </select>
             </div>
+            {subjects.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Matéria</label>
+                <select className="ui-input" value={form.subjectId} onChange={(e) => set("subjectId", e.target.value)}>
+                  <option value="">Sem matéria definida</option>
+                  {subjects.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">
                 Data e hora <span className="text-red-500">*</span>

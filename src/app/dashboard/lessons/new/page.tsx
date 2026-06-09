@@ -1,8 +1,10 @@
 "use client";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { FilePdf, ArrowLeft } from "@phosphor-icons/react";
+
+interface Subject { id: string; name: string; }
 
 function NewLessonForm() {
   const router = useRouter();
@@ -11,14 +13,23 @@ function NewLessonForm() {
 
   const [form, setForm] = useState({
     studentId,
+    subjectId: "",
     scheduledAt: "",
     meetLink: "",
     content: "",
     homework: "",
     notes: "",
   });
+  const [subjects, setSubjects] = useState<Subject[]>([]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/dashboard/subjects")
+      .then((r) => r.json())
+      .then((data) => { if (Array.isArray(data)) setSubjects(data); })
+      .catch(() => {});
+  }, []);
 
   function set(field: string, value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -30,10 +41,14 @@ function NewLessonForm() {
     setError("");
     setLoading(true);
     try {
+      const body = {
+        ...form,
+        subjectId: form.subjectId || null,
+      };
       const res = await fetch("/api/dashboard/lessons", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error); return; }
@@ -66,6 +81,17 @@ function NewLessonForm() {
           {error && <div className="px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>}
 
           <div className="p-5 bg-white rounded-2xl border border-slate-200 flex flex-col gap-3.5">
+            {subjects.length > 0 && (
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">Matéria</label>
+                <select className="ui-input" value={form.subjectId} onChange={(e) => set("subjectId", e.target.value)}>
+                  <option value="">Sem matéria definida</option>
+                  {subjects.map((s) => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">Data e hora <span className="text-red-500">*</span></label>
               <input className="ui-input" type="datetime-local" value={form.scheduledAt} onChange={(e) => set("scheduledAt", e.target.value)} required />
