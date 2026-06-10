@@ -67,8 +67,14 @@ authRoutes.post("/login", async (c) => {
     return c.json({ error: "Email e senha são obrigatórios" }, 400);
   }
 
-  const professor = await prisma.professor.findUnique({ where: { email } });
-  const student = await prisma.student.findUnique({ where: { email } });
+  const professor = await prisma.professor.findUnique({
+    where: { email },
+    omit: { password: false },
+  });
+  const student = await prisma.student.findUnique({
+    where: { email },
+    omit: { password: false },
+  });
   const user = professor ?? student;
 
   if (!user || !(await bcrypt.compare(password, user.password))) {

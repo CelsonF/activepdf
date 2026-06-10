@@ -56,9 +56,9 @@ classRoutes.post("/", async (c) => {
       where: { id: { in: studentIds }, professorId: session.userId },
       select: { id: true },
     });
+    // skipDuplicates não é suportado no SQLite; a classe é nova e owned não tem repetidos
     await prisma.classStudent.createMany({
       data: owned.map((s) => ({ classId: cls.id, studentId: s.id })),
-      skipDuplicates: true,
     });
   }
 

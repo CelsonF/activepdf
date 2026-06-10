@@ -7,7 +7,14 @@ function createPrisma() {
   const adapter = new PrismaBetterSqlite3({
     url: process.env.DATABASE_URL ?? "file:./dev.db",
   });
-  return new PrismaClient({ adapter } as any);
+  return new PrismaClient({
+    adapter,
+    // Nunca expor o hash de senha em queries; o login reabilita com omit: { password: false }
+    omit: {
+      professor: { password: true },
+      student: { password: true },
+    },
+  });
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrisma();
