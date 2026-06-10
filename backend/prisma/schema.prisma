@@ -1,0 +1,245 @@
+generator client {
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Exercise {
+  id          String   @id @default(cuid())
+  title       String
+  professorId String?
+  studentId   String?
+  lessonId    String?
+  pdfName     String
+  pdfData     String   // base64-encoded PDF bytes
+  fieldsJson      String   @default("[]")
+  answersJson     String   @default("{}")        // { [fieldId]: value } saved by student
+  correctionJson  String   @default("{}")        // { grade, comment, items: { [fieldId]: { correct, feedback } } }
+  status          String   @default("assigned") // assigned | in_progress | completed | corrected
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  professor Professor? @relation(fields: [professorId], references: [id], onDelete: SetNull)
+  student   Student?   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  lesson    Lesson?    @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+}
+
+model Class {
+  id          String   @id @default(cuid())
+  professorId String
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  professor Professor      @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  students  ClassStudent[]
+}
+
+model ClassStudent {
+  classId   String
+  studentId String
+  addedAt   DateTime @default(now())
+
+  class   Class   @relation(fields: [classId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@id([classId, studentId])
+}
+
+model LibraryPdf {
+  id          String   @id @default(cuid())
+  professorId String
+  name        String
+  description String?
+  tags        String   @default("[]") // JSON string[]
+  pdfData     String   // base64-encoded PDF bytes
+  pageCount   Int?
+  fileSize    Int?     // original file size in bytes
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  professor Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+}
+
+model Organization {
+  id          String   @id @default(cuid())
+  name        String
+  slug        String   @unique
+  logoUrl     String?
+  professorId String   @unique
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  professor Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+}
+
+model Professor {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  subject   String?
+  bio       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  students      Student[]
+  lessons       Lesson[]
+  learningPlans LearningPlan[]
+  exercises     Exercise[]
+  libraryPdfs   LibraryPdf[]
+  classes       Class[]
+  organization  Organization?
+}
+
+model Student {
+  id          String   @id @default(cuid())
+  name        String
+  email       String   @unique
+  password    String
+  enrollment  String?  @unique
+  professorId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  professor         Professor?        @relation(fields: [professorId], references: [id])
+  subjects          StudentSubject[]
+  lessons           Lesson[]
+  learningPlan      LearningPlan?
+  vocabularyEntries VocabularyEntry[]
+  exercises         Exercise[]
+  userStats         UserStats?
+  achievements      Achievement[]
+  xpEvents          XpEvent[]
+  classes           ClassStudent[]
+}
+
+model Subject {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  students StudentSubject[]
+  lessons  Lesson[]
+}
+
+model StudentSubject {
+  studentId  String
+  subjectId  String
+  enrolledAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@id([studentId, subjectId])
+}
+
+model LearningPlan {
+  id          String   @id @default(cuid())
+  studentId   String   @unique
+  professorId String?
+  level       String
+  objective   String
+  bookRef     String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student   Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  professor Professor? @relation(fields: [professorId], references: [id])
+}
+
+model Lesson {
+  id          String   @id @default(cuid())
+  studentId   String
+  professorId String?
+  subjectId   String?
+  scheduledAt DateTime
+  meetLink    String?
+  content     String?
+  homework    String?
+  notes       String?
+  status      String   @default("SCHEDULED")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student           Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  professor         Professor?        @relation(fields: [professorId], references: [id])
+  subject           Subject?          @relation(fields: [subjectId], references: [id])
+  vocabularyEntries VocabularyEntry[]
+  exercises         Exercise[]
+  audioMaterials    AudioMaterial[]
+}
+
+model VocabularyEntry {
+  id         String   @id @default(cuid())
+  lessonId   String
+  studentId  String
+  word       String
+  definition String?
+  example    String?
+  note       String?
+  createdAt  DateTime @default(now())
+
+  lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+// ── Gamificação ──────────────────────────────────────────────────────────────
+
+model UserStats {
+  id           String    @id @default(cuid())
+  studentId    String    @unique
+  xp           Int       @default(0)
+  level        Int       @default(1)
+  streak       Int       @default(0)
+  lastActiveAt DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+model Achievement {
+  id         String   @id @default(cuid())
+  studentId  String
+  key        String
+  unlockedAt DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([studentId, key])
+}
+
+model XpEvent {
+  id          String   @id @default(cuid())
+  studentId   String
+  points      Int
+  reason      String
+  referenceId String?
+  createdAt   DateTime @default(now())
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+}
+
+// ── Materiais de aula ────────────────────────────────────────────────────────
+
+model AudioMaterial {
+  id           String   @id @default(cuid())
+  lessonId     String
+  title        String
+  fileData     String   // base64 do arquivo de áudio
+  mimeType     String   @default("audio/mpeg") // audio/mpeg | audio/ogg | audio/webm | audio/mp4
+  durationSecs Int?
+  transcript   String?
+  createdAt    DateTime @default(now())
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}

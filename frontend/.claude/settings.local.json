@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(node -e \"require\\('playwright'\\)\")",
+      "Bash(npx --yes playwright --version)",
+      "Bash(find /usr /home /opt -name \"playwright\" -type f 2>/dev/null | head -5 *)",
+      "Read(//usr/**)",
+      "Read(//home/celson-dev/**)",
+      "Bash(ls -la /tmp/activepdf-verify-screenshots/)",
+      "Read(//tmp/activepdf-verify-screenshots/**)",
+      "Bash(npm list *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)"
+    ]
+  }
+}

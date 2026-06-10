@@ -1,6 +1,11 @@
-.next/
 node_modules/
+.next/
+dist/
+*.db
+*.db-journal
+.env
 .env.local
+*.tsbuildinfo
+uploads/
+**/generated/
 .DS_Store
-
-/src/generated/prisma
