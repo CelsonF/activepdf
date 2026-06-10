@@ -3,6 +3,8 @@ import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma.js";
 import { signToken } from "../lib/auth.js";
 import { rateLimit } from "../middleware/rateLimit.js";
+import { jsonValidator } from "../lib/validate.js";
+import { loginSchema, registerSchema } from "../schemas/auth.js";
 
 function toSlug(name: string, suffix: string): string {
   const base = name
@@ -20,12 +22,8 @@ const authLimiter = rateLimit({ max: 10, windowMs: 15 * 60 * 1000 });
 authRoutes.use("/login", authLimiter);
 authRoutes.use("/register", authLimiter);
 
-authRoutes.post("/register", async (c) => {
-  const { name, email, password, role, teacherEmail, organizationName } = await c.req.json();
-
-  if (!name?.trim() || !email?.trim() || !password || !role) {
-    return c.json({ error: "Todos os campos são obrigatórios" }, 400);
-  }
+authRoutes.post("/register", jsonValidator(registerSchema), async (c) => {
+  const { name, email, password, role, teacherEmail, organizationName } = c.req.valid("json");
 
   const existingP = await prisma.professor.findUnique({ where: { email } });
   const existingS = await prisma.student.findUnique({ where: { email } });
@@ -65,12 +63,8 @@ authRoutes.post("/register", async (c) => {
   return c.json({ token, role: "student", name: student.name }, 201);
 });
 
-authRoutes.post("/login", async (c) => {
-  const { email, password } = await c.req.json();
-
-  if (!email || !password) {
-    return c.json({ error: "Email e senha são obrigatórios" }, 400);
-  }
+authRoutes.post("/login", jsonValidator(loginSchema), async (c) => {
+  const { email, password } = c.req.valid("json");
 
   const professor = await prisma.professor.findUnique({
     where: { email },

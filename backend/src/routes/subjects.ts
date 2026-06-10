@@ -1,12 +1,15 @@
 import { Hono } from "hono";
 import { prisma } from "../lib/prisma.js";
-import { getSession } from "../lib/auth.js";
+import { requireTeacher, type AuthEnv } from "../middleware/auth.js";
+import { jsonValidator } from "../lib/validate.js";
+import { createSubjectSchema, updateSubjectSchema } from "../schemas/misc.js";
 
-export const subjectRoutes = new Hono();
+export const subjectRoutes = new Hono<AuthEnv>();
+
+subjectRoutes.use("*", requireTeacher);
 
 subjectRoutes.get("/", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const subjects = await prisma.subject.findMany({
     where: { professorId: session.userId },
@@ -18,22 +21,18 @@ subjectRoutes.get("/", async (c) => {
   return c.json(subjects);
 });
 
-subjectRoutes.post("/", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
-
-  const { name, description } = await c.req.json();
-
-  if (!name?.trim()) return c.json({ error: "Nome é obrigatório" }, 400);
+subjectRoutes.post("/", jsonValidator(createSubjectSchema), async (c) => {
+  const session = c.get("session");
+  const { name, description } = c.req.valid("json");
 
   const existing = await prisma.subject.findFirst({
-    where: { name: name.trim(), professorId: session.userId },
+    where: { name, professorId: session.userId },
   });
   if (existing) return c.json({ error: "Já existe uma disciplina com este nome" }, 409);
 
   const subject = await prisma.subject.create({
     data: {
-      name: name.trim(),
+      name,
       description: description?.trim() || null,
       professorId: session.userId,
     },
@@ -42,8 +41,7 @@ subjectRoutes.post("/", async (c) => {
 });
 
 subjectRoutes.get("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const subject = await prisma.subject.findFirst({
     where: { id: c.req.param("id"), professorId: session.userId },
@@ -57,22 +55,19 @@ subjectRoutes.get("/:id", async (c) => {
   return c.json(subject);
 });
 
-subjectRoutes.patch("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+subjectRoutes.patch("/:id", jsonValidator(updateSubjectSchema), async (c) => {
+  const session = c.get("session");
 
   const subject = await prisma.subject.findFirst({
     where: { id: c.req.param("id"), professorId: session.userId },
   });
   if (!subject) return c.json({ error: "Disciplina não encontrada" }, 404);
 
-  const { name, description } = await c.req.json();
+  const { name, description } = c.req.valid("json");
 
-  if (name !== undefined && !name.trim()) return c.json({ error: "Nome não pode ser vazio" }, 400);
-
-  if (name?.trim()) {
+  if (name) {
     const conflict = await prisma.subject.findFirst({
-      where: { name: name.trim(), professorId: session.userId, id: { not: subject.id } },
+      where: { name, professorId: session.userId, id: { not: subject.id } },
     });
     if (conflict) return c.json({ error: "Já existe uma disciplina com este nome" }, 409);
   }
@@ -80,7 +75,7 @@ subjectRoutes.patch("/:id", async (c) => {
   const updated = await prisma.subject.update({
     where: { id: subject.id },
     data: {
-      ...(name?.trim() && { name: name.trim() }),
+      ...(name && { name }),
       ...(description !== undefined && { description: description?.trim() || null }),
     },
   });
@@ -88,8 +83,7 @@ subjectRoutes.patch("/:id", async (c) => {
 });
 
 subjectRoutes.delete("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const subject = await prisma.subject.findFirst({
     where: { id: c.req.param("id"), professorId: session.userId },

@@ -1,14 +1,19 @@
 import { Hono } from "hono";
 import { prisma } from "../lib/prisma.js";
-import { getSession } from "../lib/auth.js";
 import { awardXp } from "../lib/gamification.js";
+import { requireAuth, requireStudent, requireTeacher, type AuthEnv } from "../middleware/auth.js";
+import { jsonValidator } from "../lib/validate.js";
+import { findOwnedStudent } from "../lib/ownership.js";
+import {
+  createExerciseSchema,
+  reviewExerciseSchema,
+  updateExerciseSchema,
+} from "../schemas/exercises.js";
 
-export const exerciseRoutes = new Hono();
+export const exerciseRoutes = new Hono<AuthEnv>();
 
-exerciseRoutes.get("/", async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ error: "Não autenticado" }, 401);
-
+exerciseRoutes.get("/", requireAuth, async (c) => {
+  const session = c.get("session");
   const studentId = c.req.query("studentId");
 
   if (session.role === "teacher") {
@@ -40,26 +45,18 @@ exerciseRoutes.get("/", async (c) => {
   return c.json(exercises);
 });
 
-exerciseRoutes.post("/", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
-
-  const { title, studentId, lessonId, pdfName, pdfData, fieldsJson } = await c.req.json();
-
-  if (!title?.trim() || !pdfData || !pdfName) {
-    return c.json({ error: "Título e PDF são obrigatórios" }, 400);
-  }
+exerciseRoutes.post("/", requireTeacher, jsonValidator(createExerciseSchema), async (c) => {
+  const session = c.get("session");
+  const { title, studentId, lessonId, pdfName, pdfData, fieldsJson } = c.req.valid("json");
 
   if (studentId) {
-    const student = await prisma.student.findFirst({
-      where: { id: studentId, professorId: session.userId },
-    });
+    const student = await findOwnedStudent(session.userId, studentId);
     if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
   }
 
   const exercise = await prisma.exercise.create({
     data: {
-      title: title.trim(),
+      title,
       professorId: session.userId,
       studentId: studentId || null,
       lessonId: lessonId || null,
@@ -71,9 +68,8 @@ exerciseRoutes.post("/", async (c) => {
   return c.json({ id: exercise.id }, 201);
 });
 
-exerciseRoutes.get("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ error: "Não autenticado" }, 401);
+exerciseRoutes.get("/:id", requireAuth, async (c) => {
+  const session = c.get("session");
 
   const exercise = await prisma.exercise.findUnique({ where: { id: c.req.param("id") } });
   if (!exercise) return c.json({ error: "Exercício não encontrado" }, 404);
@@ -86,20 +82,14 @@ exerciseRoutes.get("/:id", async (c) => {
   return c.json(exercise);
 });
 
-exerciseRoutes.patch("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ error: "Não autenticado" }, 401);
-  if (session.role !== "student") return c.json({ error: "Acesso negado" }, 403);
+exerciseRoutes.patch("/:id", requireStudent, jsonValidator(updateExerciseSchema), async (c) => {
+  const session = c.get("session");
 
   const exercise = await prisma.exercise.findUnique({ where: { id: c.req.param("id") } });
   if (!exercise) return c.json({ error: "Exercício não encontrado" }, 404);
   if (exercise.studentId !== session.userId) return c.json({ error: "Acesso negado" }, 403);
 
-  const VALID = ["assigned", "in_progress", "completed"];
-  const { answersJson, status } = await c.req.json();
-  if (status !== undefined && !VALID.includes(status)) {
-    return c.json({ error: "Status inválido" }, 400);
-  }
+  const { answersJson, status } = c.req.valid("json");
 
   const wasCompleted = exercise.status !== "completed" && status === "completed";
 
@@ -118,12 +108,11 @@ exerciseRoutes.patch("/:id", async (c) => {
   return c.json({ ok: true, status: updated.status });
 });
 
-exerciseRoutes.get("/:id/review", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+exerciseRoutes.get("/:id/review", requireTeacher, async (c) => {
+  const session = c.get("session");
 
   const exercise = await prisma.exercise.findUnique({
-    where: { id: c.req.param("id") as string },
+    where: { id: c.req.param("id") },
     include: { student: { select: { id: true, name: true } } },
   });
   if (!exercise) return c.json({ error: "Exercício não encontrado" }, 404);
@@ -161,15 +150,14 @@ exerciseRoutes.get("/:id/review", async (c) => {
   });
 });
 
-exerciseRoutes.patch("/:id/review", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+exerciseRoutes.patch("/:id/review", requireTeacher, jsonValidator(reviewExerciseSchema), async (c) => {
+  const session = c.get("session");
 
-  const exercise = await prisma.exercise.findUnique({ where: { id: c.req.param("id") as string } });
+  const exercise = await prisma.exercise.findUnique({ where: { id: c.req.param("id") } });
   if (!exercise) return c.json({ error: "Exercício não encontrado" }, 404);
   if (exercise.professorId !== session.userId) return c.json({ error: "Acesso negado" }, 403);
 
-  const { grade, comment, items } = await c.req.json();
+  const { grade, comment, items } = c.req.valid("json");
 
   const correctionJson = JSON.stringify({
     grade: grade?.trim() || null,
@@ -185,9 +173,8 @@ exerciseRoutes.patch("/:id/review", async (c) => {
   return c.json({ ok: true });
 });
 
-exerciseRoutes.delete("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+exerciseRoutes.delete("/:id", requireTeacher, async (c) => {
+  const session = c.get("session");
 
   const exercise = await prisma.exercise.findUnique({ where: { id: c.req.param("id") } });
   if (!exercise) return c.json({ error: "Exercício não encontrado" }, 404);

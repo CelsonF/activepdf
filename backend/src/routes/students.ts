@@ -1,13 +1,22 @@
 import { Hono } from "hono";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma.js";
-import { getSession } from "../lib/auth.js";
+import { requireTeacher, type AuthEnv } from "../middleware/auth.js";
+import { jsonValidator } from "../lib/validate.js";
+import { findOwnedStudent } from "../lib/ownership.js";
+import {
+  addSubjectSchema,
+  createStudentSchema,
+  learningPlanSchema,
+  updateStudentSchema,
+} from "../schemas/students.js";
 
-export const studentRoutes = new Hono();
+export const studentRoutes = new Hono<AuthEnv>();
+
+studentRoutes.use("*", requireTeacher);
 
 studentRoutes.get("/", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const students = await prisma.student.findMany({
     where: { professorId: session.userId },
@@ -17,22 +26,16 @@ studentRoutes.get("/", async (c) => {
   return c.json(students);
 });
 
-studentRoutes.post("/", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
-
-  const { name, email, password, level, objective, bookRef, notes } = await c.req.json();
-
-  if (!name?.trim() || !email?.trim() || !password) {
-    return c.json({ error: "Nome, email e senha são obrigatórios" }, 400);
-  }
+studentRoutes.post("/", jsonValidator(createStudentSchema), async (c) => {
+  const session = c.get("session");
+  const { name, email, password, level, objective, bookRef, notes } = c.req.valid("json");
 
   const existing = await prisma.student.findUnique({ where: { email } });
   if (existing) return c.json({ error: "Este email já está em uso" }, 409);
 
   const hashed = await bcrypt.hash(password, 10);
   const student = await prisma.student.create({
-    data: { name: name.trim(), email, password: hashed, professorId: session.userId },
+    data: { name, email, password: hashed, professorId: session.userId },
   });
 
   if (level?.trim() && objective?.trim()) {
@@ -52,8 +55,7 @@ studentRoutes.post("/", async (c) => {
 });
 
 studentRoutes.get("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const student = await prisma.student.findUnique({
     where: { id: c.req.param("id"), professorId: session.userId },
@@ -71,16 +73,13 @@ studentRoutes.get("/:id", async (c) => {
   return c.json(student);
 });
 
-studentRoutes.patch("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+studentRoutes.patch("/:id", jsonValidator(updateStudentSchema), async (c) => {
+  const session = c.get("session");
 
-  const student = await prisma.student.findFirst({
-    where: { id: c.req.param("id"), professorId: session.userId },
-  });
+  const student = await findOwnedStudent(session.userId, c.req.param("id"));
   if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
 
-  const { name, email, enrollment } = await c.req.json();
+  const { name, email, enrollment } = c.req.valid("json");
 
   if (email !== undefined) {
     const conflict = await prisma.student.findFirst({
@@ -100,52 +99,36 @@ studentRoutes.patch("/:id", async (c) => {
   return c.json({ id: updated.id });
 });
 
-studentRoutes.patch("/:id/plan", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+studentRoutes.patch("/:id/plan", jsonValidator(learningPlanSchema), async (c) => {
+  const session = c.get("session");
 
-  const student = await prisma.student.findFirst({
-    where: { id: c.req.param("id"), professorId: session.userId },
-  });
+  const student = await findOwnedStudent(session.userId, c.req.param("id"));
   if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
 
-  const { level, objective, bookRef, notes } = await c.req.json();
+  const { level, objective, bookRef, notes } = c.req.valid("json");
 
-  if (!level?.trim() || !objective?.trim()) {
-    return c.json({ error: "Nível e objetivo são obrigatórios" }, 400);
-  }
+  const planData = {
+    level,
+    objective,
+    bookRef: bookRef?.trim() || null,
+    notes: notes?.trim() || null,
+  };
 
   const plan = await prisma.learningPlan.upsert({
     where: { studentId: student.id },
-    create: {
-      studentId: student.id,
-      professorId: session.userId,
-      level: level.trim(),
-      objective: objective.trim(),
-      bookRef: bookRef?.trim() || null,
-      notes: notes?.trim() || null,
-    },
-    update: {
-      level: level.trim(),
-      objective: objective.trim(),
-      bookRef: bookRef?.trim() || null,
-      notes: notes?.trim() || null,
-    },
+    create: { studentId: student.id, professorId: session.userId, ...planData },
+    update: planData,
   });
   return c.json({ id: plan.id });
 });
 
-studentRoutes.post("/:id/subjects", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+studentRoutes.post("/:id/subjects", jsonValidator(addSubjectSchema), async (c) => {
+  const session = c.get("session");
 
-  const student = await prisma.student.findFirst({
-    where: { id: c.req.param("id") as string, professorId: session.userId },
-  });
+  const student = await findOwnedStudent(session.userId, c.req.param("id"));
   if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
 
-  const { subjectId } = await c.req.json();
-  if (!subjectId) return c.json({ error: "subjectId é obrigatório" }, 400);
+  const { subjectId } = c.req.valid("json");
 
   const subject = await prisma.subject.findFirst({
     where: { id: subjectId, professorId: session.userId },
@@ -162,15 +145,12 @@ studentRoutes.post("/:id/subjects", async (c) => {
 });
 
 studentRoutes.delete("/:id/subjects/:subjectId", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
-  const student = await prisma.student.findFirst({
-    where: { id: c.req.param("id") as string, professorId: session.userId },
-  });
+  const student = await findOwnedStudent(session.userId, c.req.param("id"));
   if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
 
-  const subjectId = c.req.param("subjectId") as string;
+  const subjectId = c.req.param("subjectId");
 
   const enrollment = await prisma.studentSubject.findUnique({
     where: { studentId_subjectId: { studentId: student.id, subjectId } },
@@ -185,12 +165,9 @@ studentRoutes.delete("/:id/subjects/:subjectId", async (c) => {
 });
 
 studentRoutes.delete("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
-  const student = await prisma.student.findFirst({
-    where: { id: c.req.param("id"), professorId: session.userId },
-  });
+  const student = await findOwnedStudent(session.userId, c.req.param("id"));
   if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
 
   await prisma.student.delete({ where: { id: student.id } });

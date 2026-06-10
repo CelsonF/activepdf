@@ -1,21 +1,22 @@
 import { Hono } from "hono";
 import { prisma } from "../lib/prisma.js";
-import { getSession } from "../lib/auth.js";
 import { awardXp } from "../lib/gamification.js";
+import { requireAuth, requireTeacher, type AuthEnv } from "../middleware/auth.js";
+import { jsonValidator } from "../lib/validate.js";
+import { findOwnedStudent } from "../lib/ownership.js";
+import { createLessonSchema, updateLessonSchema } from "../schemas/lessons.js";
 
-export const lessonRoutes = new Hono();
+export const lessonRoutes = new Hono<AuthEnv>();
 
-lessonRoutes.get("/", async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ error: "Não autorizado" }, 401);
-
+lessonRoutes.get("/", requireAuth, async (c) => {
+  const session = c.get("session");
   const status = c.req.query("status");
 
   if (session.role === "student") {
     const lessons = await prisma.lesson.findMany({
       where: {
         studentId: session.userId,
-        ...(status ? { status: status as "SCHEDULED" | "COMPLETED" } : {}),
+        ...(status ? { status } : {}),
       },
       select: {
         id: true,
@@ -35,7 +36,7 @@ lessonRoutes.get("/", async (c) => {
   const lessons = await prisma.lesson.findMany({
     where: {
       professorId: session.userId,
-      ...(status ? { status: status as "SCHEDULED" | "COMPLETED" } : {}),
+      ...(status ? { status } : {}),
       ...(studentId ? { studentId } : {}),
     },
     include: { student: { select: { id: true, name: true } } },
@@ -44,19 +45,12 @@ lessonRoutes.get("/", async (c) => {
   return c.json(lessons);
 });
 
-lessonRoutes.post("/", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+lessonRoutes.post("/", requireTeacher, jsonValidator(createLessonSchema), async (c) => {
+  const session = c.get("session");
+  const { studentId, subjectId, scheduledAt, meetLink, content, homework, notes } =
+    c.req.valid("json");
 
-  const { studentId, subjectId, scheduledAt, meetLink, content, homework, notes } = await c.req.json();
-
-  if (!studentId || !scheduledAt) {
-    return c.json({ error: "Aluno e data são obrigatórios" }, 400);
-  }
-
-  const student = await prisma.student.findFirst({
-    where: { id: studentId, professorId: session.userId },
-  });
+  const student = await findOwnedStudent(session.userId, studentId);
   if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
 
   const lesson = await prisma.lesson.create({
@@ -75,11 +69,9 @@ lessonRoutes.post("/", async (c) => {
   return c.json({ id: lesson.id }, 201);
 });
 
-lessonRoutes.get("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ error: "Não autorizado" }, 401);
-
-  const lessonId = c.req.param("id") as string;
+lessonRoutes.get("/:id", requireAuth, async (c) => {
+  const session = c.get("session");
+  const lessonId = c.req.param("id");
 
   if (session.role === "student") {
     const lesson = await prisma.lesson.findFirst({
@@ -115,16 +107,16 @@ lessonRoutes.get("/:id", async (c) => {
   return c.json(lesson);
 });
 
-lessonRoutes.patch("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+lessonRoutes.patch("/:id", requireTeacher, jsonValidator(updateLessonSchema), async (c) => {
+  const session = c.get("session");
 
   const existing = await prisma.lesson.findFirst({
     where: { id: c.req.param("id"), professorId: session.userId },
   });
   if (!existing) return c.json({ error: "Aula não encontrada" }, 404);
 
-  const { subjectId, scheduledAt, meetLink, content, homework, notes, status } = await c.req.json();
+  const { subjectId, scheduledAt, meetLink, content, homework, notes, status } =
+    c.req.valid("json");
 
   const wasCompleted = existing.status !== "COMPLETED" && status === "COMPLETED";
 
@@ -148,9 +140,8 @@ lessonRoutes.patch("/:id", async (c) => {
   return c.json(updated);
 });
 
-lessonRoutes.delete("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+lessonRoutes.delete("/:id", requireTeacher, async (c) => {
+  const session = c.get("session");
 
   const existing = await prisma.lesson.findFirst({
     where: { id: c.req.param("id"), professorId: session.userId },

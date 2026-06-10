@@ -1,13 +1,12 @@
 import { Hono } from "hono";
 import { prisma } from "../lib/prisma.js";
-import { getSession } from "../lib/auth.js";
+import { requireStudent, requireTeacher, type AuthEnv } from "../middleware/auth.js";
 
-export const dashboardRoutes = new Hono();
+export const dashboardRoutes = new Hono<AuthEnv>();
 
 // Returns everything TeacherDashboard needs in one round-trip
-dashboardRoutes.get("/teacher", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+dashboardRoutes.get("/teacher", requireTeacher, async (c) => {
+  const session = c.get("session");
 
   const [professor, exercises] = await Promise.all([
     prisma.professor.findUnique({
@@ -52,9 +51,8 @@ dashboardRoutes.get("/teacher", async (c) => {
 });
 
 // Returns everything StudentDashboard needs in one round-trip
-dashboardRoutes.get("/student", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "student") return c.json({ error: "Não autorizado" }, 401);
+dashboardRoutes.get("/student", requireStudent, async (c) => {
+  const session = c.get("session");
 
   const [student, exercises] = await Promise.all([
     prisma.student.findUnique({
@@ -74,6 +72,7 @@ dashboardRoutes.get("/student", async (c) => {
       where: { studentId: session.userId },
       select: { id: true, title: true, pdfName: true, status: true, createdAt: true },
       orderBy: { createdAt: "desc" },
+      take: 50,
     }),
   ]);
 

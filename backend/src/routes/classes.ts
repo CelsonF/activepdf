@@ -1,14 +1,21 @@
 import { Hono } from "hono";
 import { prisma } from "../lib/prisma.js";
-import { getSession } from "../lib/auth.js";
+import { requireTeacher, type AuthEnv } from "../middleware/auth.js";
+import { jsonValidator } from "../lib/validate.js";
+import { findOwnedStudent } from "../lib/ownership.js";
+import {
+  addClassStudentSchema,
+  createClassSchema,
+  updateClassSchema,
+} from "../schemas/misc.js";
 
-export const classRoutes = new Hono();
+export const classRoutes = new Hono<AuthEnv>();
+
+classRoutes.use("*", requireTeacher);
 
 // GET /api/classes
 classRoutes.get("/", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher")
-    return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const classes = await prisma.class.findMany({
     where: { professorId: session.userId },
@@ -35,23 +42,19 @@ classRoutes.get("/", async (c) => {
 });
 
 // POST /api/classes
-classRoutes.post("/", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher")
-    return c.json({ error: "Não autorizado" }, 401);
-
-  const { name, description, studentIds } = await c.req.json();
-  if (!name?.trim()) return c.json({ error: "Nome é obrigatório" }, 400);
+classRoutes.post("/", jsonValidator(createClassSchema), async (c) => {
+  const session = c.get("session");
+  const { name, description, studentIds } = c.req.valid("json");
 
   const cls = await prisma.class.create({
     data: {
       professorId: session.userId,
-      name: name.trim(),
+      name,
       description: description?.trim() || null,
     },
   });
 
-  if (Array.isArray(studentIds) && studentIds.length > 0) {
+  if (studentIds && studentIds.length > 0) {
     const owned = await prisma.student.findMany({
       where: { id: { in: studentIds }, professorId: session.userId },
       select: { id: true },
@@ -67,9 +70,7 @@ classRoutes.post("/", async (c) => {
 
 // GET /api/classes/:id
 classRoutes.get("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher")
-    return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const cls = await prisma.class.findUnique({
     where: { id: c.req.param("id") },
@@ -81,7 +82,6 @@ classRoutes.get("/:id", async (c) => {
               id: true,
               name: true,
               email: true,
-              learningPlan: { select: { level: true } },
               userStats: { select: { xp: true, level: true, streak: true } },
             },
           },
@@ -107,19 +107,15 @@ classRoutes.get("/:id", async (c) => {
 });
 
 // PATCH /api/classes/:id — rename / redescribe
-classRoutes.patch("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher")
-    return c.json({ error: "Não autorizado" }, 401);
+classRoutes.patch("/:id", jsonValidator(updateClassSchema), async (c) => {
+  const session = c.get("session");
 
-  const cls = await prisma.class.findUnique({
-    where: { id: c.req.param("id") },
-  });
+  const cls = await prisma.class.findUnique({ where: { id: c.req.param("id") } });
   if (!cls) return c.json({ error: "Turma não encontrada" }, 404);
   if (cls.professorId !== session.userId)
     return c.json({ error: "Acesso negado" }, 403);
 
-  const { name, description } = await c.req.json();
+  const { name, description } = c.req.valid("json");
 
   await prisma.class.update({
     where: { id: cls.id },
@@ -136,13 +132,9 @@ classRoutes.patch("/:id", async (c) => {
 
 // DELETE /api/classes/:id
 classRoutes.delete("/:id", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher")
-    return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
-  const cls = await prisma.class.findUnique({
-    where: { id: c.req.param("id") },
-  });
+  const cls = await prisma.class.findUnique({ where: { id: c.req.param("id") } });
   if (!cls) return c.json({ error: "Turma não encontrada" }, 404);
   if (cls.professorId !== session.userId)
     return c.json({ error: "Acesso negado" }, 403);
@@ -152,24 +144,17 @@ classRoutes.delete("/:id", async (c) => {
 });
 
 // POST /api/classes/:id/students — add student(s)
-classRoutes.post("/:id/students", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher")
-    return c.json({ error: "Não autorizado" }, 401);
+classRoutes.post("/:id/students", jsonValidator(addClassStudentSchema), async (c) => {
+  const session = c.get("session");
 
-  const cls = await prisma.class.findUnique({
-    where: { id: c.req.param("id") },
-  });
+  const cls = await prisma.class.findUnique({ where: { id: c.req.param("id") } });
   if (!cls) return c.json({ error: "Turma não encontrada" }, 404);
   if (cls.professorId !== session.userId)
     return c.json({ error: "Acesso negado" }, 403);
 
-  const { studentId } = await c.req.json();
-  if (!studentId) return c.json({ error: "studentId é obrigatório" }, 400);
+  const { studentId } = c.req.valid("json");
 
-  const student = await prisma.student.findFirst({
-    where: { id: studentId, professorId: session.userId },
-  });
+  const student = await findOwnedStudent(session.userId, studentId);
   if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
 
   await prisma.classStudent.upsert({
@@ -183,13 +168,9 @@ classRoutes.post("/:id/students", async (c) => {
 
 // DELETE /api/classes/:id/students/:studentId — remove student
 classRoutes.delete("/:id/students/:studentId", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher")
-    return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
-  const cls = await prisma.class.findUnique({
-    where: { id: c.req.param("id") },
-  });
+  const cls = await prisma.class.findUnique({ where: { id: c.req.param("id") } });
   if (!cls) return c.json({ error: "Turma não encontrada" }, 404);
   if (cls.professorId !== session.userId)
     return c.json({ error: "Acesso negado" }, 403);

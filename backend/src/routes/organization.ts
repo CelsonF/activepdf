@@ -2,27 +2,20 @@ import { Hono } from "hono";
 import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { prisma } from "../lib/prisma.js";
-import { getSession } from "../lib/auth.js";
+import { requireTeacher, type AuthEnv } from "../middleware/auth.js";
+import { jsonValidator } from "../lib/validate.js";
 import { decodeBase64Payload, detectImage } from "../lib/files.js";
+import { updateOrganizationSchema } from "../schemas/misc.js";
 
-export const organizationRoutes = new Hono();
+export const organizationRoutes = new Hono<AuthEnv>();
+
+organizationRoutes.use("*", requireTeacher);
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
-function toSlug(name: string, suffix: string): string {
-  const base = name
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-|-$/g, "");
-  return `${base}-${suffix}`;
-}
-
 // GET /api/organization — retorna a org do professor logado
 organizationRoutes.get("/", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const org = await prisma.organization.findUnique({
     where: { professorId: session.userId },
@@ -32,22 +25,21 @@ organizationRoutes.get("/", async (c) => {
 });
 
 // PATCH /api/organization — atualiza nome e/ou logo (base64)
-organizationRoutes.patch("/", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+organizationRoutes.patch("/", jsonValidator(updateOrganizationSchema), async (c) => {
+  const session = c.get("session");
 
   const org = await prisma.organization.findUnique({
     where: { professorId: session.userId },
   });
   if (!org) return c.json({ error: "Organização não encontrada" }, 404);
 
-  const { name, logoBase64 } = await c.req.json();
+  const { name, logoBase64 } = c.req.valid("json");
 
   let logoUrl = org.logoUrl;
 
   if (logoBase64) {
     // formato: "data:image/jpeg;base64,/9j/..."
-    if (typeof logoBase64 !== "string" || !/^data:image\/[a-z+.-]+;base64,/.test(logoBase64)) {
+    if (!/^data:image\/[a-z+.-]+;base64,/.test(logoBase64)) {
       return c.json({ error: "Formato de imagem inválido" }, 400);
     }
 

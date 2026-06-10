@@ -1,27 +1,37 @@
 import { Hono } from "hono";
 import { prisma } from "../lib/prisma.js";
-import { getSession } from "../lib/auth.js";
 import { awardXp, ACHIEVEMENT_META } from "../lib/gamification.js";
+import { requireAuth, requireTeacher, type AuthEnv } from "../middleware/auth.js";
+import { jsonValidator } from "../lib/validate.js";
+import { findOwnedStudent } from "../lib/ownership.js";
+import { awardXpSchema } from "../schemas/misc.js";
+import type { SessionPayload } from "../lib/auth.js";
+import type { Context } from "hono";
 
-export const gamificationRoutes = new Hono();
+export const gamificationRoutes = new Hono<AuthEnv>();
 
-gamificationRoutes.get("/stats", async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ error: "Não autorizado" }, 401);
+/** Professor consulta um aluno seu via ?studentId=; aluno consulta a si mesmo. */
+async function resolveTargetStudent(
+  c: Context,
+  session: SessionPayload
+): Promise<{ targetId: string } | { error: Response }> {
+  if (session.role !== "teacher") return { targetId: session.userId };
 
-  let targetId: string;
-
-  if (session.role === "teacher") {
-    const studentId = c.req.query("studentId");
-    if (!studentId) return c.json({ error: "studentId é obrigatório" }, 400);
-    const owns = await prisma.student.findFirst({
-      where: { id: studentId, professorId: session.userId },
-    });
-    if (!owns) return c.json({ error: "Aluno não encontrado" }, 404);
-    targetId = studentId;
-  } else {
-    targetId = session.userId;
+  const studentId = c.req.query("studentId");
+  if (!studentId) {
+    return { error: c.json({ error: "studentId é obrigatório" }, 400) };
   }
+  const owns = await findOwnedStudent(session.userId, studentId);
+  if (!owns) return { error: c.json({ error: "Aluno não encontrado" }, 404) };
+  return { targetId: studentId };
+}
+
+gamificationRoutes.get("/stats", requireAuth, async (c) => {
+  const session = c.get("session");
+
+  const resolved = await resolveTargetStudent(c, session);
+  if ("error" in resolved) return resolved.error;
+  const targetId = resolved.targetId;
 
   const [stats, achievements, recentEvents] = await Promise.all([
     prisma.userStats.findUnique({ where: { studentId: targetId } }),
@@ -50,9 +60,8 @@ gamificationRoutes.get("/stats", async (c) => {
   });
 });
 
-gamificationRoutes.get("/leaderboard", async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ error: "Não autorizado" }, 401);
+gamificationRoutes.get("/leaderboard", requireAuth, async (c) => {
+  const session = c.get("session");
 
   let professorId: string;
 
@@ -90,45 +99,23 @@ gamificationRoutes.get("/leaderboard", async (c) => {
   return c.json(ranked);
 });
 
-gamificationRoutes.post("/award", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher") return c.json({ error: "Não autorizado" }, 401);
+gamificationRoutes.post("/award", requireTeacher, jsonValidator(awardXpSchema), async (c) => {
+  const session = c.get("session");
+  const { studentId, points, reason } = c.req.valid("json");
 
-  const { studentId, points, reason } = await c.req.json();
-
-  if (!studentId || !points || !reason?.trim()) {
-    return c.json({ error: "studentId, points e reason são obrigatórios" }, 400);
-  }
-  if (typeof points !== "number" || points <= 0 || points > 500) {
-    return c.json({ error: "points deve ser entre 1 e 500" }, 400);
-  }
-
-  const student = await prisma.student.findFirst({
-    where: { id: studentId, professorId: session.userId },
-  });
+  const student = await findOwnedStudent(session.userId, studentId);
   if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
 
-  const result = await awardXp(studentId, points, `teacher_award:${reason.trim()}`);
+  const result = await awardXp(studentId, points, `teacher_award:${reason}`);
   return c.json(result, 201);
 });
 
-gamificationRoutes.get("/achievements", async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ error: "Não autorizado" }, 401);
+gamificationRoutes.get("/achievements", requireAuth, async (c) => {
+  const session = c.get("session");
 
-  let targetId: string;
-
-  if (session.role === "teacher") {
-    const studentId = c.req.query("studentId");
-    if (!studentId) return c.json({ error: "studentId é obrigatório" }, 400);
-    const owns = await prisma.student.findFirst({
-      where: { id: studentId, professorId: session.userId },
-    });
-    if (!owns) return c.json({ error: "Aluno não encontrado" }, 404);
-    targetId = studentId;
-  } else {
-    targetId = session.userId;
-  }
+  const resolved = await resolveTargetStudent(c, session);
+  if ("error" in resolved) return resolved.error;
+  const targetId = resolved.targetId;
 
   const unlocked = await prisma.achievement.findMany({
     where: { studentId: targetId },

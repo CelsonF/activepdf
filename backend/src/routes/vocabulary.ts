@@ -1,23 +1,19 @@
 import { Hono } from "hono";
 import { prisma } from "../lib/prisma.js";
-import { getSession } from "../lib/auth.js";
+import { requireAuth, type AuthEnv } from "../middleware/auth.js";
+import { jsonValidator } from "../lib/validate.js";
+import { findOwnedLesson, findOwnedStudent } from "../lib/ownership.js";
+import { createVocabularySchema } from "../schemas/misc.js";
 
-export const vocabularyRoutes = new Hono();
+export const vocabularyRoutes = new Hono<AuthEnv>();
 
-async function resolveLesson(lessonId: string | undefined, session: { userId: string; role: string }) {
-  if (!lessonId) return null;
-  if (session.role === "teacher") {
-    return prisma.lesson.findFirst({ where: { id: lessonId, professorId: session.userId } });
-  }
-  return prisma.lesson.findFirst({ where: { id: lessonId, studentId: session.userId } });
-}
+vocabularyRoutes.use("*", requireAuth);
 
 vocabularyRoutes.get("/", async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const lessonId = c.req.param("lessonId") as string;
-  const lesson = await resolveLesson(lessonId, session);
+  const lesson = await findOwnedLesson(lessonId, session);
   if (!lesson) return c.json({ error: "Aula não encontrada" }, 404);
 
   // Aluno só vê as próprias entradas; professor só filtra por aluno que é seu
@@ -25,9 +21,7 @@ vocabularyRoutes.get("/", async (c) => {
   if (session.role === "student") {
     studentId = session.userId;
   } else if (studentId) {
-    const owns = await prisma.student.findFirst({
-      where: { id: studentId, professorId: session.userId },
-    });
+    const owns = await findOwnedStudent(session.userId, studentId);
     if (!owns) return c.json({ error: "Aluno não encontrado" }, 404);
   }
 
@@ -41,24 +35,20 @@ vocabularyRoutes.get("/", async (c) => {
   return c.json(entries);
 });
 
-vocabularyRoutes.post("/", async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ error: "Não autorizado" }, 401);
+vocabularyRoutes.post("/", jsonValidator(createVocabularySchema), async (c) => {
+  const session = c.get("session");
 
   const lessonId = c.req.param("lessonId") as string;
-  const lesson = await resolveLesson(lessonId, session);
+  const lesson = await findOwnedLesson(lessonId, session);
   if (!lesson) return c.json({ error: "Aula não encontrada" }, 404);
 
-  const { word, definition, example, note, studentId: bodyStudentId } = await c.req.json();
-  if (!word?.trim()) return c.json({ error: "Palavra é obrigatória" }, 400);
+  const { word, definition, example, note, studentId: bodyStudentId } = c.req.valid("json");
 
   const targetStudentId =
     session.role === "teacher" ? bodyStudentId ?? lesson.studentId : session.userId;
 
   if (session.role === "teacher") {
-    const owns = await prisma.student.findFirst({
-      where: { id: targetStudentId, professorId: session.userId },
-    });
+    const owns = await findOwnedStudent(session.userId, targetStudentId);
     if (!owns) return c.json({ error: "Aluno não encontrado" }, 404);
   } else if (targetStudentId !== session.userId) {
     return c.json({ error: "Não autorizado" }, 401);
@@ -68,7 +58,7 @@ vocabularyRoutes.post("/", async (c) => {
     data: {
       lessonId,
       studentId: targetStudentId,
-      word: word.trim(),
+      word,
       definition: definition?.trim() || null,
       example: example?.trim() || null,
       note: note?.trim() || null,
@@ -78,19 +68,16 @@ vocabularyRoutes.post("/", async (c) => {
 });
 
 vocabularyRoutes.delete("/:wordId", async (c) => {
-  const session = await getSession(c);
-  if (!session) return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const lessonId = c.req.param("lessonId") as string;
-  const wordId = c.req.param("wordId") as string;
+  const wordId = c.req.param("wordId");
 
   const entry = await prisma.vocabularyEntry.findUnique({ where: { id: wordId } });
   if (!entry || entry.lessonId !== lessonId) return c.json({ error: "Entrada não encontrada" }, 404);
 
   if (session.role === "teacher") {
-    const lesson = await prisma.lesson.findFirst({
-      where: { id: lessonId, professorId: session.userId },
-    });
+    const lesson = await findOwnedLesson(lessonId, session);
     if (!lesson) return c.json({ error: "Não autorizado" }, 401);
   } else if (entry.studentId !== session.userId) {
     return c.json({ error: "Não autorizado" }, 401);

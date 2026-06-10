@@ -1,14 +1,14 @@
 import { Hono } from "hono";
 import { prisma } from "../lib/prisma.js";
-import { getSession } from "../lib/auth.js";
+import { requireTeacher, type AuthEnv } from "../middleware/auth.js";
 
-export const reportsRoutes = new Hono();
+export const reportsRoutes = new Hono<AuthEnv>();
+
+reportsRoutes.use("*", requireTeacher);
 
 // GET /api/reports — per-student summary for the professor
 reportsRoutes.get("/", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher")
-    return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const students = await prisma.student.findMany({
     where: { professorId: session.userId },
@@ -103,9 +103,7 @@ reportsRoutes.get("/", async (c) => {
 
 // GET /api/reports/:studentId — detailed timeline for one student
 reportsRoutes.get("/:studentId", async (c) => {
-  const session = await getSession(c);
-  if (!session || session.role !== "teacher")
-    return c.json({ error: "Não autorizado" }, 401);
+  const session = c.get("session");
 
   const student = await prisma.student.findFirst({
     where: { id: c.req.param("studentId"), professorId: session.userId },
