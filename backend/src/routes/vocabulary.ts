@@ -20,7 +20,16 @@ vocabularyRoutes.get("/", async (c) => {
   const lesson = await resolveLesson(lessonId, session);
   if (!lesson) return c.json({ error: "Aula não encontrada" }, 404);
 
-  const studentId = c.req.query("studentId");
+  // Aluno só vê as próprias entradas; professor só filtra por aluno que é seu
+  let studentId = c.req.query("studentId");
+  if (session.role === "student") {
+    studentId = session.userId;
+  } else if (studentId) {
+    const owns = await prisma.student.findFirst({
+      where: { id: studentId, professorId: session.userId },
+    });
+    if (!owns) return c.json({ error: "Aluno não encontrado" }, 404);
+  }
 
   const entries = await prisma.vocabularyEntry.findMany({
     where: {
