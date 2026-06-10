@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -17,6 +17,8 @@ import {
   Exam,
   TextT,
   Headphones,
+  Camera,
+  Building,
 } from "@phosphor-icons/react";
 import { Logo } from "@/components/ui/Logo";
 import { cn } from "@/lib/cn";
@@ -47,12 +49,16 @@ const GOALS = [
   { id: "listening" as Goal, icon: <Headphones size={16} weight="bold" />, label: "Listening" },
 ];
 
-const STEP_LABELS = ["Conta", "Perfil", "Objetivos"];
+function stepLabels(role: Role | null) {
+  if (role === "teacher") return ["Conta", "Perfil", "Escola"];
+  return ["Conta", "Perfil", "Objetivos"];
+}
 
 export default function RegisterPage() {
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [showPassword, setShowPassword] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Step 0 — account
   const [name, setName] = useState("");
@@ -60,39 +66,75 @@ export default function RegisterPage() {
   const [password, setPassword] = useState("");
   const [teacherEmail, setTeacherEmail] = useState("");
 
-  // Step 1 — profile
+  // Step 1 — role
   const [role, setRole] = useState<Role | null>(null);
 
-  // Step 2 — goals
+  // Step 2 teacher — org
+  const [orgName, setOrgName] = useState("");
+  const [orgLogoB64, setOrgLogoB64] = useState<string | null>(null);
+  const [orgLogoPreview, setOrgLogoPreview] = useState<string | null>(null);
+
+  // Step 2 student — goals
   const [level, setLevel] = useState<Level>("B1");
   const [goals, setGoals] = useState<Goal[]>(["conversation"]);
 
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const LABELS = stepLabels(role);
+
   const toggleGoal = (id: Goal) =>
     setGoals((g) => (g.includes(id) ? g.filter((x) => x !== id) : [...g, id]));
 
+  function handleLogoFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setOrgLogoB64(result);
+      setOrgLogoPreview(result);
+    };
+    reader.readAsDataURL(file);
+  }
+
   const canNext0 = name.trim().length > 0 && email.includes("@") && password.length >= 6;
   const canNext1 = role !== null;
-  const canSubmit = canNext0 && canNext1 && goals.length > 0;
+  const canSubmitTeacher = canNext0 && canNext1 && orgName.trim().length > 0;
+  const canSubmitStudent = canNext0 && canNext1 && goals.length > 0;
+  const canSubmit = role === "teacher" ? canSubmitTeacher : canSubmitStudent;
 
   async function handleSubmit() {
     if (!canSubmit) return;
     setError("");
     setLoading(true);
     try {
+      const body: Record<string, unknown> = { name, email, password, role };
+
+      if (role === "teacher") {
+        body.organizationName = orgName.trim();
+        if (orgLogoB64) body.logoBase64 = orgLogoB64;
+      } else {
+        body.teacherEmail = teacherEmail || undefined;
+        body.level = level;
+        body.goals = goals;
+      }
+
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name, email, password, role,
-          teacherEmail: teacherEmail || undefined,
-          level, goals,
-        }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Erro ao criar conta."); setStep(0); return; }
+
+      // Se professor mandou logo, envia via PATCH /api/organization
+      if (role === "teacher" && orgLogoB64) {
+        await fetch("/api/organization", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: orgName.trim(), logoBase64: orgLogoB64 }),
+        });
+      }
+
       router.push("/dashboard");
       router.refresh();
     } finally {
@@ -109,7 +151,7 @@ export default function RegisterPage() {
 
         {/* Step indicator */}
         <div className="flex items-center justify-center gap-2 mb-8">
-          {STEP_LABELS.map((label, i) => (
+          {LABELS.map((label, i) => (
             <div key={i} className="flex items-center gap-2">
               <div
                 className={cn(
@@ -131,7 +173,7 @@ export default function RegisterPage() {
               >
                 {label}
               </span>
-              {i < STEP_LABELS.length - 1 && (
+              {i < LABELS.length - 1 && (
                 <div className={cn("w-8 h-px ml-1", i < step ? "bg-brand" : "bg-slate-200")} />
               )}
             </div>
@@ -146,7 +188,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* ── Step 0 — Conta ───────────────────────── */}
+          {/* ── Step 0 — Conta ─────────────────────── */}
           {step === 0 && (
             <>
               <h1 className="text-xl font-bold text-slate-900 mb-1">Criar conta</h1>
@@ -204,7 +246,7 @@ export default function RegisterPage() {
             </>
           )}
 
-          {/* ── Step 1 — Perfil ──────────────────────── */}
+          {/* ── Step 1 — Perfil ────────────────────── */}
           {step === 1 && (
             <>
               <h1 className="text-xl font-bold text-slate-900 mb-1">Qual é o seu perfil?</h1>
@@ -251,11 +293,7 @@ export default function RegisterPage() {
               )}
 
               <div className="flex gap-2.5 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setStep(0)}
-                  className="ui-btn ui-btn-secondary ui-btn-lg gap-1.5"
-                >
+                <button type="button" onClick={() => setStep(0)} className="ui-btn ui-btn-secondary ui-btn-lg gap-1.5">
                   <ArrowLeft size={15} weight="bold" /> Voltar
                 </button>
                 <button
@@ -270,8 +308,93 @@ export default function RegisterPage() {
             </>
           )}
 
-          {/* ── Step 2 — Objetivos ───────────────────── */}
-          {step === 2 && (
+          {/* ── Step 2 teacher — Escola ────────────── */}
+          {step === 2 && role === "teacher" && (
+            <>
+              <h1 className="text-xl font-bold text-slate-900 mb-1">Sua escola</h1>
+              <p className="text-sm text-slate-500 mb-6">
+                Configure o perfil da sua organização. Os alunos verão este nome e logo.
+              </p>
+
+              {/* Logo picker */}
+              <div className="flex items-center gap-4 mb-6">
+                <div className="relative shrink-0">
+                  <div
+                    className="w-16 h-16 rounded-2xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden cursor-pointer hover:border-brand transition-colors"
+                    onClick={() => fileRef.current?.click()}
+                  >
+                    {orgLogoPreview ? (
+                      <img src={orgLogoPreview} alt="Logo" className="w-full h-full object-cover" />
+                    ) : (
+                      <Building size={24} className="text-slate-300" weight="bold" />
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => fileRef.current?.click()}
+                    className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-brand text-white flex items-center justify-center shadow-sm hover:bg-brand-dark"
+                  >
+                    <Camera size={11} weight="bold" />
+                  </button>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleLogoFile(file);
+                    }}
+                  />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-800">Logo da escola</p>
+                  <p className="text-xs text-slate-400 mt-0.5">Clique para fazer upload (opcional)</p>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                    Nome da escola / organização <span className="text-red-400">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    className="ui-input py-2.5 text-sm"
+                    placeholder={`${name.trim() || "Sarah"}'s English Academy`}
+                    value={orgName}
+                    onChange={(e) => setOrgName(e.target.value)}
+                    maxLength={80}
+                    autoFocus
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Aparecerá no painel dos seus alunos.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex gap-2.5 mt-6">
+                <button type="button" onClick={() => setStep(1)} className="ui-btn ui-btn-secondary ui-btn-lg gap-1.5">
+                  <ArrowLeft size={15} weight="bold" /> Voltar
+                </button>
+                <button
+                  type="button"
+                  disabled={!canSubmit || loading}
+                  onClick={handleSubmit}
+                  className="ui-btn ui-btn-primary ui-btn-lg flex-1"
+                >
+                  {loading ? (
+                    <div className="ui-spinner" style={{ width: 16, height: 16, borderWidth: 2 }} />
+                  ) : (
+                    <>Criar escola <ArrowRight size={16} weight="bold" /></>
+                  )}
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── Step 2 student — Objetivos ─────────── */}
+          {step === 2 && role !== "teacher" && (
             <>
               <h1 className="text-xl font-bold text-slate-900 mb-1">Seus objetivos</h1>
               <p className="text-sm text-slate-500 mb-5">Selecione seu nível e o que quer praticar.</p>
@@ -327,11 +450,7 @@ export default function RegisterPage() {
               </div>
 
               <div className="flex gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => setStep(1)}
-                  className="ui-btn ui-btn-secondary ui-btn-lg gap-1.5"
-                >
+                <button type="button" onClick={() => setStep(1)} className="ui-btn ui-btn-secondary ui-btn-lg gap-1.5">
                   <ArrowLeft size={15} weight="bold" /> Voltar
                 </button>
                 <button

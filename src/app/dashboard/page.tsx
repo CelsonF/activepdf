@@ -11,7 +11,34 @@ import { Avatar, ProgressRing } from "@/components/ui";
 import { LogoutLink } from "./_components/SidebarNav";
 import { cn } from "@/lib/cn";
 
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const LEVEL_THRESHOLDS = [0, 100, 250, 500, 1000, 2000, 4000];
+
+function xpPct(level: number, xp: number) {
+  const curr = LEVEL_THRESHOLDS[level - 1] ?? 0;
+  const next = LEVEL_THRESHOLDS[level] ?? LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1];
+  if (xp >= next) return 100;
+  return Math.round(((xp - curr) / (next - curr)) * 100);
+}
+
 // ── Types ────────────────────────────────────────────────────────────────────
+
+interface GamificationStats {
+  xp: number;
+  level: number;
+  streak: number;
+  achievements: Array<{ key: string; label: string; unlockedAt: string }>;
+}
+
+interface LeaderboardEntry {
+  id: string;
+  name: string;
+  xp: number;
+  level: number;
+  streak: number;
+  rank: number;
+}
 
 interface TeacherData {
   professor: {
@@ -101,7 +128,7 @@ const STATUS_COLOR: Record<string, string> = {
 
 // ── Student Dashboard ────────────────────────────────────────────────────────
 
-function StudentDashboard({ name, data }: { name: string; data: StudentData | null }) {
+function StudentDashboard({ name, data, gamif }: { name: string; data: StudentData | null; gamif: GamificationStats | null }) {
   const firstName = name.split(" ")[0];
   const student = data?.student;
   const exercises = data?.exercises ?? [];
@@ -157,23 +184,22 @@ function StudentDashboard({ name, data }: { name: string; data: StudentData | nu
               <h2 className="text-[13px] font-bold text-slate-700 mb-3">Próximas aulas</h2>
               <div className="flex flex-col gap-2">
                 {upcoming.slice(0, 3).map((lesson) => (
-                  <Link
+                  <div
                     key={lesson.id}
-                    href={`/dashboard/lessons/${lesson.id}`}
                     className="flex items-center gap-3 p-3 rounded-xl bg-brand-light border border-[#c7d2fe] hover:border-brand transition-all duration-150"
                   >
                     <CalendarBlank size={16} weight="bold" className="text-brand shrink-0" />
-                    <div className="flex-1 min-w-0">
+                    <Link href={`/dashboard/lessons/${lesson.id}`} className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-brand">{fmt(lesson.scheduledAt)} às {fmtTime(lesson.scheduledAt)}</p>
                       {lesson.subject && <p className="text-xs text-indigo-600">{lesson.subject.name}</p>}
                       {lesson.content && <p className="text-xs text-slate-600 truncate">{lesson.content}</p>}
-                    </div>
+                    </Link>
                     {lesson.meetLink && (
-                      <a href={lesson.meetLink} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()} className="ui-btn ui-btn-primary ui-btn-xs shrink-0">
+                      <a href={lesson.meetLink} target="_blank" rel="noopener noreferrer" className="ui-btn ui-btn-primary ui-btn-xs shrink-0">
                         Meet
                       </a>
                     )}
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>
@@ -269,14 +295,73 @@ function StudentDashboard({ name, data }: { name: string; data: StudentData | nu
             </div>
           )}
 
-          {/* Gamificação — sprint 5 */}
-          <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <Trophy size={16} weight="bold" className="text-amber-400" />
-              <h2 className="text-[13px] font-bold text-slate-700">Gamificação</h2>
-              <span className="ml-auto text-[10px] font-bold bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">Em breve</span>
+          {/* Gamificação */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5">
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy size={16} weight="fill" className="text-amber-400" />
+              <h2 className="text-[13px] font-bold text-slate-700">Progresso</h2>
+              {gamif && gamif.streak > 0 && (
+                <span className="ml-auto flex items-center gap-1 text-[12px] font-bold text-amber-600">
+                  <Flame size={14} weight="fill" /> {gamif.streak}d
+                </span>
+              )}
             </div>
-            <p className="text-[12px] text-slate-400 leading-relaxed">XP, streak, conquistas e ranking chegam no Sprint 5.</p>
+
+            {gamif ? (
+              <>
+                {/* Level + XP bar */}
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="text-[12px] font-bold text-slate-600 flex items-center gap-1">
+                      <Lightning size={11} weight="fill" className="text-brand" />
+                      Nível {gamif.level}
+                    </span>
+                    <span className="text-[11px] text-slate-400 tabular-nums">
+                      {gamif.xp.toLocaleString("pt-BR")} XP
+                    </span>
+                  </div>
+                  <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-brand rounded-full"
+                      style={{ width: `${xpPct(gamif.level, gamif.xp)}%` }}
+                    />
+                  </div>
+                  {LEVEL_THRESHOLDS[gamif.level] != null && (
+                    <p className="text-[10px] text-slate-400 mt-1 text-right">
+                      {LEVEL_THRESHOLDS[gamif.level]!.toLocaleString("pt-BR")} XP para nível {gamif.level + 1}
+                    </p>
+                  )}
+                </div>
+
+                {/* Achievements */}
+                {gamif.achievements.length > 0 && (
+                  <div className="flex items-center gap-2 py-2 px-3 bg-amber-50 rounded-xl border border-amber-100 mb-3">
+                    <Star size={14} weight="fill" className="text-amber-400 shrink-0" />
+                    <p className="text-[12px] font-semibold text-amber-700">
+                      {gamif.achievements.length} conquista{gamif.achievements.length !== 1 ? "s" : ""} desbloqueada{gamif.achievements.length !== 1 ? "s" : ""}
+                    </p>
+                  </div>
+                )}
+
+                {/* Quick links */}
+                <div className="flex gap-2">
+                  <Link
+                    href="/dashboard/achievements"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 text-[12px] font-semibold text-slate-600 hover:border-brand hover:text-brand transition-colors"
+                  >
+                    <Star size={12} weight="bold" /> Conquistas
+                  </Link>
+                  <Link
+                    href="/dashboard/ranking"
+                    className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-slate-200 text-[12px] font-semibold text-slate-600 hover:border-brand hover:text-brand transition-colors"
+                  >
+                    <Trophy size={12} weight="bold" /> Ranking
+                  </Link>
+                </div>
+              </>
+            ) : (
+              <p className="text-[12px] text-slate-400">Complete exercícios para ganhar XP.</p>
+            )}
           </div>
         </div>
       </div>
@@ -286,7 +371,7 @@ function StudentDashboard({ name, data }: { name: string; data: StudentData | nu
 
 // ── Teacher Dashboard ────────────────────────────────────────────────────────
 
-function TeacherDashboard({ name, data }: { name: string; data: TeacherData | null }) {
+function TeacherDashboard({ name, data, leaderboard }: { name: string; data: TeacherData | null; leaderboard: LeaderboardEntry[] }) {
   const firstName = name.split(" ")[0];
   const professor = data?.professor;
   const exercises = data?.exercises ?? [];
@@ -347,15 +432,14 @@ function TeacherDashboard({ name, data }: { name: string; data: TeacherData | nu
               </div>
               <div className="flex flex-col gap-2">
                 {upcomingLessons.map((lesson) => (
-                  <Link
+                  <div
                     key={lesson.id}
-                    href={`/dashboard/lessons/${lesson.id}`}
                     className="flex items-center gap-3 p-4 bg-white rounded-xl border border-slate-200 hover:border-brand hover:shadow-sm transition-all duration-150 group"
                   >
                     <div className="w-10 h-10 rounded-xl bg-brand-light flex items-center justify-center shrink-0">
                       <CalendarBlank size={18} weight="bold" className="text-brand" />
                     </div>
-                    <div className="flex-1 min-w-0">
+                    <Link href={`/dashboard/lessons/${lesson.id}`} className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <p className="text-[13px] font-semibold text-slate-800 group-hover:text-brand transition-colors truncate">
                           {lesson.student.name}
@@ -366,13 +450,13 @@ function TeacherDashboard({ name, data }: { name: string; data: TeacherData | nu
                       </div>
                       <p className="text-[12px] text-slate-500">{fmt(lesson.scheduledAt)} às {fmtTime(lesson.scheduledAt)}</p>
                       {lesson.content && <p className="text-[11px] text-slate-400 truncate mt-0.5">{lesson.content}</p>}
-                    </div>
+                    </Link>
                     {lesson.meetLink && (
-                      <a href={lesson.meetLink} target="_blank" rel="noopener" onClick={(e) => e.stopPropagation()} className="ui-btn ui-btn-primary ui-btn-xs shrink-0">
+                      <a href={lesson.meetLink} target="_blank" rel="noopener noreferrer" className="ui-btn ui-btn-primary ui-btn-xs shrink-0">
                         Meet
                       </a>
                     )}
-                  </Link>
+                  </div>
                 ))}
               </div>
             </div>
@@ -447,14 +531,60 @@ function TeacherDashboard({ name, data }: { name: string; data: TeacherData | nu
             </div>
           )}
 
-          {/* Gamificação — sprint 5 */}
-          <div className="bg-white rounded-2xl border border-dashed border-slate-200 p-5">
-            <div className="flex items-center gap-2 mb-2">
-              <Trophy size={16} weight="bold" className="text-amber-400" />
-              <h2 className="text-[13px] font-bold text-slate-700">Ranking de alunos</h2>
-              <span className="ml-auto text-[10px] font-bold bg-slate-100 text-slate-400 px-2 py-0.5 rounded-full">Em breve</span>
+          {/* Ranking de alunos */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <Trophy size={16} weight="fill" className="text-amber-400" />
+                <h2 className="text-[13px] font-bold text-slate-700">Ranking XP</h2>
+              </div>
+              {leaderboard.length > 0 && (
+                <Link href="/dashboard/reports" className="text-[12px] text-brand font-semibold hover:underline">
+                  Relatórios
+                </Link>
+              )}
             </div>
-            <p className="text-[12px] text-slate-400 leading-relaxed">Ranking, XP dos alunos e conquistas chegam no Sprint 5.</p>
+
+            {leaderboard.length === 0 ? (
+              <p className="text-[12px] text-slate-400 text-center py-2">
+                Nenhum aluno cadastrado ainda.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-3">
+                {leaderboard.slice(0, 5).map((entry) => {
+                  const pct = xpPct(entry.level, entry.xp);
+                  return (
+                    <div key={entry.id} className="flex items-center gap-2">
+                      <span className="w-5 text-center shrink-0">
+                        <RankBadge rank={entry.rank} />
+                      </span>
+                      <div className="flex-1 min-w-0">
+                        <Link
+                          href={`/dashboard/students/${entry.id}`}
+                          className="text-[12px] font-semibold text-slate-700 truncate hover:text-brand hover:underline block"
+                        >
+                          {entry.name}
+                        </Link>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <div className="flex-1 h-1 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className="h-full bg-brand rounded-full"
+                              style={{ width: `${pct}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-slate-400 tabular-nums shrink-0">
+                            {entry.xp} XP
+                          </span>
+                        </div>
+                      </div>
+                      <span className="ui-badge ui-badge-sm ui-badge-brand shrink-0 tabular-nums">
+                        Nv.{entry.level}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -498,23 +628,31 @@ export default async function DashboardPage() {
 
   let teacherData: TeacherData | null = null;
   let studentData: StudentData | null = null;
+  let gamifStats: GamificationStats | null = null;
+  let leaderboard: LeaderboardEntry[] = [];
 
-  try {
-    if (session.role === "teacher") {
-      teacherData = await serverFetch<TeacherData>("/api/dashboard/teacher");
-    } else {
-      studentData = await serverFetch<StudentData>("/api/dashboard/student");
-    }
-  } catch {
-    // renders with null data — empty state is handled per component
+  if (session.role === "teacher") {
+    const [td, lb] = await Promise.allSettled([
+      serverFetch<TeacherData>("/api/dashboard/teacher"),
+      serverFetch<LeaderboardEntry[]>("/api/gamification/leaderboard"),
+    ]);
+    if (td.status === "fulfilled") teacherData = td.value;
+    if (lb.status === "fulfilled") leaderboard = lb.value;
+  } else {
+    const [sd, gs] = await Promise.allSettled([
+      serverFetch<StudentData>("/api/dashboard/student"),
+      serverFetch<GamificationStats>("/api/gamification/stats"),
+    ]);
+    if (sd.status === "fulfilled") studentData = sd.value;
+    if (gs.status === "fulfilled") gamifStats = gs.value;
   }
 
   return (
     <>
       <Topbar name={session.name ?? "User"} role={session.role} initials={session.name ?? "U"} />
       {session.role === "teacher"
-        ? <TeacherDashboard name={session.name ?? "Professor"} data={teacherData} />
-        : <StudentDashboard name={session.name ?? "Aluno"} data={studentData} />}
+        ? <TeacherDashboard name={session.name ?? "Professor"} data={teacherData} leaderboard={leaderboard} />
+        : <StudentDashboard name={session.name ?? "Aluno"} data={studentData} gamif={gamifStats} />}
     </>
   );
 }

@@ -53,7 +53,7 @@ export default async function ExercisesPage() {
               {exercises.length} exercício{exercises.length !== 1 ? "s" : ""} criado{exercises.length !== 1 ? "s" : ""}
             </p>
           </div>
-          <Link href="/" className="ui-btn ui-btn-primary ui-btn-md gap-1.5">
+          <Link href="/dashboard/exercises/new" className="ui-btn ui-btn-primary ui-btn-md gap-1.5">
             <Plus size={14} weight="bold" /> Criar exercício
           </Link>
         </div>
@@ -62,7 +62,7 @@ export default async function ExercisesPage() {
           <div className="text-center py-14 bg-white rounded-2xl border border-dashed border-slate-300">
             <FilePdf size={32} className="text-slate-300 mx-auto mb-3" />
             <p className="text-sm text-slate-500 mb-4">Nenhum exercício criado ainda.</p>
-            <Link href="/" className="ui-btn ui-btn-primary ui-btn-sm inline-flex gap-1.5">
+            <Link href="/dashboard/exercises/new" className="ui-btn ui-btn-primary ui-btn-sm inline-flex gap-1.5">
               <Plus size={13} weight="bold" /> Criar primeiro exercício
             </Link>
           </div>

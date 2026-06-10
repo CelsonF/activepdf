@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   User,
   LockSimple,
@@ -8,19 +8,22 @@ import {
   ShieldCheck,
   Camera,
   CheckCircle,
+  Building,
 } from "@phosphor-icons/react";
 import { Avatar } from "@/components/ui/Avatar";
 import { cn } from "@/lib/cn";
 
-type Tab = "profile" | "account" | "notifications" | "learning" | "privacy";
+type Tab = "profile" | "organization" | "account" | "notifications" | "learning" | "privacy";
 
-const TABS: { id: Tab; icon: React.ReactNode; label: string }[] = [
+const BASE_TABS: { id: Tab; icon: React.ReactNode; label: string }[] = [
   { id: "profile", icon: <User size={16} weight="bold" />, label: "Perfil" },
   { id: "account", icon: <LockSimple size={16} weight="bold" />, label: "Conta" },
   { id: "notifications", icon: <Bell size={16} weight="bold" />, label: "Notificações" },
   { id: "learning", icon: <GraduationCap size={16} weight="bold" />, label: "Aprendizado" },
   { id: "privacy", icon: <ShieldCheck size={16} weight="bold" />, label: "Privacidade" },
 ];
+
+const ORG_TAB = { id: "organization" as Tab, icon: <Building size={16} weight="bold" />, label: "Organização" };
 
 type Level = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 const LEVELS: Level[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
@@ -67,8 +70,17 @@ function NotifRow({ label, desc, on, onChange }: { label: string; desc?: string;
   );
 }
 
+interface OrgData {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+}
+
 export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("profile");
+  const [isTeacher, setIsTeacher] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
 
   // Profile
   const [displayName, setDisplayName] = useState("Ana Souza");
@@ -81,31 +93,88 @@ export default function SettingsPage() {
   const [newPwd, setNewPwd] = useState("");
 
   // Notifications
-  const [notif, setNotif] = useState({
-    streak: true,
-    weekly: true,
-    ranking: true,
-    product: false,
-    email: true,
-  });
+  const [notif, setNotif] = useState({ streak: true, weekly: true, ranking: true, product: false, email: true });
 
   // Learning
   const [level, setLevel] = useState<Level>("B1");
   const [dailyGoal, setDailyGoal] = useState(20);
 
   // Privacy
-  const [privacy, setPrivacy] = useState({
-    publicProfile: true,
-    showRanking: true,
-    shareProgress: false,
-  });
+  const [privacy, setPrivacy] = useState({ publicProfile: true, showRanking: true, shareProgress: false });
+
+  // Organization
+  const [org, setOrg] = useState<OrgData | null>(null);
+  const [orgName, setOrgName] = useState("");
+  const [orgLogoB64, setOrgLogoB64] = useState<string | null>(null);
+  const [orgLogoPreview, setOrgLogoPreview] = useState<string | null>(null);
+  const [orgLoading, setOrgLoading] = useState(false);
 
   const [saved, setSaved] = useState(false);
+  const [orgSaved, setOrgSaved] = useState(false);
+
+  useEffect(() => {
+    // Detect role from session cookie heuristic — try fetching org
+    fetch("/api/organization")
+      .then((r) => {
+        if (r.ok) {
+          setIsTeacher(true);
+          return r.json();
+        }
+        return null;
+      })
+      .then((data: OrgData | null) => {
+        if (data) {
+          setOrg(data);
+          setOrgName(data.name);
+          if (data.logoUrl) setOrgLogoPreview(data.logoUrl);
+        }
+      });
+  }, []);
+
+  const TABS = isTeacher
+    ? [BASE_TABS[0], ORG_TAB, ...BASE_TABS.slice(1)]
+    : BASE_TABS;
+
+  function handleLogoFile(file: File) {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const result = e.target?.result as string;
+      setOrgLogoB64(result);
+      setOrgLogoPreview(result);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function handleSaveOrg() {
+    if (!orgName.trim()) return;
+    setOrgLoading(true);
+    try {
+      const body: Record<string, unknown> = { name: orgName.trim() };
+      if (orgLogoB64) body.logoBase64 = orgLogoB64;
+
+      const res = await fetch("/api/organization", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (res.ok) {
+        const updated: OrgData = await res.json();
+        setOrg(updated);
+        setOrgLogoB64(null);
+        setOrgSaved(true);
+        setTimeout(() => setOrgSaved(false), 2500);
+      }
+    } finally {
+      setOrgLoading(false);
+    }
+  }
 
   function handleSave() {
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   }
+
+  const backendBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -137,6 +206,93 @@ export default function SettingsPage() {
           <div className="flex-1 min-w-0">
             <div className="bg-white rounded-2xl border border-slate-200 p-6 shadow-card">
 
+              {/* ── ORGANIZATION ─── */}
+              {tab === "organization" && (
+                <div className="flex flex-col gap-5">
+                  <div>
+                    <h2 className="text-base font-bold text-slate-900 mb-0.5">Organização</h2>
+                    <p className="text-sm text-slate-500">Nome e logo exibidos para seus alunos.</p>
+                  </div>
+
+                  {/* Logo picker */}
+                  <div className="flex items-center gap-4">
+                    <div className="relative shrink-0">
+                      <div
+                        className="w-20 h-20 rounded-2xl border-2 border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden cursor-pointer hover:border-brand transition-colors"
+                        onClick={() => fileRef.current?.click()}
+                      >
+                        {orgLogoPreview ? (
+                          <img
+                            src={orgLogoPreview.startsWith("data:") ? orgLogoPreview : `${backendBase}${orgLogoPreview}`}
+                            alt="Logo"
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <Building size={28} className="text-slate-300" weight="bold" />
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => fileRef.current?.click()}
+                        className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-brand text-white flex items-center justify-center shadow-sm hover:bg-brand-dark"
+                      >
+                        <Camera size={13} weight="bold" />
+                      </button>
+                      <input
+                        ref={fileRef}
+                        type="file"
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) handleLogoFile(file);
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-800">{org?.name ?? "Sua escola"}</p>
+                      <p className="text-xs text-slate-400 mt-0.5">Clique no ícone para mudar o logo</p>
+                      {org?.slug && (
+                        <p className="text-[11px] text-slate-300 mt-1 font-mono">/{org.slug}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="h-px bg-slate-100" />
+
+                  <FieldRow label="Nome da escola / organização" hint="Máximo 80 caracteres.">
+                    <input
+                      type="text"
+                      className="ui-input py-2.5 text-sm"
+                      value={orgName}
+                      onChange={(e) => setOrgName(e.target.value)}
+                      placeholder="Ex: Sarah's English Academy"
+                      maxLength={80}
+                    />
+                  </FieldRow>
+
+                  <div className="pt-2 border-t border-slate-100 flex items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={handleSaveOrg}
+                      disabled={orgLoading || !orgName.trim()}
+                      className="ui-btn ui-btn-primary ui-btn-md"
+                    >
+                      {orgLoading ? (
+                        <div className="ui-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+                      ) : (
+                        "Salvar organização"
+                      )}
+                    </button>
+                    {orgSaved && (
+                      <span className="flex items-center gap-1.5 text-sm text-emerald-600 animate-fadeUp">
+                        <CheckCircle size={15} weight="fill" /> Salvo com sucesso
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* ── PROFILE ─── */}
               {tab === "profile" && (
                 <div className="flex flex-col gap-5">
@@ -145,7 +301,6 @@ export default function SettingsPage() {
                     <p className="text-sm text-slate-500">Informações exibidas para outros usuários.</p>
                   </div>
 
-                  {/* Avatar picker */}
                   <div className="flex items-center gap-4">
                     <div className="relative">
                       <Avatar name={displayName} size={64} />
@@ -321,14 +476,10 @@ export default function SettingsPage() {
                 </div>
               )}
 
-              {/* Save button */}
-              {tab !== "account" && (
+              {/* Save button — not on account or organization (has its own) */}
+              {tab !== "account" && tab !== "organization" && (
                 <div className="mt-6 pt-5 border-t border-slate-100 flex items-center gap-3">
-                  <button
-                    type="button"
-                    onClick={handleSave}
-                    className="ui-btn ui-btn-primary ui-btn-md"
-                  >
+                  <button type="button" onClick={handleSave} className="ui-btn ui-btn-primary ui-btn-md">
                     Salvar alterações
                   </button>
                   {saved && (
