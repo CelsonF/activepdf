@@ -122,7 +122,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_COLOR: Record<string, string> = {
   assigned: "bg-amber-50 text-amber-700 border-amber-200",
-  in_progress: "bg-brand-light text-brand border-[#c7d2fe]",
+  in_progress: "bg-brand-light text-brand border-indigo-200",
   completed: "bg-emerald-50 text-emerald-700 border-emerald-200",
 };
 
@@ -186,7 +186,7 @@ function StudentDashboard({ name, data, gamif }: { name: string; data: StudentDa
                 {upcoming.slice(0, 3).map((lesson) => (
                   <div
                     key={lesson.id}
-                    className="flex items-center gap-3 p-3 rounded-xl bg-brand-light border border-[#c7d2fe] hover:border-brand transition-all duration-150"
+                    className="flex items-center gap-3 p-3 rounded-xl bg-brand-light border border-indigo-200 hover:border-brand transition-all duration-150"
                   >
                     <CalendarBlank size={16} weight="bold" className="text-brand shrink-0" />
                     <Link href={`/dashboard/lessons/${lesson.id}`} className="flex-1 min-w-0">

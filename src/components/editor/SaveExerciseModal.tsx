@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
-import { X, FloppyDisk, BookOpen } from "@phosphor-icons/react";
+import { FloppyDisk, BookOpen } from "@phosphor-icons/react";
+import { DialogRoot, DialogContent, DialogHeader, DialogFooter } from "@/components/ui/Dialog";
 import type { PdfField } from "@/types";
 
 interface Props {
@@ -40,8 +41,6 @@ export function SaveExerciseModal({ isOpen, onClose, pdfName, pdfBytes, fields, 
       .then((data) => Array.isArray(data) && setStudents(data));
   }, [isOpen, pdfName]);
 
-  if (!isOpen) return null;
-
   async function handleSave() {
     if (!title.trim()) { setError("Informe um título para o exercício"); return; }
     if (!pdfBytes) { setError("PDF não carregado"); return; }
@@ -72,25 +71,13 @@ export function SaveExerciseModal({ isOpen, onClose, pdfName, pdfBytes, fields, 
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[2px]" onClick={onClose} />
+    <DialogRoot open={isOpen} onOpenChange={(o) => !o && onClose()}>
+      <DialogContent>
+        <DialogHeader
+          title="Salvar como exercício"
+          icon={<BookOpen size={14} weight="bold" className="text-brand" />}
+        />
 
-      <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-md animate-fadeUp">
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-brand-light flex items-center justify-center">
-              <BookOpen size={14} weight="bold" className="text-brand" />
-            </div>
-            <h2 className="text-sm font-bold text-slate-900">Salvar como exercício</h2>
-          </div>
-          <button onClick={onClose} className="ui-btn ui-btn-ghost ui-btn-xs p-1">
-            <X size={14} />
-          </button>
-        </div>
-
-        {/* Body */}
         <div className="p-5 flex flex-col gap-4">
           {error && (
             <div className="px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{error}</div>
@@ -129,14 +116,14 @@ export function SaveExerciseModal({ isOpen, onClose, pdfName, pdfBytes, fields, 
           </div>
 
           <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
-            <div className="text-xs text-slate-600">
-              <span className="font-semibold">{fields.length}</span> campo{fields.length !== 1 ? "s" : ""} criado{fields.length !== 1 ? "s" : ""} serão salvos para o aluno preencher.
-            </div>
+            <p className="text-xs text-slate-600">
+              <span className="font-semibold">{fields.length}</span>{" "}
+              campo{fields.length !== 1 ? "s" : ""} criado{fields.length !== 1 ? "s" : ""} serão salvos para o aluno preencher.
+            </p>
           </div>
         </div>
 
-        {/* Footer */}
-        <div className="flex justify-end gap-2 px-5 py-4 border-t border-slate-100">
+        <DialogFooter>
           <button onClick={onClose} className="ui-btn ui-btn-ghost ui-btn-md">Cancelar</button>
           <button
             onClick={handleSave}
@@ -144,12 +131,12 @@ export function SaveExerciseModal({ isOpen, onClose, pdfName, pdfBytes, fields, 
             className="ui-btn ui-btn-primary ui-btn-md gap-1.5"
           >
             {loading
-              ? <div className="ui-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
+              ? <span className="ui-spinner w-3.5 h-3.5 border-2 text-white" />
               : <FloppyDisk size={14} weight="bold" />}
             Salvar exercício
           </button>
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </DialogRoot>
   );
 }

@@ -63,8 +63,8 @@ const ACHIEVEMENT_COLORS: Record<string, string> = {
   streak_3: "text-amber-600 bg-amber-50 border-amber-200",
   streak_7: "text-orange-600 bg-orange-50 border-orange-200",
   streak_30: "text-red-600 bg-red-50 border-red-200",
-  xp_100: "text-brand bg-brand-light border-[#c7d2fe]",
-  xp_500: "text-brand bg-brand-light border-[#c7d2fe]",
+  xp_100: "text-brand bg-brand-light border-indigo-200",
+  xp_500: "text-brand bg-brand-light border-indigo-200",
   xp_1000: "text-amber-500 bg-amber-50 border-amber-200",
 };
 
@@ -210,7 +210,7 @@ function AchievementCard({
   unlocked: boolean;
 }) {
   const colorCls = unlocked
-    ? (ACHIEVEMENT_COLORS[ach.key] ?? "text-brand bg-brand-light border-[#c7d2fe]")
+    ? (ACHIEVEMENT_COLORS[ach.key] ?? "text-brand bg-brand-light border-indigo-200")
     : "text-slate-300 bg-slate-50 border-slate-200";
 
   const icon = ACHIEVEMENT_ICONS[ach.key] ?? <Sparkle size={20} weight="fill" />;

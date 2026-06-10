@@ -116,8 +116,8 @@ export function Toolbar({ role, name, exerciseId, savedAnswersJson }: Props) {
     try {
       const msg = await exportPDF(exportMode, pdfBytes, pdfDoc, fields, pdfName, (s) => toast(s));
       toast(msg, "success");
-    } catch (e: any) {
-      toast("Erro ao exportar: " + (e.message || String(e)), "error");
+    } catch (e: unknown) {
+      toast("Erro ao exportar: " + (e instanceof Error ? e.message : String(e)), "error");
     }
   }
 
@@ -129,8 +129,8 @@ export function Toolbar({ role, name, exerciseId, savedAnswersJson }: Props) {
     try {
       const msg = await exportFilledPDF(pdfBytes, fields, fieldValues, pdfName, (s) => toast(s));
       toast(msg, "success");
-    } catch (e: any) {
-      toast("Erro ao exportar: " + (e.message || String(e)), "error");
+    } catch (e: unknown) {
+      toast("Erro ao exportar: " + (e instanceof Error ? e.message : String(e)), "error");
     }
   }
 

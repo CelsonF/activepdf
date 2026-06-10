@@ -150,7 +150,7 @@ export default async function CorrectionsPage() {
               label: "Em andamento",
               value: inProgress.length,
               color: "text-brand",
-              bg: "bg-brand-light border-[#c7d2fe]",
+              bg: "bg-brand-light border-indigo-200",
             },
           ].map((s) => (
             <div

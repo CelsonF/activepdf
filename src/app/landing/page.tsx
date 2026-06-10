@@ -274,7 +274,7 @@ export default function LandingPage() {
 
       {/* ── CTA ─────────────────────────────────────────── */}
       <section className="max-w-6xl mx-auto px-6 py-20">
-        <div className="rounded-3xl bg-brand-light border border-[#c7d2fe] px-10 py-14 text-center">
+        <div className="rounded-3xl bg-brand-light border border-indigo-200 px-10 py-14 text-center">
           <h2 className="text-[34px] font-bold text-slate-900 tracking-[-0.02em] mb-3">
             Pronto para ativar um PDF?
           </h2>

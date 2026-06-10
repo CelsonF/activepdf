@@ -2,8 +2,9 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { serverFetch } from "@/lib/api";
-import { FilePdf, ArrowLeft, Plus } from "@phosphor-icons/react/dist/ssr";
+import { FilePdf, Plus } from "@phosphor-icons/react/dist/ssr";
 import { DeleteExerciseButton } from "./_components";
+import { PageShell } from "@/components/ui/PageShell";
 
 interface Exercise {
   id: string;
@@ -31,19 +32,7 @@ export default async function ExercisesPage() {
   const exercises = await serverFetch<Exercise[]>("/api/exercises");
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-4 h-[52px] flex items-center gap-3 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
-        <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
-          <FilePdf size={14} weight="bold" color="white" />
-        </div>
-        <span className="font-extrabold text-[15px] text-slate-900 tracking-[-0.3px]">ActivePDF</span>
-        <div className="ui-divider" />
-        <Link href="/dashboard" className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 transition-colors">
-          <ArrowLeft size={14} /> Dashboard
-        </Link>
-        <span className="text-slate-300">/</span>
-        <span className="text-sm font-semibold text-slate-700">Exercícios</span>
-      </header>
+    <PageShell breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Exercícios" }]}>
 
       <div className="max-w-3xl mx-auto px-4 py-8 animate-fadeUp">
         <div className="flex items-center justify-between mb-8">
@@ -94,6 +83,6 @@ export default async function ExercisesPage() {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

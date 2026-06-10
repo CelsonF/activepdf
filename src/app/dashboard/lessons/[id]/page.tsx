@@ -3,10 +3,26 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { serverFetch } from "@/lib/api";
 import {
-  FilePdf, ArrowLeft, VideoCamera,
+  VideoCamera, ArrowRight,
   CheckCircle, Clock, Pencil, BookOpen, NoteBlank
 } from "@phosphor-icons/react/dist/ssr";
 import { DeleteLessonButton, MarkCompleteButton } from "./_components";
+import { PageShell } from "@/components/ui/PageShell";
+
+interface VocabularyEntry { id: string; word: string; definition?: string | null; example?: string | null; }
+interface LessonStudent { id: string; name: string; email: string; }
+interface LessonDetail {
+  id: string;
+  status: string;
+  studentId: string;
+  scheduledAt: string;
+  meetLink?: string | null;
+  content?: string | null;
+  homework?: string | null;
+  notes?: string | null;
+  student: LessonStudent;
+  vocabularyEntries: VocabularyEntry[];
+}
 
 function fmt(date: string) {
   return new Date(date).toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long", year: "numeric" });
@@ -19,9 +35,9 @@ export default async function LessonDetailPage({ params }: { params: { id: strin
   const session = await getSession();
   if (!session || session.role !== "teacher") redirect("/dashboard");
 
-  let lesson: any;
+  let lesson: LessonDetail;
   try {
-    lesson = await serverFetch(`/api/lessons/${params.id}`);
+    lesson = await serverFetch<LessonDetail>(`/api/lessons/${params.id}`);
   } catch {
     notFound();
   }
@@ -29,21 +45,7 @@ export default async function LessonDetailPage({ params }: { params: { id: strin
   const isScheduled = lesson.status === "SCHEDULED";
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-4 h-[52px] flex items-center gap-3 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
-        <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
-          <FilePdf size={14} weight="bold" color="white" />
-        </div>
-        <span className="font-extrabold text-[15px] text-slate-900 tracking-[-0.3px]">ActivePDF</span>
-        <div className="ui-divider" />
-        <Link href="/dashboard/lessons" className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 transition-colors">
-          <ArrowLeft size={14} /> Aulas
-        </Link>
-        <span className="text-slate-300">/</span>
-        <span className="text-sm font-semibold text-slate-700 truncate max-w-[200px]">
-          {lesson.student.name}
-        </span>
-      </header>
+    <PageShell breadcrumbs={[{ label: "Aulas", href: "/dashboard/lessons" }, { label: lesson.student.name }]}>
 
       <div className="max-w-2xl mx-auto px-4 py-8 animate-fadeUp">
         <div className="flex items-start justify-between mb-6">
@@ -76,7 +78,7 @@ export default async function LessonDetailPage({ params }: { params: { id: strin
             <p className="text-sm font-semibold text-slate-800">{lesson.student.name}</p>
             <p className="text-xs text-slate-400">{lesson.student.email}</p>
           </div>
-          <ArrowLeft size={14} className="text-slate-300 rotate-180" />
+          <ArrowRight size={14} className="text-slate-300" />
         </Link>
 
         <div className="flex flex-col gap-4">
@@ -126,7 +128,7 @@ export default async function LessonDetailPage({ params }: { params: { id: strin
                 Vocabulário ({lesson.vocabularyEntries.length})
               </p>
               <div className="flex flex-col gap-2">
-                {lesson.vocabularyEntries.map((v: any) => (
+                {lesson.vocabularyEntries.map((v) => (
                   <div key={v.id} className="flex gap-3 py-2 border-b border-slate-100 last:border-0">
                     <span className="text-sm font-semibold text-slate-800 w-32 shrink-0">{v.word}</span>
                     <div className="flex-1 min-w-0">
@@ -146,6 +148,6 @@ export default async function LessonDetailPage({ params }: { params: { id: strin
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

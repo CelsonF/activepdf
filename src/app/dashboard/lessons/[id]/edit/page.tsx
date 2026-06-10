@@ -2,7 +2,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { FilePdf, ArrowLeft } from "@phosphor-icons/react";
+import { PageShell } from "@/components/ui/PageShell";
 
 interface Subject { id: string; name: string; }
 
@@ -17,13 +17,7 @@ export default function EditLessonPage() {
   const { id } = useParams<{ id: string }>();
 
   const [form, setForm] = useState({
-    subjectId: "",
-    scheduledAt: "",
-    meetLink: "",
-    content: "",
-    homework: "",
-    notes: "",
-    status: "SCHEDULED",
+    subjectId: "", scheduledAt: "", meetLink: "", content: "", homework: "", notes: "", status: "SCHEDULED",
   });
   const [studentName, setStudentName] = useState("");
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -77,29 +71,20 @@ export default function EditLessonPage() {
     }
   }
 
+  const breadcrumbs = [{ label: "Voltar", href: `/dashboard/lessons/${id}` }, { label: "Editar aula" }];
+
   if (fetching) {
     return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="ui-spinner" />
-      </div>
+      <PageShell breadcrumbs={breadcrumbs}>
+        <div className="flex items-center justify-center py-20">
+          <span className="ui-spinner" />
+        </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-4 h-[52px] flex items-center gap-3 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
-        <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
-          <FilePdf size={14} weight="bold" color="white" />
-        </div>
-        <span className="font-extrabold text-[15px] text-slate-900 tracking-[-0.3px]">ActivePDF</span>
-        <div className="ui-divider" />
-        <Link href={`/dashboard/lessons/${id}`} className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 transition-colors">
-          <ArrowLeft size={14} /> Voltar
-        </Link>
-        <span className="text-slate-300">/</span>
-        <span className="text-sm font-semibold text-slate-700">Editar aula</span>
-      </header>
-
+    <PageShell breadcrumbs={breadcrumbs}>
       <div className="max-w-lg mx-auto px-4 py-8 animate-fadeUp">
         <div className="mb-6">
           <h1 className="text-xl font-bold text-slate-900">Editar aula</h1>
@@ -122,81 +107,40 @@ export default function EditLessonPage() {
                 <label className="block text-xs font-semibold text-slate-700 mb-1.5">Matéria</label>
                 <select className="ui-input" value={form.subjectId} onChange={(e) => set("subjectId", e.target.value)}>
                   <option value="">Sem matéria definida</option>
-                  {subjects.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name}</option>
-                  ))}
+                  {subjects.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
                 </select>
               </div>
             )}
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Data e hora <span className="text-red-500">*</span>
-              </label>
-              <input
-                className="ui-input"
-                type="datetime-local"
-                value={form.scheduledAt}
-                onChange={(e) => set("scheduledAt", e.target.value)}
-                required
-              />
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Data e hora <span className="text-red-500">*</span></label>
+              <input className="ui-input" type="datetime-local" value={form.scheduledAt} onChange={(e) => set("scheduledAt", e.target.value)} required />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">Link do Meet</label>
-              <input
-                className="ui-input"
-                type="url"
-                placeholder="https://meet.google.com/..."
-                value={form.meetLink}
-                onChange={(e) => set("meetLink", e.target.value)}
-              />
+              <input className="ui-input" type="url" placeholder="https://meet.google.com/..." value={form.meetLink} onChange={(e) => set("meetLink", e.target.value)} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">Conteúdo da aula</label>
-              <textarea
-                className="ui-input resize-none"
-                rows={3}
-                placeholder="Ex: Unidade 5 — Verbos modais, vocabulário para entrevista de emprego"
-                value={form.content}
-                onChange={(e) => set("content", e.target.value)}
-              />
+              <textarea className="ui-input resize-none" rows={3} placeholder="Ex: Unidade 5 — Verbos modais, vocabulário para entrevista de emprego" value={form.content} onChange={(e) => set("content", e.target.value)} />
             </div>
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1.5">Lição de casa</label>
-              <textarea
-                className="ui-input resize-none"
-                rows={2}
-                placeholder="Exercícios para fazer antes da próxima aula"
-                value={form.homework}
-                onChange={(e) => set("homework", e.target.value)}
-              />
+              <textarea className="ui-input resize-none" rows={2} placeholder="Exercícios para fazer antes da próxima aula" value={form.homework} onChange={(e) => set("homework", e.target.value)} />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                Notas privadas <span className="text-slate-400 font-normal">(só você vê)</span>
-              </label>
-              <textarea
-                className="ui-input resize-none"
-                rows={2}
-                placeholder="Observações sobre o progresso do aluno"
-                value={form.notes}
-                onChange={(e) => set("notes", e.target.value)}
-              />
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">Notas privadas <span className="text-slate-400 font-normal">(só você vê)</span></label>
+              <textarea className="ui-input resize-none" rows={2} placeholder="Observações sobre o progresso do aluno" value={form.notes} onChange={(e) => set("notes", e.target.value)} />
             </div>
           </div>
 
           <div className="flex gap-2 justify-end">
-            <Link href={`/dashboard/lessons/${id}`} className="ui-btn ui-btn-ghost ui-btn-md">
-              Cancelar
-            </Link>
+            <Link href={`/dashboard/lessons/${id}`} className="ui-btn ui-btn-ghost ui-btn-md">Cancelar</Link>
             <button type="submit" disabled={loading} className="ui-btn ui-btn-primary ui-btn-md">
-              {loading
-                ? <div className="ui-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} />
-                : "Salvar alterações"
-              }
+              {loading ? <span className="ui-spinner w-3.5 h-3.5 border-2 text-white" /> : "Salvar alterações"}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </PageShell>
   );
 }

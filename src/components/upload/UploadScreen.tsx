@@ -44,8 +44,8 @@ export function UploadScreen({ role, name }: Props) {
       const doc = await pdfjsLib.getDocument({ data: buf }).promise;
       const name = file.name.replace(/\.pdf$/i, "");
       loadPdf(doc, bytes, name, doc.numPages);
-    } catch (e: any) {
-      setError("Erro ao carregar PDF: " + e.message);
+    } catch (e: unknown) {
+      setError("Erro ao carregar PDF: " + (e instanceof Error ? e.message : String(e)));
     }
     setLoading(false);
   }
@@ -136,10 +136,10 @@ export function UploadScreen({ role, name }: Props) {
               {loading ? (
                 <div
                   className="ui-spinner"
-                  style={{ width: 32, height: 32, borderWidth: 3, borderColor: "#e2e8f0", borderTopColor: "#4f46e5" }}
+                  style={{ width: 32, height: 32, borderWidth: 3, borderColor: "var(--border)", borderTopColor: "var(--brand)" }}
                 />
               ) : (
-                <UploadSimple size={36} color={dragging ? "#4f46e5" : "#64748b"} />
+                <UploadSimple size={36} color={dragging ? "var(--brand)" : "#64748b"} />
               )}
             </div>
 

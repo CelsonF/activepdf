@@ -1,8 +1,9 @@
 "use client";
 import { Trash } from "@phosphor-icons/react";
+import { cn } from "@/lib/cn";
 import { useEditor } from "@/store";
 import { TypeBtn } from "@/components/ui/Buttons";
-import { asideStyle, headerStyle, propInputStyle } from "./styles";
+import { asideRightClass, headerClass, propInputClass } from "./styles";
 import { EmptyState, PropField, PropsIcon } from "./helpers";
 
 export function PropertiesPanel() {
@@ -16,15 +17,15 @@ export function PropertiesPanel() {
   const selected = fields.find((f) => f.id === selectedFieldId) ?? null;
 
   return (
-    <aside style={{ ...asideStyle, borderLeft: "1px solid var(--border)", borderRight: "none" }}>
-      <div style={headerStyle()}>
-        <h3 style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Propriedades</h3>
-        <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3, lineHeight: 1.4 }}>
+    <aside className={asideRightClass}>
+      <div className={headerClass}>
+        <h3 className="text-xs font-bold text-slate-900">Propriedades</h3>
+        <p className="text-[11px] text-slate-500 mt-[3px] leading-[1.4]">
           {selected ? "Edite o campo selecionado." : "Selecione um campo."}
         </p>
       </div>
 
-      <div style={{ flex: 1, overflowY: "auto", padding: "12px 14px" }}>
+      <div className="flex-1 overflow-y-auto px-[14px] py-3">
         {!selected ? (
           <EmptyState
             message="Nenhum campo selecionado."
@@ -32,10 +33,10 @@ export function PropertiesPanel() {
             icon={<PropsIcon />}
           />
         ) : (
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          <div className="flex flex-col gap-3">
 
             <PropField label="Tipo de campo">
-              <div style={{ display: "flex", background: "var(--bg-muted)", borderRadius: 8, padding: 3, gap: 2 }}>
+              <div className="flex bg-slate-100 rounded-lg p-[3px] gap-0.5">
                 <TypeBtn
                   active={selected.fieldType !== "question"}
                   onClick={() => updateField(selected.id, { fieldType: "input" })}
@@ -61,9 +62,7 @@ export function PropertiesPanel() {
                 onBlur={(e) => {
                   if (!e.target.value.trim()) updateField(selected.id, { name: `campo${selected.id.slice(0, 4)}` });
                 }}
-                style={propInputStyle}
-                onFocus={(e) => { e.target.style.borderColor = "var(--brand)"; e.target.style.boxShadow = "0 0 0 3px rgba(79,70,229,0.1)"; }}
-                onBlurCapture={(e) => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
+                className={propInputClass}
               />
             </PropField>
 
@@ -74,15 +73,13 @@ export function PropertiesPanel() {
                   rows={3}
                   placeholder="Ex: Traduza a frase 1"
                   onChange={(e) => updateField(selected.id, { label: e.target.value })}
-                  style={{ ...propInputStyle, resize: "vertical", minHeight: 60 }}
-                  onFocus={(e) => { e.target.style.borderColor = "var(--brand)"; e.target.style.boxShadow = "0 0 0 3px rgba(79,70,229,0.1)"; }}
-                  onBlur={(e) => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
+                  className={cn(propInputClass, "resize-y min-h-[60px]")}
                 />
               </PropField>
             )}
 
             <PropField label="Tamanho da fonte (pt)">
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <div className="flex items-center gap-1.5">
                 <input
                   type="number"
                   min={6}
@@ -92,53 +89,33 @@ export function PropertiesPanel() {
                     const val = parseInt(e.target.value, 10);
                     if (!isNaN(val) && val >= 6 && val <= 72) updateField(selected.id, { fontSize: val });
                   }}
-                  style={{ ...propInputStyle, width: 64, textAlign: "center" }}
-                  onFocus={(e) => { e.target.style.borderColor = "var(--brand)"; e.target.style.boxShadow = "0 0 0 3px rgba(79,70,229,0.1)"; }}
-                  onBlur={(e) => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
+                  className={cn(propInputClass, "w-16 text-center")}
                 />
-                <div style={{ display: "flex", gap: 3 }}>
+                <div className="flex gap-[3px]">
                   {[9, 11, 14, 18].map((sz) => (
                     <button
                       key={sz}
                       onClick={() => updateField(selected.id, { fontSize: sz })}
-                      style={{
-                        padding: "4px 7px",
-                        borderRadius: 5,
-                        fontSize: 11,
-                        fontWeight: 500,
-                        cursor: "pointer",
-                        border: `1px solid ${selected.fontSize === sz ? "var(--brand)" : "var(--border)"}`,
-                        background: selected.fontSize === sz ? "var(--brand-light)" : "white",
-                        color: selected.fontSize === sz ? "var(--brand)" : "var(--text-secondary)",
-                        transition: "all 0.12s",
-                        fontFamily: "inherit",
-                      }}
+                      className={cn(
+                        "px-[7px] py-1 rounded-[5px] text-[11px] font-medium cursor-pointer transition-all duration-[120ms] border font-[inherit]",
+                        selected.fontSize === sz
+                          ? "border-brand bg-brand-light text-brand"
+                          : "border-slate-200 bg-white text-slate-500",
+                      )}
                     >
                       {sz}
                     </button>
                   ))}
                 </div>
               </div>
-              <div
-                style={{
-                  marginTop: 7,
-                  padding: "7px 9px",
-                  border: "1px dashed var(--border)",
-                  borderRadius: 6,
-                  fontFamily: "Helvetica, Arial, sans-serif",
-                  fontSize: selected.fontSize,
-                  color: "#374151",
-                  lineHeight: 1.4,
-                  overflow: "hidden",
-                  minHeight: 28,
-                  background: "var(--bg-base)",
-                }}
+              <div className="mt-[7px] px-[9px] py-[7px] border border-dashed border-slate-200 rounded-[6px] bg-slate-50 text-slate-700 leading-[1.4] overflow-hidden min-h-[28px]"
+                style={{ fontFamily: "Helvetica, Arial, sans-serif", fontSize: selected.fontSize }}
               >
                 Texto de exemplo
               </div>
             </PropField>
 
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8 }}>
+            <div className="grid grid-cols-2 gap-2">
               <PropField label="Largura (pt)">
                 <input
                   type="number"
@@ -152,9 +129,7 @@ export function PropertiesPanel() {
                       updateField(selected.id, { pdfW, pw });
                     }
                   }}
-                  style={{ ...propInputStyle, textAlign: "center" }}
-                  onFocus={(e) => { e.target.style.borderColor = "var(--brand)"; e.target.style.boxShadow = "0 0 0 3px rgba(79,70,229,0.1)"; }}
-                  onBlur={(e) => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
+                  className={cn(propInputClass, "text-center")}
                 />
               </PropField>
               <PropField label="Altura (pt)">
@@ -170,14 +145,12 @@ export function PropertiesPanel() {
                       updateField(selected.id, { pdfH, ph, multiline: ph > 30 });
                     }
                   }}
-                  style={{ ...propInputStyle, textAlign: "center" }}
-                  onFocus={(e) => { e.target.style.borderColor = "var(--brand)"; e.target.style.boxShadow = "0 0 0 3px rgba(79,70,229,0.1)"; }}
-                  onBlur={(e) => { e.target.style.borderColor = "var(--border)"; e.target.style.boxShadow = "none"; }}
+                  className={cn(propInputClass, "text-center")}
                 />
               </PropField>
             </div>
 
-            <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text-secondary)", cursor: "pointer", paddingTop: 2 }}>
+            <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer pt-0.5">
               <input
                 type="checkbox"
                 checked={selected.multiline}
@@ -190,17 +163,14 @@ export function PropertiesPanel() {
                   }
                   updateField(selected.id, { multiline: ml, ph, pdfH });
                 }}
-                style={{ accentColor: "var(--brand)", width: 14, height: 14, cursor: "pointer" }}
+                className="w-[14px] h-[14px] cursor-pointer accent-brand"
               />
               Multilinha
             </label>
 
             <button
               onClick={() => deleteField(selected.id)}
-              className="ui-btn ui-btn-danger ui-btn-sm"
-              style={{ width: "100%", marginTop: 4 }}
-              onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
-              onMouseLeave={(e) => (e.currentTarget.style.background = "#fef2f2")}
+              className="ui-btn ui-btn-danger ui-btn-sm w-full mt-1"
             >
               <Trash size={13} />
               Apagar campo

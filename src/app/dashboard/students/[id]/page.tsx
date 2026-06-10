@@ -3,9 +3,32 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { serverFetch } from "@/lib/api";
 import {
-  ArrowLeft, CalendarBlank, Plus, VideoCamera,
-  CheckCircle, Clock, BookOpen, FilePdf, Pencil
+  CalendarBlank, Plus, VideoCamera,
+  CheckCircle, Clock, BookOpen, Pencil
 } from "@phosphor-icons/react/dist/ssr";
+import { PageShell } from "@/components/ui/PageShell";
+
+interface VocabEntry { id: string; word: string; definition?: string | null; }
+interface LessonEntry {
+  id: string;
+  status: string;
+  scheduledAt: string;
+  content?: string | null;
+  homework?: string | null;
+  notes?: string | null;
+  meetLink?: string | null;
+  subject?: { name: string } | null;
+  vocabularyEntries: VocabEntry[];
+}
+interface StudentDetail {
+  id: string;
+  name: string;
+  email: string;
+  enrollment?: string | null;
+  learningPlan?: { level: string; bookRef?: string | null; objective: string; notes?: string | null; } | null;
+  subjects: Array<{ subject: { id: string; name: string } }>;
+  lessons: LessonEntry[];
+}
 
 function fmt(date: string) {
   return new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
@@ -18,32 +41,20 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
   const session = await getSession();
   if (!session || session.role !== "teacher") redirect("/dashboard");
 
-  let student: any;
+  let student: StudentDetail;
   try {
-    student = await serverFetch(`/api/students/${params.id}`);
+    student = await serverFetch<StudentDetail>(`/api/students/${params.id}`);
   } catch {
     notFound();
   }
 
   const scheduled = student.lessons
-    .filter((l: any) => l.status === "SCHEDULED")
-    .sort((a: any, b: any) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
-  const completed = student.lessons.filter((l: any) => l.status === "COMPLETED");
+    .filter((l) => l.status === "SCHEDULED")
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime());
+  const completed = student.lessons.filter((l) => l.status === "COMPLETED");
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-4 h-[52px] flex items-center gap-3 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
-        <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
-          <FilePdf size={14} weight="bold" color="white" />
-        </div>
-        <span className="font-extrabold text-[15px] text-slate-900 tracking-[-0.3px]">ActivePDF</span>
-        <div className="ui-divider" />
-        <Link href="/dashboard" className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 transition-colors">
-          <ArrowLeft size={14} /> Dashboard
-        </Link>
-        <span className="text-slate-300">/</span>
-        <span className="text-sm font-semibold text-slate-700">{student.name}</span>
-      </header>
+    <PageShell breadcrumbs={[{ label: "Alunos", href: "/dashboard/students" }, { label: student.name }]}>
 
       <div className="max-w-3xl mx-auto px-4 py-8 animate-fadeUp">
         <div className="flex items-center justify-between mb-6">
@@ -88,7 +99,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
               )}
             </div>
             <div className="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-slate-100">
-              {student.subjects.map(({ subject }: any) => (
+              {student.subjects.map(({ subject }) => (
                 <span key={subject.id} className="ui-badge ui-badge-brand ui-badge-sm">{subject.name}</span>
               ))}
             </div>
@@ -104,11 +115,11 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           <section className="mb-6">
             <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Próximas aulas</h2>
             <div className="flex flex-col gap-2">
-              {scheduled.map((lesson: any) => (
+              {scheduled.map((lesson) => (
                 <div key={lesson.id} className="flex items-center gap-2">
                   <Link
                     href={`/dashboard/lessons/${lesson.id}`}
-                    className="flex-1 flex items-center gap-3 p-4 bg-brand-light border border-[#c7d2fe] rounded-xl hover:border-brand transition-all duration-150 min-w-0"
+                    className="flex-1 flex items-center gap-3 p-4 bg-brand-light border border-indigo-200 rounded-xl hover:border-brand transition-all duration-150 min-w-0"
                   >
                     <Clock size={16} weight="bold" className="text-brand shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -139,7 +150,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
               Aulas realizadas ({completed.length})
             </h2>
             <div className="flex flex-col gap-2">
-              {completed.map((lesson: any) => (
+              {completed.map((lesson) => (
                 <div key={lesson.id} className="p-4 bg-white rounded-xl border border-slate-200">
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle size={14} weight="fill" className="text-emerald-500 shrink-0" />
@@ -163,7 +174,7 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
                     <div className="mt-2 pl-5">
                       <p className="text-[11px] text-slate-400 mb-1.5">Vocabulário desta aula</p>
                       <div className="flex flex-wrap gap-1.5">
-                        {lesson.vocabularyEntries.map((v: any) => (
+                        {lesson.vocabularyEntries.map((v) => (
                           <span key={v.id} title={v.definition ?? ""} className="ui-badge ui-badge-neutral ui-badge-sm cursor-help">{v.word}</span>
                         ))}
                       </div>
@@ -185,6 +196,6 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

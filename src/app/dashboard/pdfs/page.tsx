@@ -102,7 +102,7 @@ export default async function PdfsPage() {
               label: "Para fazer",
               value: pending.length,
               color: "text-brand",
-              bg: "bg-brand-light border-[#c7d2fe]",
+              bg: "bg-brand-light border-indigo-200",
             },
             {
               label: "Enviados",

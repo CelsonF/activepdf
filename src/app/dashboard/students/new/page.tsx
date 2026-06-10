@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { FilePdf, ArrowLeft } from "@phosphor-icons/react";
+import { PageShell } from "@/components/ui/PageShell";
 
 export default function NewStudentPage() {
   const router = useRouter();
@@ -35,20 +35,7 @@ export default function NewStudentPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-4 h-[52px] flex items-center gap-3 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
-        <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
-          <FilePdf size={14} weight="bold" color="white" />
-        </div>
-        <span className="font-extrabold text-[15px] text-slate-900 tracking-[-0.3px]">ActivePDF</span>
-        <div className="ui-divider" />
-        <Link href="/dashboard" className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 transition-colors">
-          <ArrowLeft size={14} /> Dashboard
-        </Link>
-        <span className="text-slate-300">/</span>
-        <span className="text-sm font-semibold text-slate-700">Novo aluno</span>
-      </header>
-
+    <PageShell breadcrumbs={[{ label: "Alunos", href: "/dashboard/students" }, { label: "Novo aluno" }]}>
       <div className="max-w-lg mx-auto px-4 py-8 animate-fadeUp">
         <h1 className="text-xl font-bold text-slate-900 mb-6">Adicionar aluno</h1>
 
@@ -98,14 +85,14 @@ export default function NewStudentPage() {
           </section>
 
           <div className="flex gap-2 justify-end">
-            <Link href="/dashboard" className="ui-btn ui-btn-ghost ui-btn-md">Cancelar</Link>
+            <Link href="/dashboard/students" className="ui-btn ui-btn-ghost ui-btn-md">Cancelar</Link>
             <button type="submit" disabled={loading} className="ui-btn ui-btn-primary ui-btn-md">
-              {loading ? <div className="ui-spinner" style={{ width: 14, height: 14, borderWidth: 2 }} /> : "Criar aluno"}
+              {loading ? <span className="ui-spinner w-3.5 h-3.5 border-2 text-white" /> : "Criar aluno"}
             </button>
           </div>
         </form>
       </div>
-    </div>
+    </PageShell>
   );
 }
 

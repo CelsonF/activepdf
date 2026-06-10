@@ -1,7 +1,7 @@
 "use client";
 import { X } from "@phosphor-icons/react";
 import { useEditor } from "@/store";
-import { asideStyle, headerStyle, fillInputStyle } from "./styles";
+import { asideClass, headerClass, headerFillClass, fillInputClass } from "./styles";
 import { EmptyState, FieldIcon, Muted, SectionLabel } from "./helpers";
 
 export function FieldsPanel() {
@@ -19,31 +19,31 @@ export function FieldsPanel() {
 
   if (isFill) {
     return (
-      <aside style={asideStyle}>
-        <div style={headerStyle("#f0fdf4")}>
-          <h3 style={{ fontSize: 12, fontWeight: 700, color: "#065f46", margin: 0 }}>Preenchimento</h3>
-          <p style={{ fontSize: 11, color: "#047857", marginTop: 3, lineHeight: 1.4 }}>
+      <aside className={asideClass}>
+        <div className={headerFillClass}>
+          <h3 className="text-xs font-bold text-emerald-900">Preenchimento</h3>
+          <p className="text-[11px] text-emerald-700 mt-[3px] leading-[1.4]">
             Preencha os campos ou clique no PDF.
           </p>
         </div>
-        <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
+        <div className="flex-1 overflow-y-auto p-2 px-[10px]">
           {fields.length === 0 ? (
             <EmptyState message="Nenhum campo definido." hint="Vá para Editar campos para criar campos." />
           ) : (
             <>
               {pageFields.length > 0 && (
                 <>
-                  <SectionLabel color="#059669">
+                  <SectionLabel className="text-emerald-600">
                     Página {currentPage} <Muted>({pageFields.length})</Muted>
                   </SectionLabel>
                   {pageFields.map((f) => {
                     const val = fieldValues[f.id] ?? "";
                     return (
-                      <div key={f.id} style={{ marginBottom: 10 }}>
+                      <div key={f.id} className="mb-[10px]">
                         {f.fieldType === "question" && (
-                          <label style={{ fontSize: 11, fontWeight: 600, color: "#374151", display: "block", marginBottom: 4 }}>
+                          <label className="block text-[11px] font-semibold text-slate-700 mb-1">
                             {f.label || f.name}
-                            {f.label && <span style={{ color: "var(--text-muted)", fontWeight: 400 }}> ({f.name})</span>}
+                            {f.label && <span className="font-normal text-slate-400"> ({f.name})</span>}
                           </label>
                         )}
                         {f.multiline ? (
@@ -51,14 +51,14 @@ export function FieldsPanel() {
                             value={val}
                             onChange={(e) => setFieldValue(f.id, e.target.value)}
                             rows={3}
-                            style={fillInputStyle(!!val, true)}
+                            className={fillInputClass(!!val, true)}
                           />
                         ) : (
                           <input
                             type="text"
                             value={val}
                             onChange={(e) => setFieldValue(f.id, e.target.value)}
-                            style={fillInputStyle(!!val, false)}
+                            className={fillInputClass(!!val, false)}
                           />
                         )}
                       </div>
@@ -68,11 +68,11 @@ export function FieldsPanel() {
               )}
               {otherFields.length > 0 && (
                 <>
-                  <SectionLabel color="var(--text-muted)" borderTop>
+                  <SectionLabel className="text-slate-400" borderTop>
                     Outras páginas <Muted>({otherFields.length})</Muted>
                   </SectionLabel>
                   {pages.filter((p) => p !== currentPage).map((p) => (
-                    <div key={p} style={{ fontSize: 11, color: "var(--text-muted)", padding: "3px 4px" }}>
+                    <div key={p} className="text-[11px] text-slate-400 px-1 py-[3px]">
                       Pág. {p}: {byPage[p].filter((f) => fieldValues[f.id]?.trim()).length}/{byPage[p].length} preenchido(s)
                     </div>
                   ))}
@@ -86,14 +86,14 @@ export function FieldsPanel() {
   }
 
   return (
-    <aside style={asideStyle}>
-      <div style={headerStyle()}>
-        <h3 style={{ fontSize: 12, fontWeight: 700, color: "var(--text-primary)", margin: 0 }}>Campos</h3>
-        <p style={{ fontSize: 11, color: "var(--text-secondary)", marginTop: 3, lineHeight: 1.4 }}>
+    <aside className={asideClass}>
+      <div className={headerClass}>
+        <h3 className="text-xs font-bold text-slate-900">Campos</h3>
+        <p className="text-[11px] text-slate-500 mt-[3px] leading-[1.4]">
           Arraste sobre o PDF para criar.
         </p>
       </div>
-      <div style={{ flex: 1, overflowY: "auto", padding: "8px 10px" }}>
+      <div className="flex-1 overflow-y-auto p-2 px-[10px]">
         {fields.length === 0 ? (
           <EmptyState
             message="Nenhum campo ainda."
@@ -104,7 +104,7 @@ export function FieldsPanel() {
           pages.map((p) => (
             <div key={p}>
               {pages.length > 1 && (
-                <SectionLabel color="var(--text-muted)">
+                <SectionLabel className="text-slate-400">
                   {p === currentPage ? "Esta página" : `Página ${p}`}{" "}
                   <Muted>({byPage[p].length})</Muted>
                 </SectionLabel>
@@ -118,45 +118,23 @@ export function FieldsPanel() {
                     data-selected={isSelected ? "true" : "false"}
                     onClick={() => selectField(f.id)}
                   >
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div
-                        style={{
-                          fontSize: 12,
-                          fontWeight: 600,
-                          color: "var(--text-primary)",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
+                    <div className="flex-1 min-w-0">
+                      <div className="text-xs font-semibold text-slate-900 overflow-hidden text-ellipsis whitespace-nowrap">
                         {f.name}
                         {f.label && (
-                          <span style={{ color: "var(--text-muted)", fontWeight: 400 }}>
+                          <span className="font-normal text-slate-400">
                             {" "}— {f.label}
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: 10, color: "var(--text-muted)", marginTop: 2 }}>
+                      <div className="text-[10px] text-slate-400 mt-0.5">
                         {Math.round(f.pdfW)}×{Math.round(f.pdfH)}pt · {f.fontSize}pt
                         {f.multiline ? " · ML" : ""}
                       </div>
                     </div>
                     <button
                       onClick={(e) => { e.stopPropagation(); deleteField(f.id); }}
-                      style={{
-                        padding: "3px 4px",
-                        borderRadius: 4,
-                        border: "1px solid #fecaca",
-                        background: "#fef2f2",
-                        color: "#b91c1c",
-                        cursor: "pointer",
-                        flexShrink: 0,
-                        display: "flex",
-                        alignItems: "center",
-                        transition: "all 0.12s",
-                      }}
-                      onMouseEnter={(e) => (e.currentTarget.style.background = "#fee2e2")}
-                      onMouseLeave={(e) => (e.currentTarget.style.background = "#fef2f2")}
+                      className="ui-btn ui-btn-danger px-[4px] py-[3px] flex-shrink-0"
                     >
                       <X size={11} weight="bold" />
                     </button>

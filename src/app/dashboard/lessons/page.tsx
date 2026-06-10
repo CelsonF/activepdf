@@ -3,9 +3,19 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { serverFetch } from "@/lib/api";
 import {
-  FilePdf, ArrowLeft, CalendarBlank, Plus, VideoCamera,
+  CalendarBlank, Plus, VideoCamera,
   Clock, CheckCircle, Pencil
 } from "@phosphor-icons/react/dist/ssr";
+import { PageShell } from "@/components/ui/PageShell";
+
+interface LessonSummary {
+  id: string;
+  status: string;
+  scheduledAt: string;
+  content?: string | null;
+  meetLink?: string | null;
+  student: { name: string };
+}
 
 function fmt(date: string) {
   return new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
@@ -19,24 +29,12 @@ export default async function LessonsPage() {
   if (!session || session.role !== "teacher") redirect("/dashboard");
 
   const [scheduled, completed] = await Promise.all([
-    serverFetch<any[]>("/api/lessons?status=SCHEDULED"),
-    serverFetch<any[]>("/api/lessons?status=COMPLETED"),
+    serverFetch<LessonSummary[]>("/api/lessons?status=SCHEDULED"),
+    serverFetch<LessonSummary[]>("/api/lessons?status=COMPLETED"),
   ]);
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b border-slate-200 px-4 h-[52px] flex items-center gap-3 shadow-[0_1px_0_rgba(0,0,0,0.04)]">
-        <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
-          <FilePdf size={14} weight="bold" color="white" />
-        </div>
-        <span className="font-extrabold text-[15px] text-slate-900 tracking-[-0.3px]">ActivePDF</span>
-        <div className="ui-divider" />
-        <Link href="/dashboard" className="flex items-center gap-1 text-sm text-slate-500 hover:text-slate-900 transition-colors">
-          <ArrowLeft size={14} /> Dashboard
-        </Link>
-        <span className="text-slate-300">/</span>
-        <span className="text-sm font-semibold text-slate-700">Aulas</span>
-      </header>
+    <PageShell breadcrumbs={[{ label: "Dashboard", href: "/dashboard" }, { label: "Aulas" }]}>
 
       <div className="max-w-3xl mx-auto px-4 py-8 animate-fadeUp">
         <div className="flex items-center justify-between mb-8">
@@ -63,11 +61,11 @@ export default async function LessonsPage() {
             </div>
           ) : (
             <div className="flex flex-col gap-2">
-              {scheduled.map((lesson: any) => (
+              {scheduled.map((lesson) => (
                 <div key={lesson.id} className="flex items-center gap-2">
                   <Link
                     href={`/dashboard/lessons/${lesson.id}`}
-                    className="flex-1 flex items-center gap-3 px-4 py-3 bg-brand-light border border-[#c7d2fe] rounded-xl hover:border-brand transition-all duration-150 min-w-0"
+                    className="flex-1 flex items-center gap-3 px-4 py-3 bg-brand-light border border-indigo-200 rounded-xl hover:border-brand transition-all duration-150 min-w-0"
                   >
                     <Clock size={16} weight="bold" className="text-brand shrink-0" />
                     <div className="flex-1 min-w-0">
@@ -99,7 +97,7 @@ export default async function LessonsPage() {
           <section>
             <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Concluídas</h2>
             <div className="flex flex-col gap-2">
-              {completed.map((lesson: any) => (
+              {completed.map((lesson) => (
                 <div key={lesson.id} className="flex items-center gap-2">
                   <Link
                     href={`/dashboard/lessons/${lesson.id}`}
@@ -124,6 +122,6 @@ export default async function LessonsPage() {
           </section>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }

@@ -193,7 +193,7 @@ html, body {
   .ui-badge-sm { @apply text-[11px] px-2 py-[3px]; }
   .ui-badge-md { @apply text-xs px-[10px] py-[3px]; }
 
-  .ui-badge-brand   { @apply bg-brand-light text-brand border border-[#c7d2fe]; }
+  .ui-badge-brand   { @apply bg-brand-light text-brand border border-indigo-200; }
   .ui-badge-success { @apply bg-green-50 text-emerald-700 border border-green-200; }
   .ui-badge-warning { @apply bg-amber-50 text-amber-700 border border-amber-200; }
   .ui-badge-error   { @apply bg-red-50 text-red-700 border border-red-200; }

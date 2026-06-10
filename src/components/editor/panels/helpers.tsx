@@ -1,20 +1,11 @@
 import React from "react";
+import { cn } from "@/lib/cn";
 import { CursorText, SlidersHorizontal } from "@phosphor-icons/react";
 
 export function PropField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <label
-        style={{
-          fontSize: 10,
-          color: "var(--text-muted)",
-          fontWeight: 700,
-          display: "block",
-          marginBottom: 5,
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-        }}
-      >
+      <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-[0.5px] mb-[5px]">
         {label}
       </label>
       {children}
@@ -23,26 +14,21 @@ export function PropField({ label, children }: { label: string; children: React.
 }
 
 export function SectionLabel({
-  color,
+  className,
   borderTop,
   children,
 }: {
-  color: string;
+  className?: string;
   borderTop?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <div
-      style={{
-        fontSize: 10,
-        fontWeight: 700,
-        color,
-        textTransform: "uppercase",
-        letterSpacing: "0.5px",
-        padding: "6px 4px 5px",
-        marginTop: borderTop ? 8 : 2,
-        borderTop: borderTop ? "1px solid var(--border)" : undefined,
-      }}
+      className={cn(
+        "text-[10px] font-bold uppercase tracking-[0.5px] px-1 pt-[6px] pb-[5px]",
+        borderTop ? "mt-2 border-t border-slate-200" : "mt-0.5",
+        className,
+      )}
     >
       {children}
     </div>
@@ -50,7 +36,7 @@ export function SectionLabel({
 }
 
 export function Muted({ children }: { children: React.ReactNode }) {
-  return <span style={{ fontWeight: 400, color: "var(--text-muted)" }}>{children}</span>;
+  return <span className="font-normal text-slate-400">{children}</span>;
 }
 
 export function EmptyState({
@@ -63,22 +49,22 @@ export function EmptyState({
   icon?: React.ReactNode;
 }) {
   return (
-    <div style={{ textAlign: "center", padding: "36px 12px", color: "var(--text-muted)" }}>
+    <div className="text-center py-9 px-3 text-slate-400">
       {icon && (
-        <div style={{ marginBottom: 12, display: "flex", justifyContent: "center", opacity: 0.4 }}>
+        <div className="mb-3 flex justify-center opacity-40">
           {icon}
         </div>
       )}
-      <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-secondary)" }}>{message}</div>
-      <div style={{ fontSize: 11, marginTop: 5, lineHeight: 1.5 }}>{hint}</div>
+      <div className="text-xs font-semibold text-slate-500">{message}</div>
+      <div className="text-[11px] mt-[5px] leading-[1.5]">{hint}</div>
     </div>
   );
 }
 
 export function FieldIcon() {
-  return <CursorText size={32} color="#cbd5e1" />;
+  return <CursorText size={32} className="text-slate-300" />;
 }
 
 export function PropsIcon() {
-  return <SlidersHorizontal size={32} color="#cbd5e1" />;
+  return <SlidersHorizontal size={32} className="text-slate-300" />;
 }

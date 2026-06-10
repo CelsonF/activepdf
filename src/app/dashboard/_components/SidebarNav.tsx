@@ -235,7 +235,8 @@ export function LogoutLink() {
   return (
     <button
       onClick={handle}
-      className="flex items-center gap-2.5 w-full px-3 py-2 rounded-xl text-[13.5px] font-medium text-slate-400 hover:bg-red-50 hover:text-red-500 transition-colors"
+      className="ui-menu-item"
+      data-danger="true"
     >
       <SignOut size={18} weight="bold" className="shrink-0" />
       <span>Sair</span>

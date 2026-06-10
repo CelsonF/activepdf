@@ -1,6 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { useEffect } from "react";
+import { cn } from "@/lib/cn";
 
 interface ToastState {
   msg: string;
@@ -16,7 +17,6 @@ export const useToast = create<ToastState>((set) => ({
   hide: () => set({ msg: "" }),
 }));
 
-// Global helper
 let _show: ToastState["show"] | null = null;
 export function toast(msg: string, type?: "default" | "success" | "error") {
   _show?.(msg, type);
@@ -33,17 +33,12 @@ export function Toast() {
 
   if (!msg) return null;
 
-  const bg = type === "success" ? "#059669" : type === "error" ? "#dc2626" : "#0f172a";
-
   return (
-    <div className="animate-slideIn" style={{
-      position: "fixed", top: 20, right: 20, zIndex: 9999,
-      background: bg, color: "white",
-      padding: "11px 18px", borderRadius: 10,
-      fontSize: 14, fontWeight: 500,
-      boxShadow: "0 10px 30px rgba(0,0,0,0.2)",
-      maxWidth: 380,
-    }}>
+    <div className={cn(
+      "animate-slideIn fixed top-5 right-5 z-[9999] text-white px-[18px] py-[11px] rounded-[10px]",
+      "text-sm font-medium shadow-[0_10px_30px_rgba(0,0,0,0.2)] max-w-[380px]",
+      type === "success" ? "bg-emerald-600" : type === "error" ? "bg-red-600" : "bg-slate-900",
+    )}>
       {msg}
     </div>
   );

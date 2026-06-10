@@ -19,3 +19,8 @@ export { Avatar } from "./Avatar";
 export { ProgressRing } from "./ProgressRing";
 
 export { StatCard } from "./StatCard";
+
+export { DialogRoot, DialogTrigger, DialogClose, DialogContent, DialogHeader, DialogFooter } from "./Dialog";
+
+export { PageShell } from "./PageShell";
+export type { BreadcrumbItem } from "./PageShell";

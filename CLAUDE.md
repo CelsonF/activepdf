@@ -1,8 +1,12 @@
 # ActivePDF — Regras do Projeto (Front-end)
 
 > Este arquivo é lido automaticamente em toda conversa. São as regras
-> **inegociáveis** para escrever código neste repositório. Para o passo a passo
-> de **criar um componente novo**, use a skill `criar-componente`.
+> **inegociáveis** para escrever código neste repositório.
+>
+> Skills disponíveis:
+> - `criar-componente` — criar ou revisar qualquer componente de UI
+> - `refatorar-design-system` — auditar e refatorar componentes/páginas para o padrão do design system
+> - `storybook` — configurar o Storybook e escrever stories para os primitivos
 
 ## Stack (não trocar sem pedir)
 
