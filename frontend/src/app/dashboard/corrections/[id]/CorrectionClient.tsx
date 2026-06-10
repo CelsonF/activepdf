@@ -399,7 +399,7 @@ export function CorrectionClient({
           </button>
           {saved && (
             <p className="text-[11px] text-center text-emerald-600 mt-2 font-medium">
-              Correção salva · status atualizado para "corrigido"
+              Correção salva · status atualizado para &ldquo;corrigido&rdquo;
             </p>
           )}
         </div>
