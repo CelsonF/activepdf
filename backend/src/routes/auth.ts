@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma.js";
 import { signToken } from "../lib/auth.js";
+import { rateLimit } from "../middleware/rateLimit.js";
 
 function toSlug(name: string, suffix: string): string {
   const base = name
@@ -14,6 +15,10 @@ function toSlug(name: string, suffix: string): string {
 }
 
 export const authRoutes = new Hono();
+
+const authLimiter = rateLimit({ max: 10, windowMs: 15 * 60 * 1000 });
+authRoutes.use("/login", authLimiter);
+authRoutes.use("/register", authLimiter);
 
 authRoutes.post("/register", async (c) => {
   const { name, email, password, role, teacherEmail, organizationName } = await c.req.json();

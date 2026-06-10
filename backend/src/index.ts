@@ -3,6 +3,7 @@ import { serveStatic } from "@hono/node-server/serve-static";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
+import { HTTPException } from "hono/http-exception";
 import { mkdirSync } from "fs";
 import { authRoutes } from "./routes/auth.js";
 import { lessonRoutes } from "./routes/lessons.js";
@@ -22,6 +23,18 @@ import { openApiSpec } from "./openapi.js";
 mkdirSync("uploads/logos", { recursive: true });
 
 const app = new Hono();
+
+app.onError((err, c) => {
+  if (err instanceof HTTPException) return err.getResponse();
+  // JSON malformado no body é erro do client, não do servidor
+  if (err instanceof SyntaxError) {
+    return c.json({ error: "Corpo da requisição inválido" }, 400);
+  }
+  console.error(err);
+  return c.json({ error: "Erro interno" }, 500);
+});
+
+app.notFound((c) => c.json({ error: "Rota não encontrada" }, 404));
 
 app.use(logger());
 
