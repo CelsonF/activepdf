@@ -8,10 +8,14 @@ export interface SessionPayload {
   name: string;
 }
 
-const secret = () =>
-  new TextEncoder().encode(
-    process.env.JWT_SECRET ?? "activepdf-dev-secret-change-in-production"
-  );
+const rawSecret = process.env.JWT_SECRET;
+if (!rawSecret && process.env.NODE_ENV === "production") {
+  throw new Error("JWT_SECRET é obrigatório em produção (mínimo 32 bytes)");
+}
+const secretKey = new TextEncoder().encode(
+  rawSecret ?? "activepdf-dev-secret-change-in-production"
+);
+const secret = () => secretKey;
 
 export async function signToken(payload: SessionPayload): Promise<string> {
   return new SignJWT({ ...payload })
