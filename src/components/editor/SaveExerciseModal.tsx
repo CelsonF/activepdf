@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { FloppyDisk, BookOpen } from "@phosphor-icons/react";
 import { DialogRoot, DialogContent, DialogHeader, DialogFooter } from "@/components/ui/Dialog";
+import { Select, SelectItem } from "@/components/ui/Select";
 import type { PdfField } from "@/types";
 
 interface Props {
@@ -100,16 +101,15 @@ export function SaveExerciseModal({ isOpen, onClose, pdfName, pdfBytes, fields, 
             <label className="block text-xs font-semibold text-slate-700 mb-1.5">
               Atribuir ao aluno <span className="text-slate-400 font-normal">(opcional)</span>
             </label>
-            <select
-              className="ui-input text-sm"
+            <Select
               value={studentId}
-              onChange={(e) => setStudentId(e.target.value)}
+              onValueChange={setStudentId}
+              placeholder="Selecionar aluno..."
             >
-              <option value="">Selecionar aluno...</option>
               {students.map((s) => (
-                <option key={s.id} value={s.id}>{s.name}</option>
+                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
               ))}
-            </select>
+            </Select>
             {students.length === 0 && (
               <p className="text-[11px] text-slate-400 mt-1">Nenhum aluno cadastrado ainda.</p>
             )}

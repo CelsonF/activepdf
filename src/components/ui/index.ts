@@ -22,5 +22,15 @@ export { StatCard } from "./StatCard";
 
 export { DialogRoot, DialogTrigger, DialogClose, DialogContent, DialogHeader, DialogFooter } from "./Dialog";
 
+export { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent, Tooltip } from "./Tooltip";
+
+export { SelectRoot, SelectGroup, SelectValue, SelectTrigger, SelectContent, SelectItem, Select } from "./Select";
+
+export {
+  DropdownMenuRoot, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
+  DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent,
+} from "./DropdownMenu";
+
 export { PageShell } from "./PageShell";
 export type { BreadcrumbItem } from "./PageShell";

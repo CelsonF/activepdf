@@ -13,12 +13,13 @@ import { Header } from "@/components/ui/Header";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Divider, ModeBtn } from "@/components/ui/Buttons";
+import { Tooltip } from "@/components/ui/Tooltip";
 import type { ExportMode, SessionRole } from "@/types";
 
-const EXPORT_MODES: { mode: ExportMode; label: string; title: string }[] = [
-  { mode: "interactive", label: "Interativo",   title: "PDF original + campos AcroForm preenchíveis" },
-  { mode: "watermark",   label: "Marca d'água", title: "Original apagado no fundo + campos proeminentes" },
-  { mode: "answers",     label: "Só respostas", title: "Folha limpa apenas com campos de resposta" },
+const EXPORT_MODES: { mode: ExportMode; label: string; tooltip: string }[] = [
+  { mode: "interactive", label: "Interativo",   tooltip: "PDF original + campos AcroForm preenchíveis" },
+  { mode: "watermark",   label: "Marca d'água", tooltip: "Original apagado no fundo + campos proeminentes" },
+  { mode: "answers",     label: "Só respostas", tooltip: "Folha limpa apenas com campos de resposta" },
 ];
 
 interface Props { role: SessionRole; name: string; exerciseId: string | null; savedAnswersJson?: string; }
@@ -48,16 +49,20 @@ function UserChip({ role, name }: { role: SessionRole; name: string }) {
 
   return (
     <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
-      <a href="/dashboard" className="ui-btn ui-btn-ghost ui-btn-xs gap-1" title="Ir para o painel">
-        <SquaresFour size={12} /> Painel
-      </a>
+      <Tooltip content="Ir para o painel">
+        <a href="/dashboard" className="ui-btn ui-btn-ghost ui-btn-xs gap-1">
+          <SquaresFour size={12} /> Painel
+        </a>
+      </Tooltip>
       <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-50 border border-slate-200">
         {role === "teacher"
           ? <GraduationCap size={12} weight="bold" className="text-brand" />
           : <BookOpen size={12} weight="bold" className="text-emerald-600" />}
         <span className="text-xs font-semibold text-slate-700 max-w-[100px] truncate">{name}</span>
       </div>
-      <Button variant="ghost" size="xs" icon={<SignOut size={12} />} title="Sair" onClick={handleLogout} />
+      <Tooltip content="Sair">
+        <Button variant="ghost" size="xs" icon={<SignOut size={12} />} onClick={handleLogout} />
+      </Tooltip>
     </div>
   );
 }
@@ -142,14 +147,18 @@ export function Toolbar({ role, name, exerciseId, savedAnswersJson }: Props) {
     <>
       {isTeacher && (
         <div className="flex items-center bg-slate-100 rounded-lg p-[3px] gap-0.5">
-          <ModeBtn active={!isFill} onClick={() => setAppMode("design")} title="Arraste para criar campos, mova e redimensione">
-            <PencilSimple size={13} weight={!isFill ? "bold" : "regular"} />
-            Editar campos
-          </ModeBtn>
-          <ModeBtn active={isFill} onClick={() => setAppMode("fill")} title="Clique nos campos e escreva as respostas">
-            <TextAlignLeft size={13} weight={isFill ? "bold" : "regular"} />
-            Preencher
-          </ModeBtn>
+          <Tooltip content="Arraste para criar campos, mova e redimensione" side="bottom">
+            <ModeBtn active={!isFill} onClick={() => setAppMode("design")}>
+              <PencilSimple size={13} weight={!isFill ? "bold" : "regular"} />
+              Editar campos
+            </ModeBtn>
+          </Tooltip>
+          <Tooltip content="Clique nos campos e escreva as respostas" side="bottom">
+            <ModeBtn active={isFill} onClick={() => setAppMode("fill")}>
+              <TextAlignLeft size={13} weight={isFill ? "bold" : "regular"} />
+              Preencher
+            </ModeBtn>
+          </Tooltip>
         </div>
       )}
 
@@ -158,16 +167,16 @@ export function Toolbar({ role, name, exerciseId, savedAnswersJson }: Props) {
       {isTeacher && !isFill && (
         <div className="flex items-center gap-[5px]">
           <span className="text-[11px] text-slate-400 font-medium whitespace-nowrap">Exportar como:</span>
-          {EXPORT_MODES.map(({ mode, label, title }) => (
-            <button
-              key={mode}
-              className="ui-export-btn"
-              title={title}
-              data-active={exportMode === mode ? "true" : "false"}
-              onClick={() => { setExportMode(mode); toast("Modo: " + label); }}
-            >
-              {label}
-            </button>
+          {EXPORT_MODES.map(({ mode, label, tooltip }) => (
+            <Tooltip key={mode} content={tooltip} side="bottom">
+              <button
+                className="ui-export-btn"
+                data-active={exportMode === mode ? "true" : "false"}
+                onClick={() => { setExportMode(mode); toast("Modo: " + label); }}
+              >
+                {label}
+              </button>
+            </Tooltip>
           ))}
         </div>
       )}
@@ -184,14 +193,15 @@ export function Toolbar({ role, name, exerciseId, savedAnswersJson }: Props) {
       {isTeacher && (
         <>
           <Divider />
-          <button
-            className="ui-export-btn"
-            data-active={ocrOpen ? "true" : "false"}
-            onClick={() => setOcrOpen(!ocrOpen)}
-            title="Extrair texto das páginas com OCR"
-          >
-            <Scan size={14} /> OCR
-          </button>
+          <Tooltip content="Extrair texto das páginas com OCR" side="bottom">
+            <button
+              className="ui-export-btn"
+              data-active={ocrOpen ? "true" : "false"}
+              onClick={() => setOcrOpen(!ocrOpen)}
+            >
+              <Scan size={14} /> OCR
+            </button>
+          </Tooltip>
         </>
       )}
     </>
@@ -204,26 +214,31 @@ export function Toolbar({ role, name, exerciseId, savedAnswersJson }: Props) {
           {fieldCount > 0 && (
             <span className="text-[11px] text-slate-400 font-medium">{fieldCount} campo{fieldCount !== 1 ? "s" : ""}</span>
           )}
-          <Button variant="ghost" size="sm" icon={<Trash size={13} />} title="Apagar campos desta página"
-            onClick={() => {
-              const n = fields.filter((f) => f.page === currentPage).length;
-              if (!n) { toast("Esta página já não tem campos", "error"); return; }
-              if (confirm(`Apagar todos os ${n} campos desta página?`)) clearPageFields(currentPage);
-            }}
-          >Limpar</Button>
-          <Button variant="ghost" size="sm" icon={<ArrowCounterClockwise size={13} />} title="Carregar novo PDF"
-            onClick={() => { if (confirm("Voltar ao início? Os campos serão perdidos.")) resetPdf(); }}
-          >Novo</Button>
+          <Tooltip content="Apagar campos desta página">
+            <Button variant="ghost" size="sm" icon={<Trash size={13} />}
+              onClick={() => {
+                const n = fields.filter((f) => f.page === currentPage).length;
+                if (!n) { toast("Esta página já não tem campos", "error"); return; }
+                if (confirm(`Apagar todos os ${n} campos desta página?`)) clearPageFields(currentPage);
+              }}
+            >Limpar</Button>
+          </Tooltip>
+          <Tooltip content="Carregar novo PDF">
+            <Button variant="ghost" size="sm" icon={<ArrowCounterClockwise size={13} />}
+              onClick={() => { if (confirm("Voltar ao início? Os campos serão perdidos.")) resetPdf(); }}
+            >Novo</Button>
+          </Tooltip>
           {fields.length > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              icon={<FloppyDisk size={13} weight="bold" />}
-              title="Salvar este PDF com os campos como exercício para um aluno"
-              onClick={() => setSaveModalOpen(true)}
-            >
-              Salvar exercício
-            </Button>
+            <Tooltip content="Salvar este PDF com os campos como exercício para um aluno">
+              <Button
+                variant="outline"
+                size="sm"
+                icon={<FloppyDisk size={13} weight="bold" />}
+                onClick={() => setSaveModalOpen(true)}
+              >
+                Salvar exercício
+              </Button>
+            </Tooltip>
           )}
           <Button variant="primary" size="sm" icon={<DownloadSimple size={13} weight="bold" />} onClick={handleExportDesign}>
             Exportar PDF
@@ -233,9 +248,11 @@ export function Toolbar({ role, name, exerciseId, savedAnswersJson }: Props) {
 
       {isFill && (
         <>
-          <Button variant="ghost" size="sm" icon={<Trash size={13} />} title="Limpar todas as respostas"
-            onClick={() => { if (confirm("Limpar todas as respostas?")) clearFieldValues(); }}
-          >Limpar</Button>
+          <Tooltip content="Limpar todas as respostas">
+            <Button variant="ghost" size="sm" icon={<Trash size={13} />}
+              onClick={() => { if (confirm("Limpar todas as respostas?")) clearFieldValues(); }}
+            >Limpar</Button>
+          </Tooltip>
           <Button variant="success" size="sm" icon={<DownloadSimple size={13} weight="bold" />} onClick={handleExportFilled}>
             Exportar
           </Button>
@@ -251,26 +268,28 @@ export function Toolbar({ role, name, exerciseId, savedAnswersJson }: Props) {
                   <Circle size={8} weight="fill" /> Não salvo
                 </span>
               )}
-              <Button
-                variant="outline"
-                size="sm"
-                icon={<CloudArrowUp size={13} weight="bold" />}
-                title="Salvar progresso"
-                onClick={() => handleSaveProgress(false)}
-                disabled={saveStatus === "saving" || !hasUnsaved}
-              >
-                {saveStatus === "saving" ? "Salvando..." : "Salvar"}
-              </Button>
-              <Button
-                variant="primary"
-                size="sm"
-                icon={<CheckCircle size={13} weight="bold" />}
-                title="Marcar como concluído e salvar"
-                onClick={() => handleSaveProgress(true)}
-                disabled={saveStatus === "saving"}
-              >
-                Concluir
-              </Button>
+              <Tooltip content="Salvar progresso">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  icon={<CloudArrowUp size={13} weight="bold" />}
+                  onClick={() => handleSaveProgress(false)}
+                  disabled={saveStatus === "saving" || !hasUnsaved}
+                >
+                  {saveStatus === "saving" ? "Salvando..." : "Salvar"}
+                </Button>
+              </Tooltip>
+              <Tooltip content="Marcar como concluído e salvar">
+                <Button
+                  variant="primary"
+                  size="sm"
+                  icon={<CheckCircle size={13} weight="bold" />}
+                  onClick={() => handleSaveProgress(true)}
+                  disabled={saveStatus === "saving"}
+                >
+                  Concluir
+                </Button>
+              </Tooltip>
             </>
           )}
         </>

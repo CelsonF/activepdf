@@ -48,20 +48,19 @@ export function PrimaryBtn({
 export function ModeBtn({
   active,
   onClick,
-  title,
   children,
+  ...props
 }: {
   active: boolean;
   onClick: () => void;
-  title: string;
   children: React.ReactNode;
-}) {
+} & Omit<React.ButtonHTMLAttributes<HTMLButtonElement>, "onClick">) {
   return (
     <button
       className="ui-btn-mode"
       onClick={onClick}
-      title={title}
       data-active={active ? "true" : "false"}
+      {...props}
     >
       {children}
     </button>
