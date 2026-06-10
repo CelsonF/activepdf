@@ -95,6 +95,7 @@ model Professor {
   libraryPdfs   LibraryPdf[]
   classes       Class[]
   organization  Organization?
+  subjects      Subject[]
 }
 
 model Student {
@@ -121,13 +122,17 @@ model Student {
 
 model Subject {
   id          String   @id @default(cuid())
-  name        String   @unique
+  professorId String?
+  name        String
   description String?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  students StudentSubject[]
-  lessons  Lesson[]
+  professor Professor?       @relation(fields: [professorId], references: [id], onDelete: Cascade)
+  students  StudentSubject[]
+  lessons   Lesson[]
+
+  @@unique([professorId, name])
 }
 
 model StudentSubject {

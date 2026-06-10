@@ -45,7 +45,9 @@ dashboardRoutes.get("/teacher", async (c) => {
 
   if (!professor) return c.json({ error: "Professor não encontrado" }, 404);
 
-  const subjectsCount = await prisma.subject.count();
+  const subjectsCount = await prisma.subject.count({
+    where: { professorId: session.userId },
+  });
   return c.json({ professor, exercises, subjectsCount });
 });
 

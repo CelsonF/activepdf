@@ -21,18 +21,6 @@ function computeLevel(xp: number): number {
 async function main() {
   console.log("🌱 Seeding database...");
 
-  // ── Subjects ──────────────────────────────────────────────────────────────
-
-  const subjects = await Promise.all([
-    prisma.subject.upsert({ where: { name: "English" }, update: {}, create: { name: "English", description: "General English — grammar, vocabulary, conversation" } }),
-    prisma.subject.upsert({ where: { name: "Listening" }, update: {}, create: { name: "Listening", description: "Listening comprehension exercises and dictation" } }),
-    prisma.subject.upsert({ where: { name: "Speaking" }, update: {}, create: { name: "Speaking", description: "Conversation practice and pronunciation" } }),
-    prisma.subject.upsert({ where: { name: "Writing" }, update: {}, create: { name: "Writing", description: "Written expression, emails, essays" } }),
-  ]);
-
-  const [english, listening, speaking] = subjects;
-  console.log("  ✔ Subjects");
-
   // ── Professor ─────────────────────────────────────────────────────────────
 
   const professor = await prisma.professor.upsert({
@@ -47,6 +35,27 @@ async function main() {
     },
   });
   console.log("  ✔ Professor: sarah@activepdf.app / teacher123");
+
+  // ── Subjects (escopadas por professor) ────────────────────────────────────
+
+  const subjectSeed = [
+    { name: "English", description: "General English — grammar, vocabulary, conversation" },
+    { name: "Listening", description: "Listening comprehension exercises and dictation" },
+    { name: "Speaking", description: "Conversation practice and pronunciation" },
+    { name: "Writing", description: "Written expression, emails, essays" },
+  ];
+  const subjects = await Promise.all(
+    subjectSeed.map((s) =>
+      prisma.subject.upsert({
+        where: { professorId_name: { professorId: professor.id, name: s.name } },
+        update: {},
+        create: { ...s, professorId: professor.id },
+      })
+    )
+  );
+
+  const [english, listening, speaking] = subjects;
+  console.log("  ✔ Subjects");
 
   // ── Organization ──────────────────────────────────────────────────────────
 

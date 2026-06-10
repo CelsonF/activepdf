@@ -147,7 +147,9 @@ studentRoutes.post("/:id/subjects", async (c) => {
   const { subjectId } = await c.req.json();
   if (!subjectId) return c.json({ error: "subjectId é obrigatório" }, 400);
 
-  const subject = await prisma.subject.findUnique({ where: { id: subjectId } });
+  const subject = await prisma.subject.findFirst({
+    where: { id: subjectId, professorId: session.userId },
+  });
   if (!subject) return c.json({ error: "Matéria não encontrada" }, 404);
 
   await prisma.studentSubject.upsert({
