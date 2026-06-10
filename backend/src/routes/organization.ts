@@ -1,10 +1,13 @@
 import { Hono } from "hono";
 import { writeFile, mkdir } from "fs/promises";
-import { join, extname } from "path";
+import { join } from "path";
 import { prisma } from "../lib/prisma.js";
 import { getSession } from "../lib/auth.js";
+import { decodeBase64Payload, detectImage } from "../lib/files.js";
 
 export const organizationRoutes = new Hono();
+
+const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
 function toSlug(name: string, suffix: string): string {
   const base = name
@@ -44,16 +47,26 @@ organizationRoutes.patch("/", async (c) => {
 
   if (logoBase64) {
     // formato: "data:image/jpeg;base64,/9j/..."
-    const match = logoBase64.match(/^data:(image\/[a-z]+);base64,(.+)$/);
-    if (!match) return c.json({ error: "Formato de imagem inválido" }, 400);
+    if (typeof logoBase64 !== "string" || !/^data:image\/[a-z+.-]+;base64,/.test(logoBase64)) {
+      return c.json({ error: "Formato de imagem inválido" }, 400);
+    }
 
-    const [, mimeType, b64data] = match;
-    const ext = mimeType.split("/")[1].replace("jpeg", "jpg");
-    const filename = `${org.id}.${ext}`;
+    const buffer = decodeBase64Payload(logoBase64);
+    if (buffer.byteLength > MAX_LOGO_BYTES) {
+      return c.json({ error: "Imagem muito grande (máximo 2MB)" }, 413);
+    }
+
+    // Tipo real vem dos magic bytes; SVG fica fora (risco de XSS servido em /uploads)
+    const detected = detectImage(buffer);
+    if (!detected) {
+      return c.json({ error: "Apenas imagens PNG, JPEG ou WebP são aceitas" }, 400);
+    }
+
+    const filename = `${org.id}.${detected.ext}`;
     const dir = join(process.cwd(), "uploads", "logos");
 
     await mkdir(dir, { recursive: true });
-    await writeFile(join(dir, filename), Buffer.from(b64data, "base64"));
+    await writeFile(join(dir, filename), buffer);
     logoUrl = `/uploads/logos/${filename}`;
   }
 

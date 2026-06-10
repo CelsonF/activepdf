@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { prisma } from "../lib/prisma.js";
 import { getSession } from "../lib/auth.js";
+import { decodeBase64Payload, detectAudio } from "../lib/files.js";
 
 export const audioRoutes = new Hono();
 
 const XP_AUDIO_LISTEN = 10;
-const ALLOWED_MIME = new Set(["audio/mpeg", "audio/ogg", "audio/webm", "audio/mp4"]);
+const MAX_AUDIO_BYTES = 15 * 1024 * 1024;
 
 async function resolveLesson(lessonId: string | undefined, session: { userId: string; role: string }) {
   if (!lessonId) return null;
@@ -72,12 +73,22 @@ audioRoutes.post("/", async (c) => {
   const lesson = await resolveLesson(lessonId, session);
   if (!lesson) return c.json({ error: "Aula não encontrada" }, 404);
 
-  const { title, fileData, mimeType, durationSecs, transcript } = await c.req.json();
+  const { title, fileData, durationSecs, transcript } = await c.req.json();
 
   if (!title?.trim()) return c.json({ error: "Título é obrigatório" }, 400);
-  if (!fileData) return c.json({ error: "Arquivo é obrigatório" }, 400);
-  const mime = mimeType ?? "audio/mpeg";
-  if (!ALLOWED_MIME.has(mime)) return c.json({ error: "Formato de áudio não suportado" }, 400);
+  if (!fileData || typeof fileData !== "string") {
+    return c.json({ error: "Arquivo é obrigatório" }, 400);
+  }
+
+  const buffer = decodeBase64Payload(fileData);
+  if (buffer.byteLength > MAX_AUDIO_BYTES) {
+    return c.json({ error: "Áudio muito grande (máximo 15MB)" }, 413);
+  }
+
+  // MIME real vem dos magic bytes; o enviado pelo client é ignorado
+  const detected = detectAudio(buffer);
+  if (!detected) return c.json({ error: "Formato de áudio não suportado" }, 400);
+  const mime = detected.mime;
 
   const material = await prisma.audioMaterial.create({
     data: {
