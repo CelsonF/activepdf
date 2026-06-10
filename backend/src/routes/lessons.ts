@@ -5,12 +5,14 @@ import { requireAuth, requireTeacher, type AuthEnv } from "../middleware/auth.js
 import { jsonValidator } from "../lib/validate.js";
 import { findOwnedStudent } from "../lib/ownership.js";
 import { createLessonSchema, updateLessonSchema } from "../schemas/lessons.js";
+import { parsePagination } from "../lib/pagination.js";
 
 export const lessonRoutes = new Hono<AuthEnv>();
 
 lessonRoutes.get("/", requireAuth, async (c) => {
   const session = c.get("session");
   const status = c.req.query("status");
+  const { take, skip } = parsePagination(c);
 
   if (session.role === "student") {
     const lessons = await prisma.lesson.findMany({
@@ -28,6 +30,8 @@ lessonRoutes.get("/", requireAuth, async (c) => {
         subject: { select: { id: true, name: true } },
       },
       orderBy: { scheduledAt: "asc" },
+      take,
+      skip,
     });
     return c.json(lessons);
   }
@@ -41,6 +45,8 @@ lessonRoutes.get("/", requireAuth, async (c) => {
     },
     include: { student: { select: { id: true, name: true } } },
     orderBy: { scheduledAt: "asc" },
+    take,
+    skip,
   });
   return c.json(lessons);
 });

@@ -5,6 +5,7 @@ import { requireAuth, requireTeacher, type AuthEnv } from "../middleware/auth.js
 import { jsonValidator } from "../lib/validate.js";
 import { findOwnedStudent } from "../lib/ownership.js";
 import { awardXpSchema } from "../schemas/misc.js";
+import { parsePagination } from "../lib/pagination.js";
 import type { SessionPayload } from "../lib/auth.js";
 import type { Context } from "hono";
 
@@ -85,6 +86,8 @@ gamificationRoutes.get("/leaderboard", requireAuth, async (c) => {
     },
   });
 
+  // O rank é calculado sobre a lista completa antes do recorte da paginação
+  const { take, skip } = parsePagination(c);
   const ranked = students
     .map((s) => ({
       id: s.id,
@@ -94,7 +97,8 @@ gamificationRoutes.get("/leaderboard", requireAuth, async (c) => {
       streak: s.userStats?.streak ?? 0,
     }))
     .sort((a, b) => b.xp - a.xp)
-    .map((s, i) => ({ ...s, rank: i + 1 }));
+    .map((s, i) => ({ ...s, rank: i + 1 }))
+    .slice(skip, skip + take);
 
   return c.json(ranked);
 });

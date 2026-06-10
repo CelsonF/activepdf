@@ -9,12 +9,14 @@ import {
   reviewExerciseSchema,
   updateExerciseSchema,
 } from "../schemas/exercises.js";
+import { parsePagination } from "../lib/pagination.js";
 
 export const exerciseRoutes = new Hono<AuthEnv>();
 
 exerciseRoutes.get("/", requireAuth, async (c) => {
   const session = c.get("session");
   const studentId = c.req.query("studentId");
+  const { take, skip } = parsePagination(c);
 
   if (session.role === "teacher") {
     const statusFilter = c.req.query("status");
@@ -30,6 +32,8 @@ exerciseRoutes.get("/", requireAuth, async (c) => {
         student: { select: { name: true } },
       },
       orderBy: { createdAt: "desc" },
+      take,
+      skip,
     });
     return c.json(exercises);
   }
@@ -41,6 +45,8 @@ exerciseRoutes.get("/", requireAuth, async (c) => {
       professor: { select: { name: true } },
     },
     orderBy: { createdAt: "desc" },
+    take,
+    skip,
   });
   return c.json(exercises);
 });
