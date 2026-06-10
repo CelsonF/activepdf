@@ -96,7 +96,7 @@ export default function RegisterPage() {
     reader.readAsDataURL(file);
   }
 
-  const canNext0 = name.trim().length > 0 && email.includes("@") && password.length >= 6;
+  const canNext0 = name.trim().length > 0 && email.includes("@") && password.length >= 8;
   const canNext1 = role !== null;
   const canSubmitTeacher = canNext0 && canNext1 && orgName.trim().length > 0;
   const canSubmitStudent = canNext0 && canNext1 && goals.length > 0;
@@ -213,7 +213,7 @@ export default function RegisterPage() {
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-                    Senha <span className="text-slate-400 font-normal">(mín. 6 caracteres)</span>
+                    Senha <span className="text-slate-400 font-normal">(mín. 8 caracteres)</span>
                   </label>
                   <div className="relative">
                     <input
@@ -221,7 +221,7 @@ export default function RegisterPage() {
                       className="ui-input pr-10 py-2.5 text-sm"
                       placeholder="Crie uma senha" value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      minLength={6} autoComplete="new-password"
+                      minLength={8} autoComplete="new-password"
                     />
                     <button
                       type="button"

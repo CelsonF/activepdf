@@ -39,7 +39,8 @@ export function SaveExerciseModal({ isOpen, onClose, pdfName, pdfBytes, fields, 
     setError("");
     fetch("/api/dashboard/students")
       .then((r) => r.json())
-      .then((data) => Array.isArray(data) && setStudents(data));
+      .then((data) => Array.isArray(data) && setStudents(data))
+      .catch(() => undefined);
   }, [isOpen, pdfName]);
 
   async function handleSave() {

@@ -139,7 +139,7 @@ export function UploadScreen({ role, name }: Props) {
                   style={{ width: 32, height: 32, borderWidth: 3, borderColor: "var(--border)", borderTopColor: "var(--brand)" }}
                 />
               ) : (
-                <UploadSimple size={36} color={dragging ? "var(--brand)" : "#64748b"} />
+                <UploadSimple size={36} className={dragging ? "text-brand" : "text-slate-500"} />
               )}
             </div>
 

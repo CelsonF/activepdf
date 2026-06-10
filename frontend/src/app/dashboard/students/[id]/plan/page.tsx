@@ -38,6 +38,7 @@ export default function StudentPlanPage() {
           });
         }
       })
+      .catch(() => undefined)
       .finally(() => setFetching(false));
   }, [id]);
 

@@ -281,7 +281,6 @@ function StudentDashboard({ name, data, gamif }: { name: string; data: StudentDa
                   size={72}
                   value={Math.round((completedExercises.length / exercises.length) * 100)}
                   stroke={6}
-                  color="#4f46e5"
                 >
                   <span className="text-[14px] font-bold text-slate-900">
                     {Math.round((completedExercises.length / exercises.length) * 100)}%

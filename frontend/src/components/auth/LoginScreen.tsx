@@ -32,9 +32,9 @@ function RoleCard({ role, selected, onSelect }: RoleCardProps) {
         ].join(" ")}
       >
         {isTeacher ? (
-          <GraduationCap size={28} weight="bold" color={selected ? "white" : "#64748b"} />
+          <GraduationCap size={28} weight="bold" className={selected ? "text-white" : "text-slate-500"} />
         ) : (
-          <BookOpen size={28} weight="bold" color={selected ? "white" : "#64748b"} />
+          <BookOpen size={28} weight="bold" className={selected ? "text-white" : "text-slate-500"} />
         )}
       </div>
 

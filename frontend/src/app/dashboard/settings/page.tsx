@@ -128,7 +128,8 @@ export default function SettingsPage() {
           setOrgName(data.name);
           if (data.logoUrl) setOrgLogoPreview(data.logoUrl);
         }
-      });
+      })
+      .catch(() => undefined);
   }, []);
 
   const TABS = isTeacher

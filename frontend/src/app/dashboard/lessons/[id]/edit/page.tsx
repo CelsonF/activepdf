@@ -43,6 +43,7 @@ export default function EditLessonPage() {
         });
         if (Array.isArray(subs)) setSubjects(subs);
       })
+      .catch(() => setError("Erro ao carregar a aula."))
       .finally(() => setFetching(false));
   }, [id]);
 

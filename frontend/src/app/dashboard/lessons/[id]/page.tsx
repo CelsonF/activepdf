@@ -133,7 +133,7 @@ export default async function LessonDetailPage({ params }: { params: { id: strin
                     <span className="text-sm font-semibold text-slate-800 w-32 shrink-0">{v.word}</span>
                     <div className="flex-1 min-w-0">
                       {v.definition && <p className="text-sm text-slate-600">{v.definition}</p>}
-                      {v.example && <p className="text-xs text-slate-400 italic mt-0.5">"{v.example}"</p>}
+                      {v.example && <p className="text-xs text-slate-400 italic mt-0.5">&ldquo;{v.example}&rdquo;</p>}
                     </div>
                   </div>
                 ))}

@@ -73,7 +73,8 @@ export function SidebarNav({ role, streakDays = 0, pendingCorrections = 0 }: Pro
     if (role !== "teacher") return;
     fetch("/api/organization")
       .then((r) => (r.ok ? r.json() : null))
-      .then((data: OrgInfo | null) => { if (data) setOrg(data); });
+      .then((data: OrgInfo | null) => { if (data) setOrg(data); })
+      .catch(() => undefined);
   }, [role]);
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 import type { PDFDocumentProxy } from "pdfjs-dist";
+import type { Color, PDFForm, PDFPage } from "pdf-lib";
 import type { PdfField, ExportMode } from "@/types";
 
 function uid() { return Math.random().toString(36).slice(2, 9); }
@@ -29,8 +30,8 @@ function dataURLToBytes(dataURL: string): Uint8Array {
   return arr;
 }
 
-function addTextField(form: any, page: any, f: PdfField, name: string, opts: {
-  borderWidth: number; borderColor: any; backgroundColor: any; font: any;
+function addTextField(form: PDFForm, page: PDFPage, f: PdfField, name: string, opts: {
+  borderWidth: number; borderColor: Color; backgroundColor: Color;
 }) {
   const tf = form.createTextField(name);
   tf.addToPage(page, {
@@ -65,7 +66,7 @@ export async function exportPDF(
       const page = pages[f.page - 1];
       if (!page) continue;
       const name = uniqueName(f.name || `q${uid()}`, used);
-      addTextField(form, page, f, name, { borderWidth: 0.5, borderColor: rgb(0.5, 0.5, 0.6), backgroundColor: rgb(1, 1, 1), font: helv });
+      addTextField(form, page, f, name, { borderWidth: 0.5, borderColor: rgb(0.5, 0.5, 0.6), backgroundColor: rgb(1, 1, 1) });
     }
     form.updateFieldAppearances(helv);
     downloadBytes(await doc.save(), `${pdfName}_interativo.pdf`);
@@ -98,7 +99,7 @@ export async function exportPDF(
     for (const f of fields) {
       const page = pages[f.page - 1]; if (!page) continue;
       const name = uniqueName(f.name || `q${uid()}`, used);
-      addTextField(form, page, f, name, { borderWidth: 1, borderColor: rgb(0.31, 0.27, 0.9), backgroundColor: rgb(1, 1, 1), font: helv });
+      addTextField(form, page, f, name, { borderWidth: 1, borderColor: rgb(0.31, 0.27, 0.9), backgroundColor: rgb(1, 1, 1) });
     }
     form.updateFieldAppearances(helv);
     downloadBytes(await doc.save(), `${pdfName}_marca_dagua.pdf`);
