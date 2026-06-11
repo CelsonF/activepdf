@@ -38,7 +38,7 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <Topbar initials={session.name ?? "U"} />
+      <Topbar initials={session.name ?? "U"} role={session.role} />
       {session.role === "teacher"
         ? <TeacherDashboard name={session.name ?? "Professor"} data={teacherData} leaderboard={leaderboard} />
         : <StudentDashboard name={session.name ?? "Aluno"} data={studentData} gamif={gamifStats} />}
