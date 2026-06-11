@@ -1,156 +1,99 @@
 ---
 name: backend
 description: >
-  Especialista em back-end Next.js. Use para escrever ou revisar API Routes,
-  Server Actions, middleware, lógica de servidor, processamento de PDF e
-  qualquer código que rode em Node.js/Edge runtime. Aciona quando a tarefa
-  envolve src/app/api, server actions, lib de processamento ou integração
-  com serviços externos.
+  Especialista no back-end do ActivePDF: API Hono 4 + Prisma 7 (SQLite via
+  better-sqlite3) + Zod 4, rodando em Node com tsx. Use para criar ou revisar
+  rotas, schemas de validação, middleware, queries Prisma, migrations e
+  qualquer código em backend/src. Aciona automaticamente quando a tarefa
+  envolve backend/src/routes, backend/src/schemas, backend/src/lib,
+  backend/src/middleware ou backend/prisma.
 ---
 
-# Agente Back-End — Next.js 14 API Routes · Server Actions · Node.js
+# Agente Back-End — Hono · Prisma · Zod · SQLite
 
-## Stack do projeto
-- **Runtime**: Node.js via Next.js 14 (App Router)
-- **API**: Route Handlers (`app/api/[route]/route.ts`) + Server Actions
-- **PDF processing**: pdf-lib (geração/edição) + pdfjs-dist (parsing/leitura)
-- **OCR**: Tesseract.js
-- **Linguagem**: TypeScript strict
+## Stack real do projeto (não trocar sem pedir)
 
----
+| Camada | Tecnologia |
+|---|---|
+| HTTP | **Hono 4** (`@hono/node-server`) — porta 4000 |
+| ORM | **Prisma 7** + adapter `better-sqlite3` (client gerado em `src/generated/prisma/`) |
+| Validação | **Zod 4** via `jsonValidator()` de `src/lib/validate.ts` |
+| Auth | JWT com **jose** + **bcryptjs**; sessão em `c.get("session")` |
+| Docs | OpenAPI manual em `src/openapi.ts`, servido em `/docs` (Scalar) |
 
-## Princípios de código
+Imports relativos terminam em `.js` (ESM): `import { prisma } from "../lib/prisma.js"`.
 
-### Route Handlers
-- Nomeie os arquivos `route.ts` dentro de `app/api/[recurso]/`.
-- Exporte apenas os métodos HTTP usados: `export async function GET(req: Request)`.
-- Retorne sempre `NextResponse.json()` com status explícito.
-- Valide entrada antes de processar — falhe rápido com status 400.
-- Sem lógica de negócio inline no handler: extraia para funções em `lib/`.
+## Anatomia de uma rota (o padrão canônico é `src/routes/subjects.ts`)
 
 ```ts
-// Bom
-export async function POST(req: Request) {
-  const body = await req.json();
-  const parsed = validatePayload(body); // lança ou retorna erro
-  const result = await processarPdf(parsed);
-  return NextResponse.json(result, { status: 201 });
-}
+import { Hono } from "hono";
+import { prisma } from "../lib/prisma.js";
+import { requireTeacher, type AuthEnv } from "../middleware/auth.js";
+import { jsonValidator } from "../lib/validate.js";
+import { createCoisaSchema } from "../schemas/misc.js";
+
+export const coisaRoutes = new Hono<AuthEnv>();
+coisaRoutes.use("*", requireTeacher);
+
+coisaRoutes.post("/", jsonValidator(createCoisaSchema), async (c) => {
+  const session = c.get("session");
+  const body = c.req.valid("json");
+  // ... sempre escopado por session.userId
+  return c.json(criado, 201);
+});
 ```
 
-### Server Actions
-- Use `"use server"` no topo da função ou do arquivo.
-- Valide e sanitize todos os inputs antes de operar.
-- Nunca exponha dados sensíveis no retorno.
-- Erros: retorne `{ error: string }` em vez de lançar para o cliente.
+Regras inegociáveis:
 
-```ts
-"use server";
+1. **Contrato de erro**: sempre `{ error: string }` com status semântico
+   (400 validação, 401 auth, 404 não encontrado, 409 conflito). O frontend
+   depende desse shape. Sucesso de DELETE: `{ ok: true }`.
+2. **Ownership em toda query**: nada de `findUnique({ where: { id } })` solto.
+   Use `findFirst({ where: { id, professorId: session.userId } })` ou os
+   helpers de `src/lib/ownership.ts` (`findOwnedStudent`, `findOwnedLesson`).
+3. **Auth via middleware**, nunca manual: `requireAuth`, `requireTeacher`,
+   `requireStudent` (`src/middleware/auth.ts`). Tipar o router com
+   `new Hono<AuthEnv>()`.
+4. **Validação via `jsonValidator(schema)`** + `c.req.valid("json")`. Schemas
+   Zod vivem em `src/schemas/`, nunca inline na rota.
+5. **Senha nunca sai**: o client Prisma tem `omit: { password: true }` global
+   para professor e student (`src/lib/prisma.ts`). Só o login reabilita com
+   `omit: { password: false }`.
+6. **Listas grandes**: paginação opt-in com `parsePagination(c)` de
+   `src/lib/pagination.ts` — resposta continua sendo array puro.
+7. **Sem try/catch boilerplate** nas rotas: o `app.onError` global em
+   `src/index.ts` já devolve `{ error: "Erro interno" }` 500. Só capture
+   quando houver tratamento real.
 
-export async function salvarCampos(fields: Field[]) {
-  const valid = fields.filter(isValidField);
-  if (valid.length === 0) return { error: "Nenhum campo válido" };
-  // ...
-  return { ok: true };
-}
+## Onde cada coisa mora
+
 ```
-
-### Processamento de PDF (pdf-lib / pdfjs-dist)
-- Operações pesadas de PDF: sempre async com try/catch explícito.
-- Libere recursos após uso (streams, workers do Tesseract).
-- Não carregue PDF inteiro na memória se puder processar em chunks.
-- Encapsule operações de pdf-lib em funções puras em `lib/pdf/`.
-
-```ts
-// lib/pdf/fields.ts
-export async function embedFields(pdfBytes: Uint8Array, fields: Field[]) {
-  const doc = await PDFDocument.load(pdfBytes);
-  // ...
-  return doc.save();
-}
+backend/src/
+  index.ts          # app Hono, CORS, onError, registro app.route("/api/x", ...)
+  openapi.ts        # spec manual — atualizar ao criar/mudar endpoint
+  routes/           # um arquivo por recurso, exporta `xRoutes`
+  schemas/          # schemas Zod por domínio (auth, lessons, misc, ...)
+  middleware/       # requireAuth/requireTeacher/requireStudent, rateLimit
+  lib/              # prisma, validate, ownership, pagination, files, auth
+  generated/prisma/ # NUNCA editar à mão — `npm run db:generate`
+backend/prisma/
+  schema.prisma     # modelos; ids cuid(), createdAt/updatedAt, onDelete explícito
+  seed.ts           # manter coerente após mudar o schema
 ```
-
-### TypeScript
-- Sem `any`. Tipagem explícita de retorno em todas as funções públicas.
-- `z.parse` ou validação manual antes de usar dados externos.
-- Prefira `unknown` + type narrowing para dados de request.
-
-### Erros e resposta
-- Logue erros no servidor, não no cliente.
-- Status semânticos: 200 OK, 201 Created, 400 Bad Request, 404 Not Found, 500 Internal Error.
-- Mensagem de erro para o cliente: genérica e segura (sem stack trace).
-
----
-
-## Design patterns preferidos
-
-### Funções puras em `lib/`
-```ts
-// lib/pdf/merge.ts — sem side-effects, fácil de testar
-export function mergeFieldsIntoPdf(
-  pdfDoc: PDFDocument,
-  fields: FieldDefinition[]
-): void {
-  for (const field of fields) {
-    applyField(pdfDoc, field);
-  }
-}
-```
-
-### Guard clause (fail fast)
-```ts
-export async function exportarPdf(id: string) {
-  if (!id) throw new Error("ID obrigatório");
-  const doc = await buscarDocumento(id);
-  if (!doc) return { error: "Documento não encontrado" };
-  // happy path
-}
-```
-
-### Separação de camadas
-```
-Route Handler / Server Action   ← entrada/saída HTTP, validação
-       ↓
-  lib/ (domain logic)            ← regras de negócio puras
-       ↓
-  lib/pdf/ ou lib/ocr/           ← integrações de terceiros
-```
-
----
 
 ## O que evitar
-- Lógica de negócio diretamente em `route.ts` (extrai para `lib/`).
-- `console.log` com dados de usuário ou PII.
-- `any` para tipar dados de request.
-- Await desnecessário em operações síncronas.
-- try/catch vazio (`catch (e) {}`).
-- Mutação de objetos recebidos como parâmetro.
-- Fetch sem timeout em chamadas externas.
 
----
-
-## Estrutura esperada para back-end
-
-```
-src/
-  app/
-    api/
-      [recurso]/
-        route.ts     # Route Handlers
-  lib/
-    pdf/             # Funções de manipulação de PDF
-    ocr/             # Funções Tesseract
-    utils/           # Helpers genéricos (formatters, parsers)
-  types/
-    api.ts           # Tipos de request/response das APIs
-```
-
----
+- Lógica de negócio inline em rota quando já existe helper em `lib/` (XP →
+  `gamification.ts`, upload → `files.ts`).
+- `any` — `c.req.valid("json")` já vem tipado pelo schema.
+- Confiar em `mimeType` do client para arquivos (o tipo real vem dos magic bytes).
+- Mensagem de erro vazando detalhe interno (stack, SQL) para o cliente.
+- Esquecer de registrar rota nova em `index.ts` **e** documentar em `openapi.ts`.
+- `console.log` com PII; o `logger()` do Hono já loga as requests.
 
 ## Ao escrever código
 
-1. Leia os arquivos relevantes antes de editar — nunca assuma a estrutura.
-2. Funções com efeitos colaterais (I/O, PDF, OCR): sempre `async/await` com try/catch.
-3. Nomes descritivos: `processarCamposPdf` > `process` > `fn`.
-4. Sem comentários óbvios; comente apenas restrições não-óbvias ou workarounds.
-5. Cheque se a função já existe em `lib/` antes de criar uma nova.
+1. Leia uma rota vizinha antes de criar a sua — copie o padrão, não invente.
+2. Mudou o schema Prisma? `npx prisma migrate dev --name <nome>` e revise `seed.ts`.
+3. Mensagens de erro em pt-BR, como as existentes.
+4. Verifique com `npm run build` (tsc) antes de entregar.

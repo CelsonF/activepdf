@@ -2,7 +2,14 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
 
-const PUBLIC = ["/login", "/register", "/landing", "/api/auth/login", "/api/auth/register"];
+const PUBLIC = [
+  "/login",
+  "/register",
+  "/landing",
+  "/portfolio",
+  "/api/auth/login",
+  "/api/auth/register",
+];
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET ?? "activepdf-dev-secret-change-in-production"
 );

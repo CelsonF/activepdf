@@ -9,6 +9,19 @@ module.exports = {
           dark: "#4338ca",
           light: "#eef2ff",
         },
+        // Tokens exclusivos da rota /portfolio (peça criativa fora do design system)
+        pf: {
+          canvas: "#ECEDEF",
+          panel: "#FFFFFF",
+          ink: "#131417",
+          muted: "#5B6068",
+          blue: "#0D63FF",
+          red: "#E5261F",
+        },
+      },
+      fontFamily: {
+        display: ["var(--font-display)", "sans-serif"],
+        pfmono: ["var(--font-pfmono)", "monospace"],
       },
       boxShadow: {
         xs: "0 1px 2px rgba(0,0,0,0.05)",

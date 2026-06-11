@@ -7,6 +7,7 @@
 > - `criar-componente` — criar ou revisar qualquer componente de UI
 > - `refatorar-design-system` — auditar e refatorar componentes/páginas para o padrão do design system
 > - `storybook` — configurar o Storybook e escrever stories para os primitivos
+> - `consumir-api` — buscar/enviar dados para a API (serverFetch, proxy, contrato de erro)
 
 ## Stack (não trocar sem pedir)
 
