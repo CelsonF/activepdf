@@ -11,6 +11,7 @@ import {
   Star,
   PencilLine,
 } from "@phosphor-icons/react/dist/ssr";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 
 interface Exercise {
@@ -160,15 +161,12 @@ export default async function PdfsPage() {
         )}
 
         {exercises.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
-            <FilePdf size={36} className="text-slate-300 mb-3" />
-            <p className="text-sm font-semibold text-slate-500 mb-1">
-              Nenhum exercício ainda
-            </p>
-            <p className="text-xs text-slate-400">
-              Seu professor ainda não enviou exercícios para você.
-            </p>
-          </div>
+          <EmptyState
+            className="py-20"
+            icon={<FilePdf size={36} />}
+            title="Nenhum exercício ainda"
+            description="Seu professor ainda não enviou exercícios para você."
+          />
         )}
       </div>
     </div>

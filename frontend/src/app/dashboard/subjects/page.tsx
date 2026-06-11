@@ -5,6 +5,7 @@ import { serverFetch } from "@/lib/api";
 import { Books, Plus, Pencil } from "@phosphor-icons/react/dist/ssr";
 import { DeleteSubjectButton } from "./_components";
 import { PageShell } from "@/components/ui/PageShell";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Subject {
   id: string;
@@ -36,13 +37,15 @@ export default async function SubjectsPage() {
         </div>
 
         {subjects.length === 0 ? (
-          <div className="text-center py-14 bg-white rounded-2xl border border-dashed border-slate-300">
-            <Books size={32} className="text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-500 mb-4">Nenhuma matéria cadastrada ainda.</p>
-            <Link href="/dashboard/subjects/new" className="ui-btn ui-btn-primary ui-btn-sm inline-flex gap-1.5">
-              <Plus size={13} weight="bold" /> Criar primeira matéria
-            </Link>
-          </div>
+          <EmptyState
+            icon={<Books size={32} />}
+            title="Nenhuma matéria cadastrada ainda."
+            action={
+              <Link href="/dashboard/subjects/new" className="ui-btn ui-btn-primary ui-btn-sm inline-flex gap-1.5">
+                <Plus size={13} weight="bold" /> Criar primeira matéria
+              </Link>
+            }
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {subjects.map((subject) => (

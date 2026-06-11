@@ -34,3 +34,5 @@ export {
 
 export { PageShell } from "./PageShell";
 export type { BreadcrumbItem } from "./PageShell";
+
+export { EmptyState } from "./EmptyState";

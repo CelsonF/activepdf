@@ -2,6 +2,7 @@ import Link from "next/link";
 import {
   BookOpen, CalendarBlank, CheckCircle, PencilLine, Target, UploadSimple,
 } from "@phosphor-icons/react/dist/ssr";
+import { EmptyState } from "@/components/ui";
 import { StatCard } from "./StatCard";
 import { StudentLessonsCard } from "./StudentLessonsCard";
 import { PendingExercisesList } from "./PendingExercisesList";
@@ -57,11 +58,12 @@ export function StudentDashboard({ name, data, gamif }: StudentDashboardProps) {
           {pendingExercises.length > 0 && <PendingExercisesList exercises={pendingExercises} />}
 
           {exercises.length === 0 && upcoming.length === 0 && (
-            <div className="flex flex-col items-center justify-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
-              <BookOpen size={36} className="text-slate-300 mb-3" />
-              <p className="text-sm text-slate-500 mb-1">Nenhum exercício atribuído ainda.</p>
-              <p className="text-xs text-slate-400">Sua professora irá enviar exercícios em breve.</p>
-            </div>
+            <EmptyState
+              className="py-16"
+              icon={<BookOpen size={36} />}
+              title="Nenhum exercício atribuído ainda."
+              description="Sua professora irá enviar exercícios em breve."
+            />
           )}
         </div>
 

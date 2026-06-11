@@ -4,6 +4,7 @@ import { getSession } from "@/lib/auth";
 import { serverFetch } from "@/lib/api";
 import { GraduationCap, Plus, ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { PageShell } from "@/components/ui/PageShell";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Student {
   id: string;
@@ -34,13 +35,15 @@ export default async function StudentsPage() {
         </div>
 
         {students.length === 0 ? (
-          <div className="text-center py-14 bg-white rounded-2xl border border-dashed border-slate-300">
-            <GraduationCap size={32} className="text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-500 mb-4">Nenhum aluno cadastrado ainda.</p>
-            <Link href="/dashboard/students/new" className="ui-btn ui-btn-primary ui-btn-sm inline-flex gap-1.5">
-              <Plus size={13} weight="bold" /> Adicionar primeiro aluno
-            </Link>
-          </div>
+          <EmptyState
+            icon={<GraduationCap size={32} />}
+            title="Nenhum aluno cadastrado ainda."
+            action={
+              <Link href="/dashboard/students/new" className="ui-btn ui-btn-primary ui-btn-sm inline-flex gap-1.5">
+                <Plus size={13} weight="bold" /> Adicionar primeiro aluno
+              </Link>
+            }
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {students.map((student) => (

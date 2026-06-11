@@ -9,6 +9,7 @@ import {
   Eye,
   FileArrowUp,
 } from "@phosphor-icons/react/dist/ssr";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { DeleteLibraryPdf, LibraryPageClient } from "./_components";
 
 interface LibraryItem {
@@ -62,20 +63,17 @@ export default async function LibraryPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-8 animate-fadeUp">
         {items.length === 0 ? (
-          /* Empty state */
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
-            <div className="w-14 h-14 rounded-2xl bg-violet-50 flex items-center justify-center mb-4">
-              <FileArrowUp size={28} className="text-violet-400" />
-            </div>
-            <p className="text-sm font-semibold text-slate-600 mb-1">
-              Biblioteca vazia
-            </p>
-            <p className="text-xs text-slate-400 mb-5 text-center max-w-xs">
-              Adicione PDFs à sua biblioteca para reutilizá-los em exercícios e
-              aulas.
-            </p>
-            <LibraryPageClient />
-          </div>
+          <EmptyState
+            className="py-20"
+            icon={
+              <span className="w-14 h-14 rounded-2xl bg-violet-50 flex items-center justify-center">
+                <FileArrowUp size={28} className="text-violet-400" />
+              </span>
+            }
+            title="Biblioteca vazia"
+            description="Adicione PDFs à sua biblioteca para reutilizá-los em exercícios e aulas."
+            action={<LibraryPageClient />}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {items.map((item) => {

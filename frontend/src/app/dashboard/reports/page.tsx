@@ -13,6 +13,7 @@ import {
   ArrowRight,
   Circle,
 } from "@phosphor-icons/react/dist/ssr";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 
 interface StudentReport {
@@ -154,12 +155,11 @@ export default async function ReportsPage() {
 
         {/* Student table */}
         {report.length === 0 ? (
-          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
-            <ChartBar size={32} className="text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-400">
-              Nenhum aluno cadastrado ainda.
-            </p>
-          </div>
+          <EmptyState
+            className="py-16"
+            icon={<ChartBar size={32} />}
+            title="Nenhum aluno cadastrado ainda."
+          />
         ) : (
           <div className="flex flex-col gap-3">
             {report.map((s) => {

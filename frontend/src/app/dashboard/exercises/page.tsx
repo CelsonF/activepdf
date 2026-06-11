@@ -5,6 +5,7 @@ import { serverFetch } from "@/lib/api";
 import { FilePdf, Plus } from "@phosphor-icons/react/dist/ssr";
 import { DeleteExerciseButton } from "./_components";
 import { PageShell } from "@/components/ui/PageShell";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface Exercise {
   id: string;
@@ -48,13 +49,15 @@ export default async function ExercisesPage() {
         </div>
 
         {exercises.length === 0 ? (
-          <div className="text-center py-14 bg-white rounded-2xl border border-dashed border-slate-300">
-            <FilePdf size={32} className="text-slate-300 mx-auto mb-3" />
-            <p className="text-sm text-slate-500 mb-4">Nenhum exercício criado ainda.</p>
-            <Link href="/dashboard/exercises/new" className="ui-btn ui-btn-primary ui-btn-sm inline-flex gap-1.5">
-              <Plus size={13} weight="bold" /> Criar primeiro exercício
-            </Link>
-          </div>
+          <EmptyState
+            icon={<FilePdf size={32} />}
+            title="Nenhum exercício criado ainda."
+            action={
+              <Link href="/dashboard/exercises/new" className="ui-btn ui-btn-primary ui-btn-sm inline-flex gap-1.5">
+                <Plus size={13} weight="bold" /> Criar primeiro exercício
+              </Link>
+            }
+          />
         ) : (
           <div className="flex flex-col gap-2">
             {exercises.map((ex) => {

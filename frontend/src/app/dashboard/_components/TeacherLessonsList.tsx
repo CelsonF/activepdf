@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ArrowRight, CalendarBlank, Plus } from "@phosphor-icons/react/dist/ssr";
+import { EmptyState } from "@/components/ui";
 import { fmt, fmtTime, type TeacherData } from "./dashboard-shared";
 
 interface TeacherLessonsListProps {
@@ -9,13 +10,16 @@ interface TeacherLessonsListProps {
 export function TeacherLessonsList({ lessons }: TeacherLessonsListProps) {
   if (lessons.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-12 bg-white rounded-2xl border border-dashed border-slate-300">
-        <CalendarBlank size={32} className="text-slate-300 mb-3" />
-        <p className="text-sm text-slate-500 mb-3">Nenhuma aula agendada.</p>
-        <Link href="/dashboard/lessons/new" className="ui-btn ui-btn-primary ui-btn-sm inline-flex gap-1">
-          <Plus size={13} /> Agendar aula
-        </Link>
-      </div>
+      <EmptyState
+        className="py-12"
+        icon={<CalendarBlank size={32} />}
+        title="Nenhuma aula agendada."
+        action={
+          <Link href="/dashboard/lessons/new" className="ui-btn ui-btn-primary ui-btn-sm inline-flex gap-1">
+            <Plus size={13} /> Agendar aula
+          </Link>
+        }
+      />
     );
   }
 

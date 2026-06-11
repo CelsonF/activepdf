@@ -10,6 +10,7 @@ import {
   Warning,
   Student,
 } from "@phosphor-icons/react/dist/ssr";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 
 interface Exercise {
@@ -180,12 +181,11 @@ export default async function CorrectionsPage() {
           </div>
 
           {pending.length === 0 ? (
-            <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-slate-300">
-              <CheckCircle size={28} className="text-emerald-400 mx-auto mb-2" />
-              <p className="text-sm text-slate-500">
-                Nenhum exercício aguardando correção.
-              </p>
-            </div>
+            <EmptyState
+              className="py-10"
+              icon={<CheckCircle size={28} className="text-emerald-400" />}
+              title="Nenhum exercício aguardando correção."
+            />
           ) : (
             <div className="flex flex-col gap-2">
               {pending.map((ex) => (
@@ -218,15 +218,12 @@ export default async function CorrectionsPage() {
         )}
 
         {all.length === 0 && (
-          <div className="text-center py-16 bg-white rounded-2xl border border-dashed border-slate-300">
-            <ClipboardText size={36} className="text-slate-300 mx-auto mb-3" />
-            <p className="text-sm font-semibold text-slate-500 mb-1">
-              Nenhum exercício ainda
-            </p>
-            <p className="text-xs text-slate-400">
-              Atribua exercícios aos seus alunos para vê-los aqui.
-            </p>
-          </div>
+          <EmptyState
+            className="py-16"
+            icon={<ClipboardText size={36} />}
+            title="Nenhum exercício ainda"
+            description="Atribua exercícios aos seus alunos para vê-los aqui."
+          />
         )}
       </div>
     </div>

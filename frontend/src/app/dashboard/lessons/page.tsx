@@ -7,6 +7,7 @@ import {
   Clock, CheckCircle, Pencil
 } from "@phosphor-icons/react/dist/ssr";
 import { PageShell } from "@/components/ui/PageShell";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 interface LessonSummary {
   id: string;
@@ -52,13 +53,16 @@ export default async function LessonsPage() {
         <section className="mb-8">
           <h2 className="text-sm font-semibold text-slate-500 uppercase tracking-wide mb-3">Agendadas</h2>
           {scheduled.length === 0 ? (
-            <div className="text-center py-10 bg-white rounded-2xl border border-dashed border-slate-300">
-              <CalendarBlank size={28} className="text-slate-300 mx-auto mb-2" />
-              <p className="text-sm text-slate-500">Nenhuma aula agendada.</p>
-              <Link href="/dashboard/lessons/new" className="ui-btn ui-btn-primary ui-btn-sm mt-3 inline-flex gap-1">
-                <Plus size={13} /> Agendar aula
-              </Link>
-            </div>
+            <EmptyState
+              className="py-10"
+              icon={<CalendarBlank size={28} />}
+              title="Nenhuma aula agendada."
+              action={
+                <Link href="/dashboard/lessons/new" className="ui-btn ui-btn-primary ui-btn-sm inline-flex gap-1">
+                  <Plus size={13} /> Agendar aula
+                </Link>
+              }
+            />
           ) : (
             <div className="flex flex-col gap-2">
               {scheduled.map((lesson) => (

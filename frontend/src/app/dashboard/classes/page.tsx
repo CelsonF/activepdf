@@ -3,6 +3,7 @@ import Link from "next/link";
 import { getSession } from "@/lib/auth";
 import { serverFetch } from "@/lib/api";
 import { Chalkboard, UsersThree, ArrowRight } from "@phosphor-icons/react/dist/ssr";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { ClassesPageClient, DeleteClassButton } from "./_components";
 
 interface ClassItem {
@@ -62,18 +63,17 @@ export default async function ClassesPage() {
 
       <div className="max-w-4xl mx-auto px-4 py-8 animate-fadeUp">
         {classes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
-            <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-4">
-              <Chalkboard size={28} className="text-blue-400" />
-            </div>
-            <p className="text-sm font-semibold text-slate-600 mb-1">
-              Nenhuma turma ainda
-            </p>
-            <p className="text-xs text-slate-400 mb-5 text-center max-w-xs">
-              Organize seus alunos em turmas para facilitar o acompanhamento.
-            </p>
-            <ClassesPageClient students={students} />
-          </div>
+          <EmptyState
+            className="py-20"
+            icon={
+              <span className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center">
+                <Chalkboard size={28} className="text-blue-400" />
+              </span>
+            }
+            title="Nenhuma turma ainda"
+            description="Organize seus alunos em turmas para facilitar o acompanhamento."
+            action={<ClassesPageClient students={students} />}
+          />
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {classes.map((cls) => (
