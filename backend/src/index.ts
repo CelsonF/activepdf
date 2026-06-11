@@ -18,6 +18,7 @@ import { organizationRoutes } from "./routes/organization.js";
 import { libraryRoutes } from "./routes/library.js";
 import { reportsRoutes } from "./routes/reports.js";
 import { classRoutes } from "./routes/classes.js";
+import { profileRoutes } from "./routes/profile.js";
 import { openApiSpec } from "./openapi.js";
 
 mkdirSync("uploads/logos", { recursive: true });
@@ -87,6 +88,7 @@ app.route("/api/organization", organizationRoutes);
 app.route("/api/library", libraryRoutes);
 app.route("/api/reports", reportsRoutes);
 app.route("/api/classes", classRoutes);
+app.route("/api/profile", profileRoutes);
 
 const port = Number(process.env.PORT ?? 4000);
 

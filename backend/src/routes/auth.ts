@@ -22,8 +22,18 @@ const authLimiter = rateLimit({ max: 10, windowMs: 15 * 60 * 1000 });
 authRoutes.use("/login", authLimiter);
 authRoutes.use("/register", authLimiter);
 
+const GOAL_LABELS: Record<string, string> = {
+  conversation: "Conversação",
+  business: "Inglês de negócios",
+  tech: "Inglês técnico",
+  exam: "Provas (TOEFL/IELTS)",
+  grammar: "Gramática",
+  listening: "Listening",
+};
+
 authRoutes.post("/register", jsonValidator(registerSchema), async (c) => {
-  const { name, email, password, role, teacherEmail, organizationName } = c.req.valid("json");
+  const { name, email, password, role, teacherEmail, organizationName, level, goals } =
+    c.req.valid("json");
 
   const existingP = await prisma.professor.findUnique({ where: { email } });
   const existingS = await prisma.student.findUnique({ where: { email } });
@@ -59,6 +69,22 @@ authRoutes.post("/register", jsonValidator(registerSchema), async (c) => {
   const student = await prisma.student.create({
     data: { name: name.trim(), email, password: hashed, professorId },
   });
+
+  // Persiste o nível e os objetivos escolhidos no onboarding
+  if (level || (goals && goals.length > 0)) {
+    const objective = (goals ?? [])
+      .map((g) => GOAL_LABELS[g] ?? g)
+      .join(", ");
+    await prisma.learningPlan.create({
+      data: {
+        studentId: student.id,
+        professorId: professorId ?? null,
+        level: level ?? "B1",
+        objective: objective || "Aprendizado geral de inglês",
+      },
+    });
+  }
+
   const token = await signToken({ userId: student.id, role: "student", name: student.name });
   return c.json({ token, role: "student", name: student.name }, 201);
 });
