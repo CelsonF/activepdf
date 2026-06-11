@@ -1,17 +1,59 @@
 "use client";
+import { useState } from "react";
+import { CheckCircle } from "@phosphor-icons/react";
 import { FieldRow } from "./controls";
 
 interface AccountSectionProps {
   email: string;
-  currentPwd: string;
-  onCurrentPwd: (v: string) => void;
-  newPwd: string;
-  onNewPwd: (v: string) => void;
 }
 
-export function AccountSection({
-  email, currentPwd, onCurrentPwd, newPwd, onNewPwd,
-}: AccountSectionProps) {
+export function AccountSection({ email }: AccountSectionProps) {
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [pwdSaving, setPwdSaving] = useState(false);
+  const [pwdSaved, setPwdSaved] = useState(false);
+  const [pwdError, setPwdError] = useState("");
+  const [deleting, setDeleting] = useState(false);
+
+  async function handleChangePassword() {
+    setPwdError("");
+    setPwdSaving(true);
+    try {
+      const res = await fetch("/api/profile/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword: currentPwd, newPassword: newPwd }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setPwdError(data.error ?? "Erro ao alterar a senha.");
+        return;
+      }
+      setCurrentPwd("");
+      setNewPwd("");
+      setPwdSaved(true);
+      setTimeout(() => setPwdSaved(false), 2500);
+    } catch {
+      setPwdError("Erro de conexão. Tente novamente.");
+    } finally {
+      setPwdSaving(false);
+    }
+  }
+
+  async function handleDeleteAccount() {
+    if (!confirm("Excluir sua conta apaga TODOS os seus dados permanentemente. Continuar?")) return;
+    if (!confirm("Tem certeza? Esta ação não pode ser desfeita.")) return;
+    setDeleting(true);
+    try {
+      const res = await fetch("/api/profile", { method: "DELETE" });
+      if (!res.ok) return;
+      await fetch("/api/auth/logout", { method: "POST" });
+      window.location.href = "/login";
+    } finally {
+      setDeleting(false);
+    }
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <div>
@@ -29,7 +71,7 @@ export function AccountSection({
       <FieldRow label="Senha atual">
         <input
           type="password" className="ui-input py-2.5 text-sm"
-          value={currentPwd} onChange={(e) => onCurrentPwd(e.target.value)}
+          value={currentPwd} onChange={(e) => setCurrentPwd(e.target.value)}
           placeholder="••••••••" autoComplete="current-password"
         />
       </FieldRow>
@@ -37,10 +79,28 @@ export function AccountSection({
       <FieldRow label="Nova senha" hint="Mínimo 8 caracteres.">
         <input
           type="password" className="ui-input py-2.5 text-sm"
-          value={newPwd} onChange={(e) => onNewPwd(e.target.value)}
+          value={newPwd} onChange={(e) => setNewPwd(e.target.value)}
           placeholder="••••••••" autoComplete="new-password"
         />
       </FieldRow>
+
+      {pwdError && <p className="text-xs text-red-600 font-medium">{pwdError}</p>}
+
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
+          onClick={handleChangePassword}
+          disabled={pwdSaving || !currentPwd || newPwd.length < 8}
+          className="ui-btn ui-btn-primary ui-btn-md"
+        >
+          {pwdSaving ? "Alterando..." : "Alterar senha"}
+        </button>
+        {pwdSaved && (
+          <span className="flex items-center gap-1.5 text-sm text-emerald-600 animate-fadeUp">
+            <CheckCircle size={15} weight="fill" /> Senha alterada
+          </span>
+        )}
+      </div>
 
       <div className="h-px bg-slate-100 mt-2" />
 
@@ -49,8 +109,13 @@ export function AccountSection({
         <p className="text-xs text-slate-400 mb-3">
           Esta ação é irreversível e excluirá todos os seus dados permanentemente.
         </p>
-        <button type="button" className="ui-btn ui-btn-danger ui-btn-sm">
-          Excluir minha conta
+        <button
+          type="button"
+          onClick={handleDeleteAccount}
+          disabled={deleting}
+          className="ui-btn ui-btn-danger ui-btn-sm"
+        >
+          {deleting ? "Excluindo..." : "Excluir minha conta"}
         </button>
       </div>
     </div>

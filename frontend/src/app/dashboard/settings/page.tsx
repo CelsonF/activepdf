@@ -10,6 +10,7 @@ import {
   Building,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/cn";
+import { useLocalPref } from "@/hooks/useLocalPref";
 import { OrganizationSection, type OrgData } from "./_components/OrganizationSection";
 import { ProfileSection } from "./_components/ProfileSection";
 import { AccountSection } from "./_components/AccountSection";
@@ -38,21 +39,23 @@ export default function SettingsPage() {
   const [tab, setTab] = useState<Tab>("profile");
   const [isTeacher, setIsTeacher] = useState(false);
 
-  // Profile
-  const [displayName, setDisplayName] = useState("Ana Souza");
+  // Profile (persistido no backend via /api/profile)
+  const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
-  const [timezone, setTimezone] = useState("America/Sao_Paulo");
+  const [email, setEmail] = useState("");
+  const [profileSaving, setProfileSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
 
-  // Account
-  const [email] = useState("ana.souza@email.com");
-  const [currentPwd, setCurrentPwd] = useState("");
-  const [newPwd, setNewPwd] = useState("");
-
-  // Notifications / Learning / Privacy
-  const [notif, setNotif] = useState<NotifPrefs>({ streak: true, weekly: true, ranking: true, product: false, email: true });
-  const [level, setLevel] = useState<Level>("B1");
-  const [dailyGoal, setDailyGoal] = useState(20);
-  const [privacy, setPrivacy] = useState<PrivacyPrefs>({ publicProfile: true, showRanking: true, shareProgress: false });
+  // Preferências locais (este dispositivo)
+  const [timezone, setTimezone] = useLocalPref("prefs.timezone", "America/Sao_Paulo");
+  const [notif, setNotif] = useLocalPref<NotifPrefs>("prefs.notifications", {
+    streak: true, weekly: true, ranking: true, product: false, email: true,
+  });
+  const [level, setLevel] = useLocalPref<Level>("prefs.level", "B1");
+  const [dailyGoal, setDailyGoal] = useLocalPref("prefs.dailyGoal", 20);
+  const [privacy, setPrivacy] = useLocalPref<PrivacyPrefs>("prefs.privacy", {
+    publicProfile: true, showRanking: true, shareProgress: false,
+  });
 
   // Organization
   const [org, setOrg] = useState<OrgData | null>(null);
@@ -60,20 +63,25 @@ export default function SettingsPage() {
   const [orgLogoB64, setOrgLogoB64] = useState<string | null>(null);
   const [orgLogoPreview, setOrgLogoPreview] = useState<string | null>(null);
   const [orgLoading, setOrgLoading] = useState(false);
-
-  const [saved, setSaved] = useState(false);
   const [orgSaved, setOrgSaved] = useState(false);
 
   useEffect(() => {
-    // Detect role from session cookie heuristic — try fetching org
-    fetch("/api/organization")
-      .then((r) => {
-        if (r.ok) {
-          setIsTeacher(true);
-          return r.json();
-        }
-        return null;
+    fetch("/api/profile")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data: { name: string; email: string; bio: string | null; role: string } | null) => {
+        if (!data) return;
+        setDisplayName(data.name);
+        setEmail(data.email);
+        setBio(data.bio ?? "");
+        setIsTeacher(data.role === "teacher");
       })
+      .catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    if (!isTeacher) return;
+    fetch("/api/organization")
+      .then((r) => (r.ok ? r.json() : null))
       .then((data: OrgData | null) => {
         if (data) {
           setOrg(data);
@@ -82,7 +90,7 @@ export default function SettingsPage() {
         }
       })
       .catch(() => undefined);
-  }, []);
+  }, [isTeacher]);
 
   const TABS = isTeacher
     ? [BASE_TABS[0], ORG_TAB, ...BASE_TABS.slice(1)]
@@ -122,12 +130,29 @@ export default function SettingsPage() {
     }
   }
 
-  function handleSave() {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+  async function handleSaveProfile() {
+    if (!displayName.trim()) return;
+    setProfileSaving(true);
+    try {
+      const res = await fetch("/api/profile", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: displayName.trim(),
+          ...(isTeacher ? { bio: bio.trim() || null } : {}),
+        }),
+      });
+      if (res.ok) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2500);
+      }
+    } finally {
+      setProfileSaving(false);
+    }
   }
 
   const backendBase = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
+  const isLocalPrefTab = tab === "notifications" || tab === "learning" || tab === "privacy";
 
   return (
     <div className="min-h-screen bg-slate-50">
@@ -170,19 +195,14 @@ export default function SettingsPage() {
                   displayName={displayName} onDisplayName={setDisplayName}
                   bio={bio} onBio={setBio}
                   timezone={timezone} onTimezone={setTimezone}
+                  showBio={isTeacher}
                 />
               )}
 
-              {tab === "account" && (
-                <AccountSection
-                  email={email}
-                  currentPwd={currentPwd} onCurrentPwd={setCurrentPwd}
-                  newPwd={newPwd} onNewPwd={setNewPwd}
-                />
-              )}
+              {tab === "account" && <AccountSection email={email} />}
 
               {tab === "notifications" && (
-                <NotificationsSection notif={notif} onChange={(patch) => setNotif((n) => ({ ...n, ...patch }))} />
+                <NotificationsSection notif={notif} onChange={(patch) => setNotif({ ...notif, ...patch })} />
               )}
 
               {tab === "learning" && (
@@ -190,14 +210,18 @@ export default function SettingsPage() {
               )}
 
               {tab === "privacy" && (
-                <PrivacySection privacy={privacy} onChange={(patch) => setPrivacy((p) => ({ ...p, ...patch }))} />
+                <PrivacySection privacy={privacy} onChange={(patch) => setPrivacy({ ...privacy, ...patch })} />
               )}
 
-              {/* Save button — not on account or organization (has its own) */}
-              {tab !== "account" && tab !== "organization" && (
+              {tab === "profile" && (
                 <div className="mt-6 pt-5 border-t border-slate-100 flex items-center gap-3">
-                  <button type="button" onClick={handleSave} className="ui-btn ui-btn-primary ui-btn-md">
-                    Salvar alterações
+                  <button
+                    type="button"
+                    onClick={handleSaveProfile}
+                    disabled={profileSaving || !displayName.trim()}
+                    className="ui-btn ui-btn-primary ui-btn-md"
+                  >
+                    {profileSaving ? "Salvando..." : "Salvar alterações"}
                   </button>
                   {saved && (
                     <span className="flex items-center gap-1.5 text-sm text-emerald-600 animate-fadeUp">
@@ -205,6 +229,12 @@ export default function SettingsPage() {
                     </span>
                   )}
                 </div>
+              )}
+
+              {isLocalPrefTab && (
+                <p className="mt-6 pt-5 border-t border-slate-100 text-[11px] text-slate-400">
+                  Preferências salvas automaticamente neste dispositivo.
+                </p>
               )}
             </div>
           </div>
