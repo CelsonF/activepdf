@@ -1,9 +1,9 @@
 "use client";
 import { useRef, useState } from "react";
 import { cn } from "@/lib/cn";
-import { useEditor } from "@/store";
-import { extractPageText, extractAllPagesText } from "@/lib/ocr";
-import type { OcrProgress } from "@/lib/ocr";
+import { useEditor } from "@/features/editor/store";
+import { extractPageText, extractAllPagesText } from "@/features/editor/lib/ocr";
+import type { OcrProgress } from "@/features/editor/lib/ocr";
 
 export function OcrDrawer() {
   const {

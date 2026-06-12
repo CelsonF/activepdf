@@ -1,4 +1,4 @@
-import { FilePdf } from "@phosphor-icons/react/dist/ssr";
+import { Highlighter } from "@phosphor-icons/react/dist/ssr";
 import { cn } from "@/lib/cn";
 
 interface LogoProps {
@@ -8,23 +8,27 @@ interface LogoProps {
   className?: string;
 }
 
+/**
+ * Wordmark "Grifo": display + grifo de marca-texto (.ui-marker).
+ * `mono` é a versão para fundos escuros — sem o grifo, que não lê sobre escuro.
+ */
 export function Logo({ size = 30, showText = true, mono = false, className }: LogoProps) {
-  const iconSize = Math.round(size * 0.52);
-  const fontSize = Math.round(size * 0.53);
-  const radius = Math.round(size * 0.28);
+  const iconSize = Math.round(size * 0.58);
+  const fontSize = Math.round(size * 0.56);
+  const radius = Math.round(size * 0.24);
 
   const mark = (
     <span
       className={cn(
         "inline-flex items-center justify-center shrink-0",
-        mono ? "bg-white" : "bg-brand shadow-brand"
+        mono ? "bg-white" : "bg-ink"
       )}
       style={{ width: size, height: size, borderRadius: radius }}
     >
-      <FilePdf
+      <Highlighter
         size={iconSize}
-        weight="bold"
-        className={mono ? "text-brand" : "text-white"}
+        weight="fill"
+        className={mono ? "text-ink" : "text-marker"}
       />
     </span>
   );
@@ -35,10 +39,13 @@ export function Logo({ size = 30, showText = true, mono = false, className }: Lo
     <span className={cn("inline-flex items-center gap-2", className)}>
       {mark}
       <span
-        className={cn("font-extrabold tracking-[-0.3px]", mono ? "text-white" : "text-slate-900")}
+        className={cn(
+          "font-display font-bold tracking-[-0.02em]",
+          mono ? "text-white" : "text-ink"
+        )}
         style={{ fontSize }}
       >
-        Active<span className={mono ? "text-brand-light" : "text-brand"}>PDF</span>
+        {mono ? "Grifo" : <span className="ui-marker">Grifo</span>}
       </span>
     </span>
   );

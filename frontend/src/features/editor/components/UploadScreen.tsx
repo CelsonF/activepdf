@@ -12,9 +12,12 @@ import {
   SquaresFour,
   SignOut,
 } from "@phosphor-icons/react";
-import { useEditor } from "@/store";
+import { useEditor } from "../store";
+import { useEditorPersistence } from "../persistence/context";
+import { draftFingerprint, readLocalDraft } from "../persistence/local";
+import { loadPdfDocument } from "../lib/loadPdfDocument";
 import { Button } from "@/components/ui/Button";
-import type { SessionRole } from "@/types";
+import type { EditorSession } from "@/types";
 
 const STEPS: { icon: typeof FilePdf; text: string }[] = [
   { icon: UploadSimple, text: "Carregue seu PDF (livro, apostila, lista de exercícios)" },
@@ -24,10 +27,11 @@ const STEPS: { icon: typeof FilePdf; text: string }[] = [
   { icon: Export,       text: "Escolha o tipo de export e baixe o PDF pronto" },
 ];
 
-interface Props { role: SessionRole; name: string; }
+interface Props { session: EditorSession | null; }
 
-export function UploadScreen({ role, name }: Props) {
-  const { loadPdf } = useEditor();
+export function UploadScreen({ session }: Props) {
+  const { loadPdf, loadExerciseFields, setAppMode } = useEditor();
+  const persistence = useEditorPersistence();
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -37,13 +41,19 @@ export function UploadScreen({ role, name }: Props) {
     if (file.type !== "application/pdf") { setError("Por favor, envie um arquivo PDF."); return; }
     setLoading(true); setError("");
     try {
-      const pdfjsLib = await import("pdfjs-dist");
-      pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs`;
-      const buf = await file.arrayBuffer();
-      const bytes = buf.slice(0);
-      const doc = await pdfjsLib.getDocument({ data: buf }).promise;
+      const bytes = await file.arrayBuffer();
+      const doc = await loadPdfDocument(bytes);
       const name = file.name.replace(/\.pdf$/i, "");
       loadPdf(doc, bytes, name, doc.numPages);
+
+      // Modo anônimo: reenviar o mesmo arquivo restaura o rascunho salvo
+      if (persistence.mode === "local") {
+        const draft = readLocalDraft(draftFingerprint(name, bytes.byteLength));
+        if (draft) {
+          loadExerciseFields(draft.fields, draft.answers);
+          setAppMode("design");
+        }
+      }
     } catch (e: unknown) {
       setError("Erro ao carregar PDF: " + (e instanceof Error ? e.message : String(e)));
     }
@@ -64,20 +74,27 @@ export function UploadScreen({ role, name }: Props) {
           <div className="w-7 h-7 rounded-lg bg-brand flex items-center justify-center">
             <FilePdf size={14} weight="bold" color="white" />
           </div>
-          <span className="font-extrabold text-[15px] text-slate-900 tracking-[-0.3px]">ActivePDF</span>
+          <span className="font-extrabold text-[15px] text-slate-900 tracking-[-0.3px]">Grifo</span>
         </div>
-        <div className="flex items-center gap-2">
-          <a href="/dashboard" className="flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-brand transition-colors px-2 py-1 rounded-lg hover:bg-slate-100">
-            <SquaresFour size={13} /> Painel
-          </a>
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200">
-            <GraduationCap size={12} weight="bold" className="text-brand" />
-            <span className="text-xs font-semibold text-slate-700">{name}</span>
+        {session ? (
+          <div className="flex items-center gap-2">
+            <a href="/dashboard" className="flex items-center gap-1.5 text-xs font-medium text-slate-600 hover:text-brand transition-colors px-2 py-1 rounded-lg hover:bg-slate-100">
+              <SquaresFour size={13} /> Painel
+            </a>
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-50 border border-slate-200">
+              <GraduationCap size={12} weight="bold" className="text-brand" />
+              <span className="text-xs font-semibold text-slate-700">{session.name}</span>
+            </div>
+            <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors" title="Sair">
+              <SignOut size={14} />
+            </button>
           </div>
-          <button onClick={handleLogout} className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors" title="Sair">
-            <SignOut size={14} />
-          </button>
-        </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            <a href="/login" className="ui-btn ui-btn-ghost ui-btn-xs">Entrar</a>
+            <a href="/register" className="ui-btn ui-btn-primary ui-btn-xs">Criar conta grátis</a>
+          </div>
+        )}
       </header>
 
     <div className="flex items-center justify-center p-6">
@@ -90,7 +107,7 @@ export function UploadScreen({ role, name }: Props) {
               <FilePdf size={26} weight="bold" color="white" />
             </div>
             <h1 className="text-[28px] font-extrabold text-slate-900 tracking-[-0.5px]">
-              ActivePDF
+              Grifo
             </h1>
           </div>
           <p className="text-base text-slate-600 leading-relaxed max-w-[460px] mx-auto">

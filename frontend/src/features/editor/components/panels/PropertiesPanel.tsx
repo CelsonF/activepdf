@@ -1,7 +1,7 @@
 "use client";
 import { Trash } from "@phosphor-icons/react";
 import { cn } from "@/lib/cn";
-import { useEditor } from "@/store";
+import { useEditor } from "@/features/editor/store";
 import { TypeBtn } from "@/components/ui/Buttons";
 import { asideRightClass, headerClass, propInputClass } from "./styles";
 import { EmptyState, PropField, PropsIcon } from "./helpers";

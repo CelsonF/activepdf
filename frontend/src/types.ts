@@ -8,6 +8,12 @@ export interface AuthUser {
   role: UserRole;
 }
 
+/** Sessão mínima que o editor precisa; `null` = visitante anônimo. */
+export interface EditorSession {
+  role: SessionRole;
+  name: string;
+}
+
 export interface PdfField {
   id: string;
   name: string;

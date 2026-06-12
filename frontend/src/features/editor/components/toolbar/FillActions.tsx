@@ -5,8 +5,9 @@ import {
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { useEditor } from "@/store";
-import { exportFilledPDF } from "@/lib/export";
+import { useEditor } from "../../store";
+import { useEditorPersistence } from "../../persistence/context";
+import { exportFilledPDF } from "../../lib/export";
 import { toast } from "../Toast";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -19,6 +20,7 @@ interface FillActionsProps {
 
 export function FillActions({ isTeacher, exerciseId, savedAnswersJson }: FillActionsProps) {
   const { pdfBytes, pdfName, fields, fieldValues, clearFieldValues } = useEditor();
+  const persistence = useEditorPersistence();
 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const lastSavedRef = useRef<string>(savedAnswersJson ?? "{}");
@@ -36,12 +38,7 @@ export function FillActions({ isTeacher, exerciseId, savedAnswersJson }: FillAct
     try {
       const answersJson = JSON.stringify(fieldValues);
       const status = markComplete ? "completed" : "in_progress";
-      const res = await fetch(`/api/exercises/${exerciseId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answersJson, status }),
-      });
-      if (!res.ok) throw new Error();
+      await persistence.saveAnswers(exerciseId, answersJson, status);
       lastSavedRef.current = answersJson;
       setHasUnsaved(false);
       setSaveStatus("saved");

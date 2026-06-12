@@ -7,7 +7,7 @@ export function Brand() {
         <FilePdf size={16} weight="bold" className="text-white" />
       </div>
       <span className="font-extrabold text-[15px] text-slate-900 tracking-[-0.3px] whitespace-nowrap">
-        ActivePDF
+        Grifo
       </span>
     </div>
   );

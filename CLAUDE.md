@@ -81,7 +81,7 @@ TypeScript strict, ESM — imports relativos terminam em `.js`.
 | Estado | **Zustand** |
 | PDF | `pdfjs-dist` (render) · `pdf-lib` (geração) · `tesseract.js` (OCR) |
 
-## Regra de ouro do visual
+## Regra de ouro do visual — identidade Grifo (`docs/identidade-grifo.md`)
 
 **Todo componente é feito com Tailwind + TypeScript. Sem exceções.**
 
@@ -89,14 +89,18 @@ TypeScript strict, ESM — imports relativos terminam em `.js`.
    estão em `frontend/src/app/globals.css` dentro de `@layer components`. Botão é
    `.ui-btn`, badge é `.ui-badge`, input é `.ui-input`, etc. Veja o catálogo
    completo na skill `criar-componente`.
-2. **Cores só vêm dos tokens.** Use `bg-brand`, `text-brand`, `bg-brand-light`,
-   `shadow-brand` e a escala `slate-*` para neutros. **Nunca** invente um hex
-   novo nem use `style={{ color: '#...' }}` para cor de marca.
-3. **Uma cor primária (indigo `brand`) por tela.** As cores de acento por seção
-   são semânticas e só aparecem na sua seção:
-   - Matérias → `indigo` · Alunos → `violet` · Aulas → `blue` · Exercícios → `emerald`
-4. **Números, nomes de arquivo, contadores e scores** seguem o tom mono/tabular
-   já usado no projeto — não estilize números soltos com cores decorativas.
+2. **Cores só vêm dos tokens Grifo**: `pen` (ação primária), `ink`/`line`/`paper`
+   (neutros), `correction` (SÓ correção/erro), `marker` (SÓ gamificação e o
+   grifo da marca). `brand` é alias legado de `pen` (some na varredura).
+   **Nunca** invente um hex novo nem use `style={{ color: '#...' }}`.
+3. **Uma cor de ação por tela: `pen`.** `correction` nunca decora — quando o
+   vermelho aparece, é professor corrigindo ou erro real. `.ui-marker` (grifo
+   amarelo) com extrema parcimônia: wordmark, herói do marketing, XP.
+   Acentos por seção (legado, migrar na varredura):
+   Matérias → `indigo` · Alunos → `violet` · Aulas → `blue` · Exercícios → `emerald`
+4. **Tipografia**: `font-sans` (Instrument Sans) é o padrão; `font-display`
+   (Bricolage Grotesque) em títulos/números de destaque; `font-mono`
+   (Spline Sans Mono) em XP, scores, contadores e nomes de arquivo.
 5. **Nada de `style={{}}`** exceto valores de runtime genuínos (posição de campo
    sobre o canvas do PDF, dimensões calculadas). Cor, espaçamento e tipografia
    sempre via classe Tailwind.
@@ -153,7 +157,7 @@ export function Stat({ label, value, active = false }: StatProps) {
 
 ## Zustand
 
-- Uma store por domínio (`frontend/src/store.ts` = editor de PDF;
+- Uma store por domínio (`frontend/src/features/editor/store.ts` = editor de PDF;
   `frontend/src/store/authStore.ts` = auth).
 - Estado mínimo — não duplique o que dá pra derivar. Actions dentro do `create()`.
 - Sem mutação direta: use spread/immer.
@@ -163,16 +167,26 @@ export function Stat({ label, value, active = false }: StatProps) {
 ```
 frontend/src/
   app/                  # páginas e layouts (App Router) — default export
+  features/
+    editor/             # editor de PDF como produto isolado
+      components/       # EditorShell, EditorScreen, Toolbar, painéis, upload
+      persistence/      # EditorPersistence: adapter Local (anônimo) × Api (logado)
+      lib/              # export (pdf-lib), coordinates, ocr, loadPdfDocument
+      hooks/ store.ts   # useFieldInteraction + store Zustand do editor
+      index.ts          # API pública da feature — importe daqui fora dela
   components/
     ui/                 # primitivos genéricos (Button, Badge, Header…) + index.ts
-    editor/             # domínio do editor de PDF
-    upload/             # fluxo de upload
+    upload/             # PdfDropZone (usado pelo dashboard)
     auth/               # telas de login/registro
   hooks/                # custom hooks reutilizáveis
-  lib/                  # utilitários puros (cn, api, auth, coordinates…)
-  store.ts / store/     # Zustand
+  lib/                  # utilitários puros (cn, api, auth…)
+  store/                # Zustand de outros domínios (authStore)
   types.ts              # tipos compartilhados
 ```
+
+> **O editor não fala com a API de exercícios direto** — toda persistência passa pelo
+> `EditorPersistence` (`features/editor/persistence/`). O modo anônimo
+> (`/editor`, sem sessão) usa o adapter Local e funciona sem backend.
 
 ## Não fazer (front-end)
 

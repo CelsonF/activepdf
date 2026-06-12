@@ -13,7 +13,7 @@ export function LandingFooter() {
               {link}
             </a>
           ))}
-          <span>© 2026 ActivePDF</span>
+          <span>© 2026 Grifo</span>
         </div>
       </div>
     </footer>

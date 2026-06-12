@@ -1,6 +1,6 @@
 "use client";
 import { X } from "@phosphor-icons/react";
-import { useEditor } from "@/store";
+import { useEditor } from "@/features/editor/store";
 import { asideClass, headerClass, headerFillClass, fillInputClass } from "./styles";
 import { EmptyState, FieldIcon, Muted, SectionLabel } from "./helpers";
 

@@ -3,7 +3,7 @@ import { PencilSimple, Scan, TextAlignLeft } from "@phosphor-icons/react";
 import { Badge } from "@/components/ui/Badge";
 import { Divider, ModeBtn } from "@/components/ui/Buttons";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { useEditor } from "@/store";
+import { useEditor } from "@/features/editor/store";
 import { toast } from "../Toast";
 import type { ExportMode } from "@/types";
 

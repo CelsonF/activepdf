@@ -56,7 +56,7 @@ export function Hero() {
         data-hero-eyebrow
         className="mb-8 font-pfmono text-xs uppercase tracking-[0.2em] text-slate-500"
       >
-        ActivePDF — Aprendizado nativo em PDF · PT / EN
+        Grifo — Aprendizado nativo em PDF · PT / EN
       </p>
 
       <div ref={boxRef} data-hero-frame className="relative w-fit max-w-full">
@@ -75,7 +75,7 @@ export function Hero() {
             Qualquer PDF vira
           </span>
           <span data-hero-line className="block">
-            prática que <span className="text-brand">engaja.</span>
+            prática que <span className="ui-marker">engaja.</span>
           </span>
         </h1>
       </div>

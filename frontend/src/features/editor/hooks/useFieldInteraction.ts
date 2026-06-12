@@ -1,8 +1,8 @@
 "use client";
 import React, { useCallback, useEffect, useRef } from "react";
-import { useEditor } from "@/store";
+import { useEditor } from "@/features/editor/store";
 import type { PdfField } from "@/types";
-import { screenToPdf } from "@/lib/coordinates";
+import { screenToPdf } from "@/features/editor/lib/coordinates";
 
 type Ref<T> = React.RefObject<T>;
 

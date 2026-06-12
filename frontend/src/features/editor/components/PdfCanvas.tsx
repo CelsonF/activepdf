@@ -1,9 +1,9 @@
 "use client";
 import { useEffect, useRef } from "react";
 import type React from "react";
-import { useEditor } from "@/store";
-import { useFieldInteraction } from "@/hooks/useFieldInteraction";
-import { FieldMarker } from "@/components/editor/FieldMarker";
+import { useEditor } from "@/features/editor/store";
+import { useFieldInteraction } from "@/features/editor/hooks/useFieldInteraction";
+import { FieldMarker } from "@/features/editor/components/FieldMarker";
 import { PageNavBtn } from "@/components/ui/Buttons";
 
 const FILL_INPUT_BASE: React.CSSProperties = {

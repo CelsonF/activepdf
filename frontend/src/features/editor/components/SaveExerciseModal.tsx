@@ -3,12 +3,14 @@ import { useEffect, useState } from "react";
 import { FloppyDisk, BookOpen } from "@phosphor-icons/react";
 import { DialogRoot, DialogContent, DialogHeader, DialogFooter } from "@/components/ui/Dialog";
 import { Select, SelectItem } from "@/components/ui/Select";
+import { useEditorPersistence } from "../persistence/context";
+import type { StudentOption } from "../persistence/types";
 import type { PdfField } from "@/types";
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  /** Professor atribui a um aluno; autodidata salva para si mesmo. */
+  /** Professor atribui a um aluno; autodidata/anônimo salva para si mesmo. */
   showStudentSelect?: boolean;
   pdfName: string;
   pdfBytes: ArrayBuffer | null;
@@ -16,22 +18,13 @@ interface Props {
   onSaved: (exerciseId: string) => void;
 }
 
-interface Student { id: string; name: string; }
-
-function arrayBufferToBase64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let binary = "";
-  const CHUNK = 8192;
-  for (let i = 0; i < bytes.byteLength; i += CHUNK) {
-    binary += String.fromCharCode(...Array.from(bytes.subarray(i, i + CHUNK)));
-  }
-  return btoa(binary);
-}
-
 export function SaveExerciseModal({ isOpen, onClose, showStudentSelect = true, pdfName, pdfBytes, fields, onSaved }: Props) {
+  const persistence = useEditorPersistence();
+  const isLocal = persistence.mode === "local";
+
   const [title, setTitle] = useState(pdfName);
   const [studentId, setStudentId] = useState("");
-  const [students, setStudents] = useState<Student[]>([]);
+  const [students, setStudents] = useState<StudentOption[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -40,11 +33,11 @@ export function SaveExerciseModal({ isOpen, onClose, showStudentSelect = true, p
     setTitle(pdfName);
     setError("");
     if (!showStudentSelect) return;
-    fetch("/api/dashboard/students")
-      .then((r) => r.json())
-      .then((data) => Array.isArray(data) && setStudents(data))
+    persistence
+      .listStudents()
+      .then(setStudents)
       .catch(() => undefined);
-  }, [isOpen, pdfName, showStudentSelect]);
+  }, [isOpen, pdfName, showStudentSelect, persistence]);
 
   async function handleSave() {
     if (!title.trim()) { setError("Informe um título para o exercício"); return; }
@@ -52,24 +45,17 @@ export function SaveExerciseModal({ isOpen, onClose, showStudentSelect = true, p
     setError("");
     setLoading(true);
     try {
-      const pdfData = arrayBufferToBase64(pdfBytes);
-      const res = await fetch("/api/exercises", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          studentId: studentId || null,
-          pdfName,
-          pdfData,
-          fieldsJson: fields,
-        }),
+      const { id } = await persistence.saveExercise({
+        title: title.trim(),
+        studentId: studentId || null,
+        pdfName,
+        pdfBytes,
+        fields,
       });
-      const data = await res.json();
-      if (!res.ok) { setError(data.error); return; }
-      onSaved(data.id);
+      onSaved(id);
       onClose();
-    } catch {
-      setError("Erro ao salvar. Tente novamente.");
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Erro ao salvar. Tente novamente.");
     } finally {
       setLoading(false);
     }
@@ -79,7 +65,7 @@ export function SaveExerciseModal({ isOpen, onClose, showStudentSelect = true, p
     <DialogRoot open={isOpen} onOpenChange={(o) => !o && onClose()}>
       <DialogContent>
         <DialogHeader
-          title="Salvar como exercício"
+          title={isLocal ? "Salvar rascunho" : "Salvar como exercício"}
           icon={<BookOpen size={14} weight="bold" className="text-brand" />}
         />
 
@@ -123,9 +109,19 @@ export function SaveExerciseModal({ isOpen, onClose, showStudentSelect = true, p
 
           <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
             <p className="text-xs text-slate-600">
-              <span className="font-semibold">{fields.length}</span>{" "}
-              campo{fields.length !== 1 ? "s" : ""} criado{fields.length !== 1 ? "s" : ""} serão salvos para{" "}
-              {showStudentSelect ? "o aluno" : "você"} preencher.
+              {isLocal ? (
+                <>
+                  <span className="font-semibold">{fields.length}</span>{" "}
+                  campo{fields.length !== 1 ? "s" : ""} serão guardados neste navegador —
+                  reenvie o mesmo PDF para restaurá-los.
+                </>
+              ) : (
+                <>
+                  <span className="font-semibold">{fields.length}</span>{" "}
+                  campo{fields.length !== 1 ? "s" : ""} criado{fields.length !== 1 ? "s" : ""} serão salvos para{" "}
+                  {showStudentSelect ? "o aluno" : "você"} preencher.
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -140,7 +136,7 @@ export function SaveExerciseModal({ isOpen, onClose, showStudentSelect = true, p
             {loading
               ? <span className="ui-spinner w-3.5 h-3.5 border-2 text-white" />
               : <FloppyDisk size={14} weight="bold" />}
-            Salvar exercício
+            {isLocal ? "Salvar rascunho" : "Salvar exercício"}
           </button>
         </DialogFooter>
       </DialogContent>

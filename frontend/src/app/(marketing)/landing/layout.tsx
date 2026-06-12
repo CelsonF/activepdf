@@ -14,7 +14,7 @@ const mono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ActivePDF — Transforme qualquer PDF em prática de inglês",
+  title: "Grifo — Transforme qualquer PDF em prática de inglês",
   description:
     "Suba sua apostila, responda exercícios sobre a própria página e mantenha o ritmo com XP, streaks e rankings — para alunos, professores e times.",
 };

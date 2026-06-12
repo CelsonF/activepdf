@@ -1,9 +1,14 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, FilePdf } from "@phosphor-icons/react";
-import { useEditor } from "@/store";
-import { EditorScreen } from "@/components/editor/EditorScreen";
+import {
+  EditorPersistenceProvider,
+  EditorScreen,
+  createApiPersistence,
+  loadPdfDocument,
+  useEditor,
+} from "@/features/editor";
 import type { SessionRole } from "@/types";
 
 interface Props {
@@ -15,6 +20,7 @@ interface Props {
 export function ExerciseLoader({ id, role, name }: Props) {
   const { loadPdf, loadExerciseFields, resetPdf } = useEditor();
   const pdfDoc = useEditor((s) => s.pdfDoc);
+  const persistence = useMemo(() => createApiPersistence(), []);
 
   const [exerciseId, setExerciseId] = useState<string | null>(null);
   const [savedAnswersJson, setSavedAnswersJson] = useState("{}");
@@ -24,30 +30,16 @@ export function ExerciseLoader({ id, role, name }: Props) {
   useEffect(() => {
     resetPdf();
 
-    fetch(`/api/exercises/${id}`)
-      .then((r) => r.json())
+    persistence
+      .loadExercise(id)
       .then(async (exercise) => {
-        if (exercise.error) { setError("Exercício não encontrado."); return; }
+        const doc = await loadPdfDocument(exercise.pdfBytes);
+        loadPdf(doc, exercise.pdfBytes, exercise.pdfName, doc.numPages);
 
-        const binary = atob(exercise.pdfData);
-        const bytes = new Uint8Array(binary.length);
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-        const buf = bytes.buffer;
-
-        const pdfjsLib = await import("pdfjs-dist");
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
-        const doc = await pdfjsLib.getDocument({ data: buf.slice(0) }).promise;
-
-        loadPdf(doc, buf, exercise.pdfName, doc.numPages);
-
-        const fields = JSON.parse(exercise.fieldsJson ?? "[]");
-        const rawAnswers = exercise.answersJson ?? "{}";
-        const answers = JSON.parse(rawAnswers);
-
+        const answers = JSON.parse(exercise.answersJson) as Record<string, string>;
         setExerciseId(id);
-        setSavedAnswersJson(rawAnswers);
-        setTimeout(() => loadExerciseFields(fields, answers), 50);
+        setSavedAnswersJson(exercise.answersJson);
+        setTimeout(() => loadExerciseFields(exercise.fields, answers), 50);
       })
       .catch(() => setError("Erro ao carregar o exercício."))
       .finally(() => setLoading(false));
@@ -84,11 +76,12 @@ export function ExerciseLoader({ id, role, name }: Props) {
   if (!pdfDoc) return null;
 
   return (
-    <EditorScreen
-      role={role}
-      name={name}
-      exerciseId={exerciseId}
-      savedAnswersJson={savedAnswersJson}
-    />
+    <EditorPersistenceProvider persistence={persistence}>
+      <EditorScreen
+        session={{ role, name }}
+        exerciseId={exerciseId}
+        savedAnswersJson={savedAnswersJson}
+      />
+    </EditorPersistenceProvider>
   );
 }

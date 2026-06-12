@@ -12,7 +12,7 @@ export function LandingHeader() {
   return (
     <header className="fixed inset-x-0 top-0 z-50 border-b border-slate-900/10 bg-slate-100/80 backdrop-blur-md">
       <div className="mx-auto flex h-14 max-w-6xl items-center justify-between px-6">
-        <a href="#top" aria-label="ActivePDF — início">
+        <a href="#top" aria-label="Grifo — início">
           <Logo size={26} />
         </a>
 

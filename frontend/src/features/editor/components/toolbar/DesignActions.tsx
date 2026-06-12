@@ -4,8 +4,8 @@ import {
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { useEditor } from "@/store";
-import { exportPDF } from "@/lib/export";
+import { useEditor } from "@/features/editor/store";
+import { exportPDF } from "@/features/editor/lib/export";
 import { toast } from "../Toast";
 
 interface DesignActionsProps {

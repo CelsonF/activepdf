@@ -2,33 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
-/* ── CSS Variables (mantidas para usos dinâmicos em JS e no canvas) ── */
+/* ── Grifo · Folha & Caneta — tokens (fonte única: docs/identidade-grifo.md) ──
+   CSS variables mantidas para usos dinâmicos em JS e no canvas do PDF. */
 :root {
-  --brand: #4f46e5;
-  --brand-dark: #4338ca;
-  --brand-light: #eef2ff;
-  --brand-subtle: rgba(79, 70, 229, 0.08);
-  --field-fill: rgba(79, 70, 229, 0.13);
-  --field-stroke: #4f46e5;
-  --border: #e2e8f0;
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #94a3b8;
-  --bg-base: #f8fafc;
-  --bg-muted: #f1f5f9;
+  --paper: #f7f7f5;
+  --ink: #16181d;
+  --ink-soft: #4a4f57;
+  --ink-muted: #8b9097;
+  --line: #e5e5e1;
+  --line-strong: #d2d2cc;
+
+  --pen: #0b5fff;
+  --pen-dark: #0a4ed6;
+  --pen-light: #ebf1ff;
+  --pen-subtle: rgba(11, 95, 255, 0.08);
+
+  --correction: #de2b1f;
+  --correction-light: #fdedeb;
+
+  --marker: #ffd64d;
+  --marker-light: #fff6d6;
+
+  /* Lacunas sobre o PDF (caneta azul) */
+  --field-fill: rgba(11, 95, 255, 0.12);
+  --field-stroke: #0b5fff;
+
+  /* Aliases legados (somem na varredura da Sprint 6) */
+  --brand: var(--pen);
+  --brand-dark: var(--pen-dark);
+  --brand-light: var(--pen-light);
+  --brand-subtle: var(--pen-subtle);
+  --border: var(--line);
+  --text-primary: var(--ink);
+  --text-secondary: var(--ink-soft);
+  --text-muted: var(--ink-muted);
+  --bg-base: var(--paper);
+  --bg-muted: #f1f1ee;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 html, body {
   height: 100%;
-  font-family: var(--font-inter), system-ui, -apple-system, sans-serif;
-  background: var(--bg-base);
-  color: var(--text-primary);
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  background: var(--paper);
+  color: var(--ink);
   -webkit-font-smoothing: antialiased;
 }
 
-/* ── FIELD MARKERS (canvas overlay — CSS seletores complexos) ── */
+/* ── FIELD MARKERS (lacunas sobre o canvas do PDF) ── */
 .field-marker {
   position: absolute;
   background: var(--field-fill);
@@ -43,18 +65,18 @@ html, body {
   transition: background 0.1s, box-shadow 0.1s;
   user-select: none;
 }
-.field-marker:hover { background: rgba(79, 70, 229, 0.22); }
+.field-marker:hover { background: rgba(11, 95, 255, 0.2); }
 .field-marker.selected {
-  background: rgba(79, 70, 229, 0.28);
+  background: rgba(11, 95, 255, 0.26);
   border-width: 2px;
-  border-color: var(--brand);
-  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.3), 0 4px 14px rgba(79, 70, 229, 0.2);
+  border-color: var(--pen);
+  box-shadow: 0 0 0 3px rgba(11, 95, 255, 0.28), 0 4px 14px rgba(11, 95, 255, 0.18);
   z-index: 10;
 }
 .field-label {
   font-size: 10px;
   font-weight: 700;
-  color: var(--brand);
+  color: var(--pen);
   pointer-events: none;
   text-shadow: 0 0 4px white, 0 0 8px white;
   line-height: 1.2;
@@ -66,7 +88,7 @@ html, body {
   position: absolute;
   width: 10px;
   height: 10px;
-  background: var(--brand);
+  background: var(--pen);
   border: 2px solid white;
   border-radius: 2px;
   bottom: -5px;
@@ -86,8 +108,8 @@ html, body {
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar { width: 5px; height: 5px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
-::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink-muted); }
 
 /* ── ANIMATIONS ── */
 @keyframes fadeUp {
@@ -103,6 +125,10 @@ html, body {
 .animate-fadeUp  { animation: fadeUp  0.3s ease both; }
 .animate-slideIn { animation: slideIn 0.2s ease both; }
 
+@media (prefers-reduced-motion: reduce) {
+  .animate-fadeUp, .animate-slideIn { animation: none; }
+}
+
 /* Spinner (elemento especial, não usa @apply) */
 .ui-spinner {
   border-style: solid;
@@ -112,14 +138,28 @@ html, body {
   flex-shrink: 0;
 }
 
+/* ── ASSINATURA — grifo de marca-texto ──
+   Usar com parcimônia: wordmark, herói do marketing, gamificação. */
+.ui-marker {
+  background: linear-gradient(
+    transparent 55%,
+    var(--marker) 55%,
+    var(--marker) 92%,
+    transparent 92%
+  );
+  padding: 0 0.12em;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
 /* ──────────────────────────────────────────
-   DESIGN SYSTEM — usando @apply Tailwind
+   DESIGN SYSTEM v2 — usando @apply Tailwind
 ────────────────────────────────────────── */
 @layer components {
 
-  /* ── Dividers ── */
-  .ui-divider   { @apply w-px h-[22px] bg-slate-200 shrink-0; }
-  .ui-divider-h { @apply h-px bg-slate-200; }
+  /* ── Dividers (pauta) ── */
+  .ui-divider   { @apply w-px h-[22px] bg-line shrink-0; }
+  .ui-divider-h { @apply h-px bg-line; }
 
   /* ── Button base ── */
   .ui-btn {
@@ -128,7 +168,7 @@ html, body {
            outline-none shrink-0 leading-none;
   }
   .ui-btn:disabled         { @apply opacity-50 cursor-not-allowed pointer-events-none; }
-  .ui-btn:focus-visible    { @apply outline-2 outline-brand outline-offset-2; }
+  .ui-btn:focus-visible    { @apply outline-2 outline-pen outline-offset-2; }
 
   /* Tamanhos */
   .ui-btn-xs { @apply px-[7px] py-[3px] text-[11px] rounded gap-[3px]; }
@@ -136,22 +176,22 @@ html, body {
   .ui-btn-md { @apply px-[14px] py-[7px] text-[13px] rounded-lg gap-1.5; }
   .ui-btn-lg { @apply px-5 py-2.5 text-sm rounded-xl gap-2; }
 
-  /* Variantes */
-  .ui-btn-primary { @apply bg-brand text-white border-0 shadow-brand; }
-  .ui-btn-primary:hover  { @apply bg-brand-dark shadow-brand-hover; }
+  /* Variantes — pen é a única cor de ação; correction só para destrutivo */
+  .ui-btn-primary { @apply bg-pen text-white border-0 shadow-pen; }
+  .ui-btn-primary:hover  { @apply bg-pen-dark shadow-pen-hover; }
   .ui-btn-primary:active { @apply translate-y-px; }
 
-  .ui-btn-secondary { @apply bg-white text-slate-600 border border-slate-200 shadow-xs; }
-  .ui-btn-secondary:hover { @apply bg-slate-50 border-slate-300; }
+  .ui-btn-secondary { @apply bg-white text-ink-soft border border-line shadow-xs; }
+  .ui-btn-secondary:hover { @apply bg-paper border-line-strong; }
 
-  .ui-btn-ghost { @apply bg-transparent text-slate-600 border border-slate-200; }
-  .ui-btn-ghost:hover { @apply bg-slate-100 border-slate-300; }
+  .ui-btn-ghost { @apply bg-transparent text-ink-soft border border-line; }
+  .ui-btn-ghost:hover { @apply bg-line/40 border-line-strong; }
 
-  .ui-btn-danger { @apply bg-red-50 text-red-700 border border-red-200; }
-  .ui-btn-danger:hover { @apply bg-red-100 border-red-300; }
+  .ui-btn-danger { @apply bg-correction-light text-correction border border-correction/25; }
+  .ui-btn-danger:hover { @apply bg-correction text-white border-correction; }
 
-  .ui-btn-outline { @apply bg-transparent text-brand border border-brand; }
-  .ui-btn-outline:hover { @apply bg-brand-light; }
+  .ui-btn-outline { @apply bg-transparent text-pen border border-pen; }
+  .ui-btn-outline:hover { @apply bg-pen-light; }
 
   .ui-btn-success { @apply bg-emerald-600 text-white border-0 shadow-success; }
   .ui-btn-success:hover  { @apply bg-emerald-700; }
@@ -161,70 +201,73 @@ html, body {
   .ui-btn-mode {
     @apply inline-flex items-center gap-[5px] px-[10px] py-[5px] rounded-[6px]
            text-xs font-semibold cursor-pointer border-0 transition-all duration-150
-           whitespace-nowrap bg-transparent text-slate-500;
+           whitespace-nowrap bg-transparent text-ink-muted;
   }
   .ui-btn-mode:hover:not([data-active="true"]) { @apply bg-black/[0.04]; }
   .ui-btn-mode[data-active="true"] {
-    @apply bg-white text-brand shadow-[0_1px_4px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.04)];
+    @apply bg-white text-pen shadow-[0_1px_4px_rgba(0,0,0,0.1),0_0_0_1px_rgba(0,0,0,0.04)];
   }
 
   /* Botão de navegação de páginas */
   .ui-btn-page-nav {
     @apply inline-flex items-center px-[7px] py-[5px] rounded-[6px]
-           border border-slate-200 bg-transparent text-slate-600 cursor-pointer
+           border border-line bg-transparent text-ink-soft cursor-pointer
            transition-all duration-150;
   }
-  .ui-btn-page-nav:hover:not(:disabled) { @apply bg-slate-100 border-slate-300; }
-  .ui-btn-page-nav:disabled             { @apply text-slate-300 cursor-not-allowed; }
+  .ui-btn-page-nav:hover:not(:disabled) { @apply bg-line/40 border-line-strong; }
+  .ui-btn-page-nav:disabled             { @apply text-line-strong cursor-not-allowed; }
 
   /* Botão de modo de exportação */
   .ui-export-btn {
     @apply inline-flex items-center gap-[5px] px-[10px] py-[5px] rounded-[6px]
            text-xs font-medium cursor-pointer transition-all duration-150
-           whitespace-nowrap border-[1.5px] border-slate-200 bg-white text-slate-600;
+           whitespace-nowrap border-[1.5px] border-line bg-white text-ink-soft;
   }
-  .ui-export-btn:hover                 { @apply border-slate-300 bg-slate-50; }
-  .ui-export-btn[data-active="true"]   { @apply border-brand bg-brand-light text-brand font-semibold; }
+  .ui-export-btn:hover                 { @apply border-line-strong bg-paper; }
+  .ui-export-btn[data-active="true"]   { @apply border-pen bg-pen-light text-pen font-semibold; }
 
-  /* ── Badges ── */
+  /* ── Badges v2 — carimbos de status ──
+     Caixa alta + tracking + canto quase reto: lê-se como carimbo, não pílula. */
   .ui-badge {
-    @apply inline-flex items-center gap-1 font-semibold rounded-full whitespace-nowrap leading-none;
+    @apply inline-flex items-center gap-1 font-semibold rounded-[4px]
+           uppercase tracking-[0.04em] whitespace-nowrap leading-none;
   }
-  .ui-badge-sm { @apply text-[11px] px-2 py-[3px]; }
-  .ui-badge-md { @apply text-xs px-[10px] py-[3px]; }
+  .ui-badge-sm { @apply text-[10px] px-[7px] py-[3px]; }
+  .ui-badge-md { @apply text-[11px] px-[9px] py-1; }
 
-  .ui-badge-brand   { @apply bg-brand-light text-brand border border-indigo-200; }
+  .ui-badge-brand   { @apply bg-pen-light text-pen border border-pen/25; }
   .ui-badge-success { @apply bg-green-50 text-emerald-700 border border-green-200; }
-  .ui-badge-warning { @apply bg-amber-50 text-amber-700 border border-amber-200; }
-  .ui-badge-error   { @apply bg-red-50 text-red-700 border border-red-200; }
-  .ui-badge-neutral { @apply bg-slate-100 text-slate-600 border border-slate-200; }
+  .ui-badge-warning { @apply bg-marker-light text-amber-800 border border-amber-200; }
+  .ui-badge-error   { @apply bg-correction-light text-correction border border-correction/25; }
+  .ui-badge-neutral { @apply bg-line/40 text-ink-soft border border-line; }
 
   /* ── Inputs ── */
   .ui-input {
-    @apply w-full px-[9px] py-[6px] border border-slate-200 rounded-[6px]
-           text-xs text-slate-900 bg-white outline-none
+    @apply w-full px-[9px] py-[6px] border border-line rounded-[6px]
+           text-xs text-ink bg-white outline-none
            transition-[border-color,box-shadow] duration-150;
   }
-  .ui-input:focus    { @apply border-brand shadow-[0_0_0_3px_rgba(79,70,229,0.1)]; }
-  .ui-input:disabled { @apply opacity-50 bg-slate-100 cursor-not-allowed; }
+  .ui-input::placeholder { @apply text-ink-muted; }
+  .ui-input:focus    { @apply border-pen shadow-[0_0_0_3px_rgba(11,95,255,0.12)]; }
+  .ui-input:disabled { @apply opacity-50 bg-line/30 cursor-not-allowed; }
 
   /* ── Field items (painel lateral) ── */
   .ui-field-item {
     @apply flex items-center justify-between gap-1.5 px-[9px] py-[7px]
-           rounded-[6px] mb-[3px] border border-slate-200 bg-white cursor-pointer
+           rounded-[6px] mb-[3px] border border-line bg-white cursor-pointer
            transition-all duration-[120ms];
   }
-  .ui-field-item:hover                { @apply border-slate-300 bg-slate-50; }
-  .ui-field-item[data-selected="true"] { @apply border-brand bg-brand-light; }
+  .ui-field-item:hover                { @apply border-line-strong bg-paper; }
+  .ui-field-item[data-selected="true"] { @apply border-pen bg-pen-light; }
 
   /* ── Aside menu items ── */
   .ui-menu-item {
     @apply flex items-center gap-[9px] px-[10px] py-2 rounded-[6px]
            cursor-pointer transition-all duration-150 text-[13px] font-medium
-           text-slate-600 border-0 bg-transparent w-full text-left;
+           text-ink-soft border-0 bg-transparent w-full text-left;
   }
-  .ui-menu-item:hover                { @apply bg-slate-100 text-slate-900; }
-  .ui-menu-item[data-active="true"]   { @apply bg-brand-light text-brand; }
-  .ui-menu-item[data-danger="true"]   { @apply text-red-600; }
-  .ui-menu-item[data-danger="true"]:hover { @apply bg-red-50 text-red-700; }
+  .ui-menu-item:hover                { @apply bg-line/40 text-ink; }
+  .ui-menu-item[data-active="true"]   { @apply bg-pen-light text-pen; }
+  .ui-menu-item[data-danger="true"]   { @apply text-correction; }
+  .ui-menu-item[data-danger="true"]:hover { @apply bg-correction-light text-correction; }
 }

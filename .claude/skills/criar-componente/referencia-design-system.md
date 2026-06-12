@@ -1,7 +1,8 @@
-# Referência do Design System — ActivePDF
+# Referência do Design System v2 — Grifo (Folha & Caneta)
 
-Fonte da verdade: `frontend/src/app/globals.css` (`@layer components`) e
-`frontend/tailwind.config.js`. Este arquivo é o resumo consultável para criar componentes.
+Fonte da verdade: `frontend/src/app/globals.css` (`@layer components` + CSS vars)
+e `frontend/tailwind.config.js`. Identidade completa: `docs/identidade-grifo.md`.
+Este arquivo é o resumo consultável para criar componentes.
 
 ---
 
@@ -9,45 +10,66 @@ Fonte da verdade: `frontend/src/app/globals.css` (`@layer components`) e
 
 | Classe Tailwind | Valor | Uso |
 |---|---|---|
-| `bg-brand` `text-brand` `border-brand` | `#4f46e5` (indigo-600) | Primária: botões, links ativos, campos de PDF |
-| `bg-brand-dark` | `#4338ca` | Hover do botão primário |
-| `bg-brand-light` `border-brand-light` | `#eef2ff` | Fundo de badge/card ativo, highlight |
-| `text-slate-900` | `#0f172a` | Títulos |
-| `text-slate-600` / `text-slate-500` | — | Parágrafos / labels |
-| `text-slate-400` | `#94a3b8` | Placeholder, texto muted |
-| `bg-slate-50` | `#f8fafc` | Fundo de página |
-| `border-slate-200` | `#e2e8f0` | Borda padrão de cards/inputs |
+| `bg-pen` `text-pen` `border-pen` | `#0B5FFF` | **Ação primária** (caneta azul): botões, links ativos, lacunas do PDF |
+| `bg-pen-dark` | `#0A4ED6` | Hover do botão primário |
+| `bg-pen-light` `border-pen-light` | `#EBF1FF` | Fundo de item ativo/selecionado |
+| `text-ink` | `#16181D` | Títulos e texto principal (tinta) |
+| `text-ink-soft` | `#4A4F57` | Parágrafos / labels |
+| `text-ink-muted` | `#8B9097` | Placeholder, texto muted |
+| `bg-paper` | `#F7F7F5` | Fundo de página (papel) |
+| `border-line` / `border-line-strong` | `#E5E5E1` / `#D2D2CC` | Bordas de cards/inputs (pauta) |
+| `bg-correction` `text-correction` | `#DE2B1F` | **SÓ correção e erro** — caneta vermelha do professor |
+| `bg-correction-light` | `#FDEDEB` | Fundo de erro/destrutivo suave |
+| `bg-marker` | `#FFD64D` | **SÓ gamificação e marca** — marca-texto |
+| `bg-marker-light` | `#FFF6D6` | Fundo suave de XP/streak |
 
-**Sombras** (do `frontend/tailwind.config.js`): `shadow-xs`, `shadow-card`,
-`shadow-brand`, `shadow-brand-lg`, `shadow-brand-hover`, `shadow-success`.
+`brand` (DEFAULT/dark/light) é **alias legado** de `pen` — não usar em código
+novo; a varredura da Sprint 6 remove. Escala `slate-*` é legada: prefira
+`ink`/`line`/`paper` em código novo.
 
-**Background especial:** `bg-upload-gradient` (gradiente sutil da tela de upload — o único gradiente sancionado).
+**Sombras**: `shadow-xs`, `shadow-card`, `shadow-pen`, `shadow-pen-hover`
+(aliases legados: `shadow-brand*`), `shadow-success`.
 
-### Acentos por seção (semânticos — só na própria seção)
+**Background especial**: `bg-upload-gradient` (pen-light → paper → marker-light;
+o único gradiente sancionado).
 
-| Seção | Fundo | Texto |
+### Semântica de sala de aula (não negociar)
+
+- `pen` = quem faz (uma cor de ação por tela).
+- `correction` = quem corrige; **nunca decora**.
+- `marker` = a marca grifando; só wordmark, herói do marketing e XP/conquistas.
+
+---
+
+## Tipografia
+
+| Classe | Fonte | Uso |
 |---|---|---|
-| Matérias | `bg-indigo-50` | `text-indigo-600` |
-| Alunos | `bg-violet-50` | `text-violet-600` |
-| Aulas | `bg-blue-50` | `text-blue-600` |
-| Exercícios | `bg-emerald-50` | `text-emerald-600` |
+| `font-sans` (padrão) | Instrument Sans | UI e corpo |
+| `font-display` | Bricolage Grotesque | Títulos, números de destaque, wordmark |
+| `font-mono` | Spline Sans Mono | XP, scores, contadores, nomes de arquivo |
 
-> Regra: **uma cor primária (brand) por tela.** Os acentos acima não são
-> decorativos — só aparecem para identificar a seção correspondente.
+Números de dados sempre em `font-mono` (tabular por natureza).
 
 ---
 
 ## Classes de componente (`.ui-*`) — use estas, não recrie
 
+### Assinatura da marca
+```
+.ui-marker           grifo de marca-texto atrás do texto (amarelo)
+                     USO RARO: wordmark, 1 palavra-chave no herói, gamificação
+```
+
 ### Botões
 ```
 .ui-btn                         base (todo botão herda)
 .ui-btn-xs / -sm / -md / -lg    tamanhos
-.ui-btn-primary                 indigo sólido, texto branco  ← 1 por tela
-.ui-btn-secondary               branco + borda slate
-.ui-btn-ghost                   transparente + borda slate
-.ui-btn-outline                 borda indigo, fundo transparente
-.ui-btn-danger                  vermelho suave
+.ui-btn-primary                 pen sólido, texto branco  ← 1 por tela
+.ui-btn-secondary               branco + borda line
+.ui-btn-ghost                   transparente + borda line
+.ui-btn-outline                 borda pen, fundo transparente
+.ui-btn-danger                  correction suave (hover vira sólido)
 .ui-btn-success                 emerald sólido
 .ui-btn-mode                    toggle (Editar / Preencher) — usa data-active
 .ui-btn-page-nav                navegação de página do PDF
@@ -56,21 +78,21 @@ Fonte da verdade: `frontend/src/app/globals.css` (`@layer components`) e
 Uso: `className="ui-btn ui-btn-primary ui-btn-md"`. Em React, prefira o
 componente `<Button variant="primary" size="md">` de `frontend/src/components/ui/`.
 
-### Badges
+### Badges v2 — carimbos de status
+Caixa alta + tracking + canto `4px`: lê-se como carimbo, não pílula.
 ```
 .ui-badge            base
 .ui-badge-sm / -md   tamanhos
-.ui-badge-brand      indigo (ex: "Aguardando exercício")
+.ui-badge-brand      pen (ex: "Aguardando exercício")
 .ui-badge-success    emerald (Concluído)
-.ui-badge-warning    amber (Em andamento)
-.ui-badge-error      vermelho
-.ui-badge-neutral    slate (tags neutras, vocabulário)
+.ui-badge-warning    marker-light/amber (Em andamento)
+.ui-badge-error      correction (erro, corrigido com ressalvas)
+.ui-badge-neutral    ink/line (tags neutras, vocabulário)
 ```
-Uso: `className="ui-badge ui-badge-sm ui-badge-success"` ou `<Badge variant="success" />`.
 
 ### Inputs
 ```
-.ui-input            input / select / textarea (borda slate, focus ring indigo)
+.ui-input            input / select / textarea (borda line, focus ring pen)
 ```
 
 ### Itens de lista / navegação
@@ -98,31 +120,32 @@ Uso: `className="ui-badge ui-badge-sm ui-badge-success"` ou `<Badge variant="suc
 
 | Elemento | Receita Tailwind |
 |---|---|
-| **Header** (todas as páginas) | `h-[52px] bg-white border-b border-slate-200 shadow-[0_1px_0_rgba(0,0,0,0.04)]` |
-| **Card de navegação** (dashboard) | `p-4 bg-white rounded-2xl border border-slate-200` + hover `border-brand` |
-| **Card de formulário** | `p-5 bg-white rounded-2xl border border-slate-200 flex flex-col gap-3.5` |
+| **Header** (todas as páginas) | `h-[52px] bg-white border-b border-line shadow-[0_1px_0_rgba(0,0,0,0.04)]` |
+| **Card de navegação** (dashboard) | `p-4 bg-white rounded-2xl border border-line` + hover `border-pen` |
+| **Card de formulário** | `p-5 bg-white rounded-2xl border border-line flex flex-col gap-3.5` |
 | **Container de CRUD** | `max-w-lg mx-auto px-4 py-8 animate-fadeUp` |
-| **Label de form** | `text-xs font-semibold text-slate-700` |
-| **Erro inline** | `px-3 py-2.5 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700` |
+| **Label de form** | `text-xs font-semibold text-ink-soft` |
+| **Erro inline** | `px-3 py-2.5 rounded-lg bg-correction-light border border-correction/25 text-sm text-correction` |
 | **Modal** | `fixed inset-0 z-50` + backdrop blur; conteúdo em card branco `rounded-2xl` |
-| **Ícone de seção** | `w-9 h-9 rounded-lg` + fundo/texto do acento da seção |
+| **Lacuna sobre o PDF** | `.field-marker` (CSS vars `--field-*`, traço pen) |
 
 ---
 
 ## Ícones (Phosphor)
 
 ```tsx
-import { Upload, MagnifyingGlass, Trash, CheckCircle, FilePdf } from "@phosphor-icons/react";
+import { Upload, MagnifyingGlass, Trash, CheckCircle, Highlighter } from "@phosphor-icons/react";
 ```
 - Tamanho 14–18px em linha/botão; 24–30px em destaque; ~58px em empty state.
-- `weight="bold"` para o logo/realces; padrão `regular` no resto.
+- `weight="bold"` para realces; padrão `regular` no resto.
 - Cor herda de `currentColor` — controle pela classe de texto do container.
-- Logo da marca: ícone `FilePdf` em `bg-brand w-7 h-7 rounded-lg` + texto
-  "ActivePDF" `font-extrabold text-[15px] tracking-[-0.3px]`.
+- **Logo**: componente `<Logo />` (`frontend/src/components/ui/Logo.tsx`) —
+  bloco `ink` com `Highlighter` em `marker` + wordmark "Grifo" grifado
+  (`.ui-marker`). Não montar logo à mão.
 
 ---
 
 ## Tipos compartilhados
 
-`frontend/src/types.ts` tem os contratos do domínio (ex.: `PdfField`). Importe de lá em
-vez de redeclarar. Tipos só de um componente ficam no próprio arquivo.
+`frontend/src/types.ts` tem os contratos do domínio (ex.: `PdfField`). Importe
+de lá em vez de redeclarar. Tipos só de um componente ficam no próprio arquivo.

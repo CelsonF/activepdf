@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession } from "@/lib/auth";
 import { serverFetch } from "@/lib/api";
-import { AppShell } from "@/components/editor/AppShell";
+import { EditorShell } from "@/features/editor";
 
 interface Profile {
   role: string;
@@ -25,9 +25,11 @@ export default async function NewExercisePage() {
   if (!canDesign) redirect("/dashboard");
 
   return (
-    <AppShell
-      role={session.role}
-      name={session.name ?? (session.role === "teacher" ? "Professor" : "Aluno")}
+    <EditorShell
+      session={{
+        role: session.role,
+        name: session.name ?? (session.role === "teacher" ? "Professor" : "Aluno"),
+      }}
       canDesign
     />
   );

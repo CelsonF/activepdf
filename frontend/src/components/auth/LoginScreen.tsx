@@ -83,7 +83,7 @@ export function LoginScreen() {
             <FilePdf size={20} weight="bold" color="white" />
           </div>
           <span className="font-extrabold text-[22px] text-slate-900 tracking-[-0.4px]">
-            ActivePDF
+            Grifo
           </span>
         </div>
 

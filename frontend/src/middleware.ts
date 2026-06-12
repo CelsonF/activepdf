@@ -7,6 +7,7 @@ const PUBLIC = [
   "/register",
   "/landing",
   "/portfolio",
+  "/editor", // editor anônimo: 100% client-side, sem sessão
   "/api/auth/login",
   "/api/auth/register",
 ];
