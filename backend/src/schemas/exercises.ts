@@ -1,5 +1,8 @@
 import { z } from "zod";
 
+// Espelha o enum ExerciseStatus do Prisma; "corrected" só entra via review
+export const EXERCISE_STATUS = ["assigned", "in_progress", "completed", "corrected"] as const;
+
 export const createExerciseSchema = z.object({
   title: z.string().trim().min(1, "Título é obrigatório"),
   pdfName: z.string().min(1, "PDF é obrigatório"),

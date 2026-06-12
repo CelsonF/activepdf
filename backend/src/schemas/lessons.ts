@@ -4,7 +4,8 @@ const isoDate = z
   .string()
   .refine((v) => !Number.isNaN(Date.parse(v)), "Data inválida");
 
-const LESSON_STATUS = ["SCHEDULED", "COMPLETED", "CANCELLED"] as const;
+// Espelha o enum LessonStatus do Prisma
+export const LESSON_STATUS = ["SCHEDULED", "COMPLETED", "CANCELLED"] as const;
 
 export const createLessonSchema = z.object({
   studentId: z.string().min(1, "Aluno é obrigatório"),

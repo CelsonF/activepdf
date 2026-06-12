@@ -1,15 +1,14 @@
 import { Hono } from "hono";
-import { prisma } from "../lib/prisma.js";
-import { awardXp } from "../lib/gamification.js";
 import { requireAuth, requireStudent, requireTeacher, type AuthEnv } from "../middleware/auth.js";
 import { jsonValidator } from "../lib/validate.js";
-import { findOwnedStudent } from "../lib/ownership.js";
 import {
   createExerciseSchema,
+  EXERCISE_STATUS,
   reviewExerciseSchema,
   updateExerciseSchema,
 } from "../schemas/exercises.js";
 import { parsePagination } from "../lib/pagination.js";
+import * as exercises from "../services/exercises.service.js";
 
 export const exerciseRoutes = new Hono<AuthEnv>();
 
@@ -19,195 +18,72 @@ exerciseRoutes.get("/", requireAuth, async (c) => {
   const { take, skip } = parsePagination(c);
 
   if (session.role === "teacher") {
-    const statusFilter = c.req.query("status");
-    const exercises = await prisma.exercise.findMany({
-      where: {
-        professorId: session.userId,
-        ...(studentId ? { studentId } : {}),
-        ...(statusFilter ? { status: statusFilter } : {}),
-      },
-      select: {
-        id: true, title: true, pdfName: true, status: true,
-        studentId: true, createdAt: true,
-        student: { select: { name: true } },
-      },
-      orderBy: { createdAt: "desc" },
-      take,
-      skip,
-    });
-    return c.json(exercises);
+    const statusParam = c.req.query("status");
+    // narrowing via find: PG agora recusa valor fora do enum
+    const status = EXERCISE_STATUS.find((s) => s === statusParam);
+    if (statusParam && !status) {
+      return c.json({ error: "Status inválido" }, 400);
+    }
+    return c.json(
+      await exercises.listForTeacher(session.userId, { studentId, status, take, skip })
+    );
   }
 
-  const exercises = await prisma.exercise.findMany({
-    where: { studentId: session.userId },
-    select: {
-      id: true, title: true, pdfName: true, status: true, createdAt: true,
-      professor: { select: { name: true } },
-    },
-    orderBy: { createdAt: "desc" },
-    take,
-    skip,
-  });
-  return c.json(exercises);
+  return c.json(await exercises.listForStudent(session.userId, { take, skip }));
 });
 
 exerciseRoutes.post("/", requireAuth, jsonValidator(createExerciseSchema), async (c) => {
   const session = c.get("session");
-  const { title, studentId, lessonId, pdfName, pdfData, fieldsJson } = c.req.valid("json");
+  const body = c.req.valid("json");
 
-  // Aluno (autodidata ou não) envia o próprio PDF: exercício sem professor,
-  // sempre vinculado a ele mesmo — ignora studentId/lessonId do body.
-  // Campos interativos só são persistidos para autodidatas (donos do editor).
-  if (session.role === "student") {
-    const me = await prisma.student.findUnique({
-      where: { id: session.userId },
-      select: { isAutodidact: true },
-    });
-    if (!me) return c.json({ error: "Conta não encontrada" }, 404);
+  const result =
+    session.role === "student"
+      ? await exercises.createAsStudent(session.userId, body)
+      : await exercises.createAsTeacher(session.userId, body);
 
-    const exercise = await prisma.exercise.create({
-      data: {
-        title,
-        studentId: session.userId,
-        pdfName,
-        pdfData,
-        fieldsJson: JSON.stringify(me.isAutodidact ? fieldsJson ?? [] : []),
-      },
-    });
-    return c.json({ id: exercise.id }, 201);
-  }
-
-  if (studentId) {
-    const student = await findOwnedStudent(session.userId, studentId);
-    if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
-  }
-
-  const exercise = await prisma.exercise.create({
-    data: {
-      title,
-      professorId: session.userId,
-      studentId: studentId || null,
-      lessonId: lessonId || null,
-      pdfName,
-      pdfData,
-      fieldsJson: JSON.stringify(fieldsJson ?? []),
-    },
-  });
-  return c.json({ id: exercise.id }, 201);
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  return c.json(result.data, 201);
 });
 
 exerciseRoutes.get("/:id", requireAuth, async (c) => {
   const session = c.get("session");
-
-  const exercise = await prisma.exercise.findUnique({ where: { id: c.req.param("id") } });
-  if (!exercise) return c.json({ error: "Exercício não encontrado" }, 404);
-
-  const canAccess =
-    (session.role === "teacher" && exercise.professorId === session.userId) ||
-    (session.role === "student" && exercise.studentId === session.userId);
-
-  if (!canAccess) return c.json({ error: "Acesso negado" }, 403);
-  return c.json(exercise);
+  const result = await exercises.getForSession(session, c.req.param("id"));
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  return c.json(result.data);
 });
 
 exerciseRoutes.patch("/:id", requireStudent, jsonValidator(updateExerciseSchema), async (c) => {
   const session = c.get("session");
-
-  const exercise = await prisma.exercise.findUnique({ where: { id: c.req.param("id") } });
-  if (!exercise) return c.json({ error: "Exercício não encontrado" }, 404);
-  if (exercise.studentId !== session.userId) return c.json({ error: "Acesso negado" }, 403);
-
-  const { answersJson, status } = c.req.valid("json");
-
-  const wasCompleted = exercise.status !== "completed" && status === "completed";
-
-  const updated = await prisma.exercise.update({
-    where: { id: c.req.param("id") },
-    data: {
-      ...(typeof answersJson === "string" && { answersJson }),
-      ...(status !== undefined && { status }),
-    },
-  });
-
-  if (wasCompleted) {
-    await awardXp(session.userId, 20, "exercise_completed", exercise.id);
-  }
-
-  return c.json({ ok: true, status: updated.status });
+  const result = await exercises.submitAnswers(
+    session.userId,
+    c.req.param("id"),
+    c.req.valid("json")
+  );
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  return c.json(result.data);
 });
 
 exerciseRoutes.get("/:id/review", requireTeacher, async (c) => {
   const session = c.get("session");
-
-  const exercise = await prisma.exercise.findUnique({
-    where: { id: c.req.param("id") },
-    include: { student: { select: { id: true, name: true } } },
-  });
-  if (!exercise) return c.json({ error: "Exercício não encontrado" }, 404);
-  if (exercise.professorId !== session.userId) return c.json({ error: "Acesso negado" }, 403);
-
-  const fields: Array<Record<string, unknown>> = JSON.parse(exercise.fieldsJson ?? "[]");
-  const answers: Record<string, unknown> = JSON.parse(exercise.answersJson ?? "{}");
-  const correction: {
-    grade?: string;
-    comment?: string;
-    items?: Record<string, { correct: boolean; feedback?: string }>;
-  } = JSON.parse(exercise.correctionJson ?? "{}");
-
-  const items = fields.map((field) => {
-    const fieldId = field.id as string;
-    return {
-      ...field,
-      studentAnswer: answers[fieldId] ?? null,
-      correct: correction.items?.[fieldId]?.correct ?? null,
-      feedback: correction.items?.[fieldId]?.feedback ?? null,
-    };
-  });
-
-  return c.json({
-    id: exercise.id,
-    title: exercise.title,
-    pdfName: exercise.pdfName,
-    status: exercise.status,
-    student: exercise.student,
-    createdAt: exercise.createdAt,
-    updatedAt: exercise.updatedAt,
-    grade: correction.grade ?? null,
-    comment: correction.comment ?? null,
-    items,
-  });
+  const result = await exercises.buildReview(session.userId, c.req.param("id"));
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  return c.json(result.data);
 });
 
 exerciseRoutes.patch("/:id/review", requireTeacher, jsonValidator(reviewExerciseSchema), async (c) => {
   const session = c.get("session");
-
-  const exercise = await prisma.exercise.findUnique({ where: { id: c.req.param("id") } });
-  if (!exercise) return c.json({ error: "Exercício não encontrado" }, 404);
-  if (exercise.professorId !== session.userId) return c.json({ error: "Acesso negado" }, 403);
-
-  const { grade, comment, items } = c.req.valid("json");
-
-  const correctionJson = JSON.stringify({
-    grade: grade?.trim() || null,
-    comment: comment?.trim() || null,
-    items: items ?? {},
-  });
-
-  await prisma.exercise.update({
-    where: { id: exercise.id },
-    data: { correctionJson, status: "corrected" },
-  });
-
-  return c.json({ ok: true });
+  const result = await exercises.applyReview(
+    session.userId,
+    c.req.param("id"),
+    c.req.valid("json")
+  );
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  return c.json(result.data);
 });
 
 exerciseRoutes.delete("/:id", requireTeacher, async (c) => {
   const session = c.get("session");
-
-  const exercise = await prisma.exercise.findUnique({ where: { id: c.req.param("id") } });
-  if (!exercise) return c.json({ error: "Exercício não encontrado" }, 404);
-  if (exercise.professorId !== session.userId) return c.json({ error: "Acesso negado" }, 403);
-
-  await prisma.exercise.delete({ where: { id: exercise.id } });
-  return c.json({ ok: true });
+  const result = await exercises.removeOwned(session.userId, c.req.param("id"));
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  return c.json(result.data);
 });

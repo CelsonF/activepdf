@@ -1,11 +1,11 @@
 import { Hono } from "hono";
-import { prisma } from "../lib/prisma.js";
-import { awardXp, ACHIEVEMENT_META } from "../lib/gamification.js";
 import { requireAuth, requireTeacher, type AuthEnv } from "../middleware/auth.js";
 import { jsonValidator } from "../lib/validate.js";
 import { findOwnedStudent } from "../lib/ownership.js";
 import { awardXpSchema } from "../schemas/misc.js";
 import { parsePagination } from "../lib/pagination.js";
+import { prisma } from "../lib/prisma.js";
+import * as gamification from "../services/gamification.service.js";
 import type { SessionPayload } from "../lib/auth.js";
 import type { Context } from "hono";
 
@@ -32,33 +32,8 @@ gamificationRoutes.get("/stats", requireAuth, async (c) => {
 
   const resolved = await resolveTargetStudent(c, session);
   if ("error" in resolved) return resolved.error;
-  const targetId = resolved.targetId;
 
-  const [stats, achievements, recentEvents] = await Promise.all([
-    prisma.userStats.findUnique({ where: { studentId: targetId } }),
-    prisma.achievement.findMany({
-      where: { studentId: targetId },
-      orderBy: { unlockedAt: "asc" },
-    }),
-    prisma.xpEvent.findMany({
-      where: { studentId: targetId },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-    }),
-  ]);
-
-  return c.json({
-    xp: stats?.xp ?? 0,
-    level: stats?.level ?? 1,
-    streak: stats?.streak ?? 0,
-    lastActiveAt: stats?.lastActiveAt ?? null,
-    achievements: achievements.map((a) => ({
-      key: a.key,
-      label: ACHIEVEMENT_META[a.key] ?? a.key,
-      unlockedAt: a.unlockedAt,
-    })),
-    recentEvents,
-  });
+  return c.json(await gamification.getStudentStats(resolved.targetId));
 });
 
 gamificationRoutes.get("/leaderboard", requireAuth, async (c) => {
@@ -77,41 +52,17 @@ gamificationRoutes.get("/leaderboard", requireAuth, async (c) => {
     professorId = student.professorId;
   }
 
-  const students = await prisma.student.findMany({
-    where: { professorId },
-    select: {
-      id: true,
-      name: true,
-      userStats: { select: { xp: true, level: true, streak: true } },
-    },
-  });
-
-  // O rank é calculado sobre a lista completa antes do recorte da paginação
   const { take, skip } = parsePagination(c);
-  const ranked = students
-    .map((s) => ({
-      id: s.id,
-      name: s.name,
-      xp: s.userStats?.xp ?? 0,
-      level: s.userStats?.level ?? 1,
-      streak: s.userStats?.streak ?? 0,
-    }))
-    .sort((a, b) => b.xp - a.xp)
-    .map((s, i) => ({ ...s, rank: i + 1 }))
-    .slice(skip, skip + take);
-
-  return c.json(ranked);
+  return c.json(await gamification.getLeaderboard(professorId, take, skip));
 });
 
 gamificationRoutes.post("/award", requireTeacher, jsonValidator(awardXpSchema), async (c) => {
   const session = c.get("session");
   const { studentId, points, reason } = c.req.valid("json");
 
-  const student = await findOwnedStudent(session.userId, studentId);
-  if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
-
-  const result = await awardXp(studentId, points, `teacher_award:${reason}`);
-  return c.json(result, 201);
+  const result = await gamification.awardFromTeacher(session.userId, studentId, points, reason);
+  if (!result.ok) return c.json({ error: result.error }, result.status);
+  return c.json(result.data, 201);
 });
 
 gamificationRoutes.get("/achievements", requireAuth, async (c) => {
@@ -119,21 +70,6 @@ gamificationRoutes.get("/achievements", requireAuth, async (c) => {
 
   const resolved = await resolveTargetStudent(c, session);
   if ("error" in resolved) return resolved.error;
-  const targetId = resolved.targetId;
 
-  const unlocked = await prisma.achievement.findMany({
-    where: { studentId: targetId },
-    orderBy: { unlockedAt: "asc" },
-  });
-
-  const unlockedKeys = new Set(unlocked.map((a) => a.key));
-
-  const all = Object.entries(ACHIEVEMENT_META).map(([key, label]) => ({
-    key,
-    label,
-    unlocked: unlockedKeys.has(key),
-    unlockedAt: unlocked.find((a) => a.key === key)?.unlockedAt ?? null,
-  }));
-
-  return c.json(all);
+  return c.json(await gamification.listAchievements(resolved.targetId));
 });

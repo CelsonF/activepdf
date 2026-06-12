@@ -1,4 +1,6 @@
-import { prisma } from "./prisma.js";
+import { prisma } from "../lib/prisma.js";
+import { findOwnedStudent } from "../lib/ownership.js";
+import { ok, err, type Result } from "./result.js";
 
 const LEVEL_THRESHOLDS = [0, 100, 250, 500, 1000, 2000, 4000];
 
@@ -103,4 +105,84 @@ export async function awardXp(
   await checkAchievements(studentId, newXp, newStreak, reason);
 
   return { xpAwarded: points, alreadyCounted: false };
+}
+
+export async function getStudentStats(studentId: string) {
+  const [stats, achievements, recentEvents] = await Promise.all([
+    prisma.userStats.findUnique({ where: { studentId } }),
+    prisma.achievement.findMany({
+      where: { studentId },
+      orderBy: { unlockedAt: "asc" },
+    }),
+    prisma.xpEvent.findMany({
+      where: { studentId },
+      orderBy: { createdAt: "desc" },
+      take: 20,
+    }),
+  ]);
+
+  return {
+    xp: stats?.xp ?? 0,
+    level: stats?.level ?? 1,
+    streak: stats?.streak ?? 0,
+    lastActiveAt: stats?.lastActiveAt ?? null,
+    achievements: achievements.map((a) => ({
+      key: a.key,
+      label: ACHIEVEMENT_META[a.key] ?? a.key,
+      unlockedAt: a.unlockedAt,
+    })),
+    recentEvents,
+  };
+}
+
+/** Ranking da turma do professor; o rank é calculado antes do recorte da paginação. */
+export async function getLeaderboard(professorId: string, take: number, skip: number) {
+  const students = await prisma.student.findMany({
+    where: { professorId },
+    select: {
+      id: true,
+      name: true,
+      userStats: { select: { xp: true, level: true, streak: true } },
+    },
+  });
+
+  return students
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      xp: s.userStats?.xp ?? 0,
+      level: s.userStats?.level ?? 1,
+      streak: s.userStats?.streak ?? 0,
+    }))
+    .sort((a, b) => b.xp - a.xp)
+    .map((s, i) => ({ ...s, rank: i + 1 }))
+    .slice(skip, skip + take);
+}
+
+export async function awardFromTeacher(
+  professorId: string,
+  studentId: string,
+  points: number,
+  reason: string
+): Promise<Result<{ xpAwarded: number; alreadyCounted: boolean }>> {
+  const student = await findOwnedStudent(professorId, studentId);
+  if (!student) return err(404, "Aluno não encontrado");
+
+  return ok(await awardXp(studentId, points, `teacher_award:${reason}`));
+}
+
+export async function listAchievements(studentId: string) {
+  const unlocked = await prisma.achievement.findMany({
+    where: { studentId },
+    orderBy: { unlockedAt: "asc" },
+  });
+
+  const unlockedKeys = new Set(unlocked.map((a) => a.key));
+
+  return Object.entries(ACHIEVEMENT_META).map(([key, label]) => ({
+    key,
+    label,
+    unlocked: unlockedKeys.has(key),
+    unlockedAt: unlocked.find((a) => a.key === key)?.unlockedAt ?? null,
+  }));
 }
