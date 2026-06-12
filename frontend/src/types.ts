@@ -49,6 +49,23 @@ export interface DocumentsUsage {
   limit: number | null;
 }
 
+export type SubscriptionStatus = "PENDING" | "AUTHORIZED" | "PAUSED" | "CANCELLED";
+
+export interface PublicSubscription {
+  status: SubscriptionStatus;
+  gateway: string;
+  amountCents: number;
+  currentPeriodEnd: string | null;
+  updatedAt: string;
+}
+
+/** Resposta de GET /api/billing/subscription. */
+export interface BillingInfo {
+  plan: "FREE" | "PRO";
+  priceCents: number;
+  subscription: PublicSubscription | null;
+}
+
 export type ExportMode = "interactive" | "watermark" | "answers";
 
 export type AppMode = "design" | "fill";

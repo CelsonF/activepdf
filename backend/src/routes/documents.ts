@@ -20,7 +20,8 @@ documentRoutes.get("/", requireStudent, async (c) => {
 
 documentRoutes.get("/usage", requireStudent, async (c) => {
   const session = c.get("session");
-  return c.json(await documents.usageForStudent(session.userId, planForSession(session)));
+  const plan = await planForSession(session);
+  return c.json(await documents.usageForStudent(session.userId, plan));
 });
 
 documentRoutes.post("/", requireStudent, jsonValidator(createSavedDocumentSchema), async (c) => {

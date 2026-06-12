@@ -9,7 +9,9 @@ export type FunnelEvent =
   | "editor_exported"        // PDF exportado (design ou preenchido)
   | "draft_saved"            // rascunho salvo (modo anônimo)
   | "draft_limit_reached"    // anônimo bateu no limite de rascunhos
-  | "signup_cta_clicked";    // clique em CTA de criar conta
+  | "signup_cta_clicked"     // clique em CTA de criar conta
+  | "checkout_started"       // professor iniciou o checkout da assinatura
+  | "subscription_cancelled"; // professor cancelou a assinatura
 
 declare global {
   interface Window {

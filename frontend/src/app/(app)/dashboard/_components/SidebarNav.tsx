@@ -20,6 +20,7 @@ import {
   ChartBar,
   Building,
   FloppyDisk,
+  Crown,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/cn";
 
@@ -51,6 +52,7 @@ const TEACHER_NAV: NavItem[] = [
   { href: "/dashboard/library", icon: <Books size={18} weight="bold" />, label: "Biblioteca" },
   { href: "/dashboard/corrections", icon: <ClipboardText size={18} weight="bold" />, label: "Correções" },
   { href: "/dashboard/reports", icon: <ChartBar size={18} weight="bold" />, label: "Relatórios" },
+  { href: "/dashboard/settings/billing", icon: <Crown size={18} weight="bold" />, label: "Assinatura" },
 ];
 
 const ACCOUNT_NAV: NavItem[] = [

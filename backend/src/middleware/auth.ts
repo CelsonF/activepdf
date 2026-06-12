@@ -33,7 +33,7 @@ export const requirePlan = (plan: Plan) =>
   createMiddleware<AuthEnv>(async (c, next) => {
     const session = await getSession(c);
     if (!session) return c.json(UNAUTHORIZED, 401);
-    if (planForSession(session) !== plan) {
+    if ((await planForSession(session)) !== plan) {
       return c.json({ error: "Recurso disponível apenas no plano Professor" }, 403);
     }
     c.set("session", session);

@@ -1,3 +1,4 @@
+import { prisma } from "./prisma.js";
 import type { SessionPayload } from "./auth.js";
 
 export type Plan = "FREE" | "PRO";
@@ -12,11 +13,18 @@ export const PLAN_LIMITS = {
 } as const satisfies Record<Plan, { savedDocuments: number | null }>;
 
 /**
- * Plano efetivo da sessão. Até a sprint de billing (Subscription via
- * Mercado Pago), professor é PRO e aluno é FREE.
+ * Plano efetivo da sessão. PRO = professor com assinatura AUTHORIZED
+ * (a Subscription sincronizada pelo webhook é a fonte da verdade).
  */
-export function planForSession(session: Pick<SessionPayload, "role">): Plan {
-  return session.role === "teacher" ? "PRO" : "FREE";
+export async function planForSession(
+  session: Pick<SessionPayload, "role" | "userId">
+): Promise<Plan> {
+  if (session.role !== "teacher") return "FREE";
+  const sub = await prisma.subscription.findUnique({
+    where: { professorId: session.userId },
+    select: { status: true },
+  });
+  return sub?.status === "AUTHORIZED" ? "PRO" : "FREE";
 }
 
 export function savedDocumentsLimit(plan: Plan): number | null {

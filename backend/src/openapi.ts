@@ -64,6 +64,17 @@ export const openApiSpec = {
           updatedAt: { type: "string", format: "date-time" },
         },
       },
+      Subscription: {
+        type: "object",
+        nullable: true,
+        properties: {
+          status: { type: "string", enum: ["PENDING", "AUTHORIZED", "PAUSED", "CANCELLED"] },
+          gateway: { type: "string", example: "mercadopago" },
+          amountCents: { type: "integer", example: 3900 },
+          currentPeriodEnd: { type: "string", format: "date-time", nullable: true },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
       Exercise: {
         type: "object",
         properties: {
@@ -483,6 +494,141 @@ export const openApiSpec = {
     },
 
     // ─── Exercises ────────────────────────────────────────────────────────────
+    "/api/billing/checkout": {
+      post: {
+        tags: ["Assinatura"],
+        summary: "Iniciar checkout do plano Professor",
+        description:
+          "Cria a assinatura (preapproval) no gateway e devolve a URL de checkout. Professor com assinatura ativa recebe 409.",
+        responses: {
+          "201": {
+            description: "Checkout criado",
+            content: { "application/json": { schema: { type: "object", properties: { checkoutUrl: { type: "string" } } } } },
+          },
+          "401": { description: "Não autorizado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "409": { description: "Assinatura já ativa", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+
+    "/api/billing/subscribe": {
+      post: {
+        tags: ["Assinatura"],
+        summary: "Assinar com checkout transparente",
+        description:
+          "Recebe o token de cartão gerado no navegador (MercadoPago.js) e cria a assinatura já autorizada — sem redirect. Cartão recusado responde 400.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["cardTokenId"],
+                properties: { cardTokenId: { type: "string", description: "card_token_id do MercadoPago.js" } },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": {
+            description: "Assinatura criada",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    plan: { type: "string", enum: ["FREE", "PRO"] },
+                    subscription: { $ref: "#/components/schemas/Subscription" },
+                  },
+                },
+              },
+            },
+          },
+          "400": { description: "Pagamento recusado / token inválido", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "401": { description: "Não autorizado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "409": { description: "Assinatura já ativa", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+
+    "/api/billing/subscription": {
+      get: {
+        tags: ["Assinatura"],
+        summary: "Plano efetivo e assinatura do professor",
+        responses: {
+          "200": {
+            description: "Status da assinatura",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    plan: { type: "string", enum: ["FREE", "PRO"] },
+                    priceCents: { type: "integer", example: 3900 },
+                    subscription: { $ref: "#/components/schemas/Subscription" },
+                  },
+                },
+              },
+            },
+          },
+          "401": { description: "Não autorizado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+
+    "/api/billing/sync": {
+      post: {
+        tags: ["Assinatura"],
+        summary: "Ressincronizar com o gateway",
+        description: "Busca o status atual no gateway e atualiza a assinatura local — usado no retorno do checkout.",
+        responses: {
+          "200": {
+            description: "Assinatura sincronizada",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    plan: { type: "string", enum: ["FREE", "PRO"] },
+                    subscription: { $ref: "#/components/schemas/Subscription" },
+                  },
+                },
+              },
+            },
+          },
+          "401": { description: "Não autorizado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+
+    "/api/billing/cancel": {
+      post: {
+        tags: ["Assinatura"],
+        summary: "Cancelar assinatura",
+        description: "Cancela no gateway e marca CANCELLED — o professor volta ao plano FREE.",
+        responses: {
+          "200": { description: "Assinatura cancelada", content: { "application/json": { schema: { $ref: "#/components/schemas/Ok" } } } },
+          "401": { description: "Não autorizado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "404": { description: "Assinatura não encontrada", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "409": { description: "Assinatura já cancelada", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+
+    "/api/billing/webhook": {
+      post: {
+        tags: ["Assinatura"],
+        summary: "Webhook do Mercado Pago (público)",
+        description:
+          "Fonte da verdade do status da assinatura. Valida o header `x-signature` quando MP_WEBHOOK_SECRET está configurado. Notificações irrelevantes respondem 200.",
+        security: [],
+        responses: {
+          "200": { description: "Notificação processada/ignorada", content: { "application/json": { schema: { $ref: "#/components/schemas/Ok" } } } },
+          "401": { description: "Assinatura do webhook inválida", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+
     "/api/documents": {
       get: {
         tags: ["Documentos"],

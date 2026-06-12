@@ -35,7 +35,7 @@ export async function create(
   session: { userId: string; role: "teacher" | "student" },
   input: CreateInput
 ): Promise<Result<SavedDocument>> {
-  const limit = savedDocumentsLimit(planForSession(session));
+  const limit = savedDocumentsLimit(await planForSession(session));
   if (limit !== null) {
     const used = await prisma.savedDocument.count({ where: { studentId: session.userId } });
     if (used >= limit) {

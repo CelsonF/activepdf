@@ -118,6 +118,30 @@ model Professor {
   classes       Class[]
   organization  Organization?
   subjects      Subject[]
+  subscription  Subscription?
+}
+
+enum SubscriptionStatus {
+  PENDING // checkout iniciado, aguardando autorização no gateway
+  AUTHORIZED // assinatura ativa = plano PRO
+  PAUSED // pagamento falhou; gateway pausou a cobrança
+  CANCELLED
+}
+
+// Assinatura do plano Professor. O webhook do gateway é a fonte da verdade
+// do status — o app nunca promove a PRO por conta própria.
+model Subscription {
+  id               String             @id @default(cuid())
+  professorId      String             @unique
+  gateway          String             @default("mercadopago")
+  gatewayId        String?            @unique // preapproval_id no Mercado Pago
+  status           SubscriptionStatus @default(PENDING)
+  amountCents      Int
+  currentPeriodEnd DateTime?
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  professor Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
 }
 
 model Student {

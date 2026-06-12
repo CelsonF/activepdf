@@ -1,70 +1,78 @@
 # Grifo — Identidade de Marca
 
-> Definida em 12/jun/2026 (Sprint 1). Direção: **Folha & Caneta** — papelaria
-> técnica. O nome vem do traço de marca-texto (*grifar*) que é a assinatura
-> visual da marca. Tagline: **"Marque, pratique, aprenda."**
+> v2 — revisada em 12/jun/2026 junto com a decisão de migrar o front-end para
+> TanStack Start. Direção: **caderno escolar** ("o editor é a capa"). O nome
+> vem do traço de marca-texto (*grifar*) que é a assinatura visual da marca.
+> Tagline: **"Marque, pratique, aprenda."**
+>
+> A referência técnica completa (tokens oklch, tipografia, componentes e
+> blueprints de página) é **`docs/design-system-grifo.md`** — este arquivo
+> guarda o conceito, a semântica das cores e a voz.
 
 ## Conceito
 
 O Grifo transforma qualquer PDF em exercício interativo. A identidade vem do
-mundo real da sala de aula: a folha, a caneta azul de quem responde, a caneta
-vermelha de quem corrige e o marca-texto de quem estuda. **As cores não são
-decoração — são semântica de sala de aula.**
+mundo real da sala de aula: papel cinza-azulado de caderno, tinta navy de quem
+escreve, o marca-texto amarelo de quem estuda e as canetas coloridas que
+categorizam. **As cores não são decoração — são semântica de sala de aula.**
 
-## Paleta
+## Paleta (resumo semântico)
 
-| Token | Hex | Papel na interface |
-|---|---|---|
-| `paper` | `#F7F7F5` | Fundo de página (papel) |
-| `ink` | `#16181D` | Texto principal (tinta) |
-| `ink-soft` | `#4A4F57` | Texto secundário |
-| `ink-muted` | `#8B9097` | Placeholder, legendas |
-| `line` | `#E5E5E1` | Bordas padrão (pauta do papel) |
-| `pen` | `#0B5FFF` | **Ação primária** — caneta azul: botões, links, campos do PDF |
-| `pen-dark` | `#0A4ED6` | Hover da primária |
-| `pen-light` | `#EBF1FF` | Fundos ativos/selecionados |
-| `correction` | `#DE2B1F` | **SÓ correção e erro** — a caneta vermelha do professor |
-| `marker` | `#FFD64D` | **Grifo de marca-texto** — XP, streak, destaque da marca |
-| `marker-light` | `#FFF6D6` | Fundo suave de gamificação |
+Valores oficiais em oklch no `docs/design-system-grifo.md` §3.
+
+| Token | Papel na interface |
+|---|---|
+| `background` / `surface` / `card` | Papel: fundo de página, superfícies, cartões |
+| `ink` | Tinta navy quase preta — texto principal e fundo do CTA primário |
+| `highlight` | **O grifo amarelo da marca** — destaque de hero, CTA secundário, moldura `bg-highlight/40` das telas |
+| `muted` / `muted-foreground` / `border` | Neutros de apoio e pauta |
+| `primary` | Azul elétrico — foco/ring e elementos interativos do sistema |
+| `pen-red` | Erros, alertas, tag "caneta vermelha" |
+| `pen-blue` | Categoria informativa / matérias exatas |
+| `pen-green` | Sucesso, grátis, recomendado |
+| `pen-orange` | Destaques e avisos |
 
 Regras inegociáveis:
-1. **Uma cor de ação por tela: `pen`.** O azul é de quem faz.
-2. **`correction` nunca decora.** Quando o vermelho aparece, é professor
-   corrigindo ou erro de verdade (estado destrutivo/inválido).
-3. **`marker` é a marca.** Aparece no grifo do logo, em XP/conquistas e em UMA
-   palavra-chave grifada por tela de marketing — nunca como cor de botão comum.
-4. Neutros vêm de `ink`/`line`/`paper` (a escala `slate` legada será migrada na
-   varredura da Sprint 6).
+1. **CTAs têm só duas formas**: tinta (fundo `ink`, texto `highlight`) ou
+   marca-texto (fundo `highlight`, borda 2px `ink`, texto `ink`).
+2. **`pen-*` é categórico, não decorativo** — cada caneta tem um significado
+   fixo (erro, info, sucesso, aviso/categoria).
+3. **Nenhum literal de cor em JSX** — cor nova nasce no `@theme` do
+   `styles.css` antes de aparecer em componente.
+4. O amarelo `highlight` é a assinatura: emoldura as telas (`bg-highlight/40`),
+   sublinha o wordmark e pinta UMA palavra-chave por hero
+   (`.text-highlight-mark`).
 
 ## Tipografia
 
 | Papel | Fonte | Uso |
 |---|---|---|
-| Display | **Bricolage Grotesque** | Títulos, números de destaque, wordmark (`font-display`) |
-| Texto | **Instrument Sans** | UI e corpo (`font-sans`, padrão) |
-| Mono | **Spline Sans Mono** | XP, scores, contadores, nomes de arquivo (`font-mono`) |
+| Display | **Archivo Black** | Heros e H2 de seção (`font-display`, tracking -0.03em, line-height 0.95) |
+| Texto | **Inter** | UI e corpo (`font-sans`, padrão) |
+| Mono | **JetBrains Mono** | Eyebrows em caps, badges, teclas, contadores, nomes de arquivo (`font-mono`) |
 
-Números de dados (XP, notas, contagens) sempre em mono — herdado da regra
-existente do projeto, agora com fonte oficial.
+Números de dados (XP, notas, contagens) sempre em mono. Eyebrow padrão:
+`font-mono text-[10px] uppercase tracking-[0.2em]`.
 
 ## Assinatura visual
 
-O **grifo de marca-texto**: um traço amarelo (`marker`) atrás de palavra-chave,
-como caderno marcado. Implementado como `.ui-marker` (gradiente de fundo nos
-55–92% da altura da linha). Usar com extrema parcimônia: wordmark, herói do
-marketing e momentos de gamificação. O resto da interface é quieto: papel,
-tinta e pauta.
+O **grifo de marca-texto**: um traço amarelo atrás de palavra-chave, como
+caderno marcado. Implementado como utility `.text-highlight-mark`
+(background + box-shadow simétrico). Usos: wordmark, palavra-chave do hero,
+momentos de gamificação. O resto da interface é quieto: papel, tinta e pauta.
 
 Elementos derivados:
-- **Carimbo** (`.ui-badge` v2): status com cara de carimbo — caixa alta,
-  espaçamento de letra, canto pouco arredondado.
-- **Lacuna**: campos sobre o PDF desenhados como lacuna de prova (traço azul).
+- **Cantos pesados**: `rounded-xl` / `rounded-2xl` em cartões e CTAs.
+- **Borda de tinta**: `border-2 border-ink` marca cartões premium.
+- **Chips de caneta**: ícone branco sobre bloco `pen-*` arredondado.
+- **Micro-interações**: `hover:scale-[1.02]` em CTA, `hover:shadow-lg` em card.
 
 ## Logo
 
-Wordmark "Grifo" em Bricolage Grotesque com grifo amarelo atravessando
-(`.ui-marker`). Marca reduzida: bloco de tinta com ícone `Highlighter`
-(Phosphor) em amarelo. Componente: `frontend/src/components/ui/Logo.tsx`.
+Wordmark "Grifo" em negrito com tarja amarela (`bg-highlight`) atravessando a
+base. Marca reduzida: bloco `bg-ink` arredondado com ícone `Highlighter`
+(lucide-react) em `text-highlight`. Snippet oficial no
+`docs/design-system-grifo.md` §5.
 
 ## Voz
 
@@ -78,6 +86,6 @@ Wordmark "Grifo" em Bricolage Grotesque com grifo amarelo atravessando
 
 | Contexto | Tratamento |
 |---|---|
-| Marketing (capa/preços) | Display grande, grifo na palavra-chave do herói, papel + tinta, demonstração viva do editor |
-| App do professor | Quieto e denso: pen para ações, carimbos de status, correction só no fluxo de corrigir |
-| App do aluno | Mesma base + marker na gamificação (XP, streak, conquistas) |
+| Marketing (capa/preços) | Display gigante, `.text-highlight-mark` na palavra-chave do hero, moldura `bg-highlight/40`, demonstração viva do editor |
+| Dashboard | Shell 3 colunas, item ativo do menu invertido (`bg-ink text-highlight`), barras de progresso em `pen-*` |
+| Editor (tool) | Workspace quieto: canvas branco sobre `bg-muted`, skeleton sobreposto no loading, lacunas azuis sobre o PDF |

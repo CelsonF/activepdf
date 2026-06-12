@@ -20,6 +20,7 @@ import { reportsRoutes } from "./routes/reports.js";
 import { classRoutes } from "./routes/classes.js";
 import { profileRoutes } from "./routes/profile.js";
 import { documentRoutes } from "./routes/documents.js";
+import { billingRoutes } from "./routes/billing.js";
 import { openApiSpec } from "./openapi.js";
 
 mkdirSync("uploads/logos", { recursive: true });
@@ -91,6 +92,7 @@ app.route("/api/reports", reportsRoutes);
 app.route("/api/classes", classRoutes);
 app.route("/api/profile", profileRoutes);
 app.route("/api/documents", documentRoutes);
+app.route("/api/billing", billingRoutes);
 
 const port = Number(process.env.PORT ?? 4000);
 

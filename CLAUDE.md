@@ -3,16 +3,22 @@
 > Este arquivo é lido automaticamente em toda conversa. São as regras
 > **inegociáveis** para escrever código neste repositório.
 >
-> Layout: `backend/` (API Hono, porta 4000) e `frontend/` (Next.js, porta 3000).
+> Layout: `backend/` (API Hono, porta 4000), `web/` (app TanStack Start, porta
+> 3000) e `frontend/` (app Next.js **legado**, em migração).
 > Os comandos npm rodam **dentro da pasta** de cada app.
+>
+> **Front-end em migração (decisão de 12/jun/2026):** o app novo vive em
+> `web/` e segue `docs/design-system-grifo.md` (referência canônica do design).
+> Todo código novo de UI nasce em `web/`; não invista em melhoria visual no
+> legado `frontend/` — ele some quando a migração terminar.
 >
 > Skills disponíveis:
 > - `criar-endpoint` — criar ou alterar qualquer rota da API
 > - `alterar-modelo` — mudanças no schema Prisma (modelo, campo, relação, migration)
-> - `criar-componente` — criar ou revisar qualquer componente de UI
-> - `refatorar-design-system` — auditar e refatorar componentes/páginas para o padrão do design system
-> - `storybook` — configurar o Storybook e escrever stories para os primitivos
-> - `consumir-api` — buscar/enviar dados para a API (serverFetch, proxy, contrato de erro)
+> - `criar-componente` — criar ou revisar qualquer componente de UI ⚠️ ainda descreve o app legado
+> - `refatorar-design-system` — auditar e refatorar para o padrão do design system ⚠️ ainda descreve o app legado
+> - `storybook` — configurar o Storybook e escrever stories ⚠️ ainda descreve o app legado
+> - `consumir-api` — buscar/enviar dados para a API ⚠️ ainda descreve o app legado
 
 ---
 
@@ -71,76 +77,59 @@ TypeScript strict, ESM — imports relativos terminam em `.js`.
 
 ---
 
-# Front-end (`frontend/`)
+# Front-end (`web/`)
+
+> **Referência canônica do design: `docs/design-system-grifo.md`.** Tokens,
+> tipografia, componentes e blueprints de página vivem lá — este arquivo só
+> resume as regras. O app Next.js 14 em `frontend/` é legado em migração.
 
 ## Stack (não trocar sem pedir)
 
 | Camada | Tecnologia |
 |---|---|
-| Framework | **Next.js 14** (App Router) |
+| Framework | **TanStack Start v1** (React 19 + SSR, rotas file-based em `src/routes/`) |
+| Bundler | **Vite 7** via `@lovable.dev/vite-tanstack-config` |
 | Linguagem | **TypeScript** strict — sem `any` |
-| Estilo | **Tailwind CSS v3** + design system em `frontend/src/app/globals.css` |
-| Ícones | **@phosphor-icons/react** (Phosphor) |
-| Estado | **Zustand** |
-| PDF | `pdfjs-dist` (render) · `pdf-lib` (geração) · `tesseract.js` (OCR) |
+| Estilo | **Tailwind CSS v4** (CSS-first, sem `tailwind.config.js`) — tokens em `@theme` no `src/styles.css` |
+| Primitivos | **shadcn/ui** (estilo `new-york`, Radix) em `src/components/ui/` |
+| Ícones | **lucide-react** (tamanho via `className="h-4 w-4"`, não a prop `size`) |
+| Dados | **TanStack Query** no contexto do router |
+| PDF | `pdfjs-dist` (render) · `pdf-lib` (export) · `tesseract.js` (OCR) |
 
-## Regra de ouro do visual — identidade Grifo (`docs/identidade-grifo.md`)
+## Regra de ouro do visual — identidade Grifo
 
-**Todo componente é feito com Tailwind + TypeScript. Sem exceções.**
+Conceito: **"o editor é a capa"** — estética de caderno escolar. Papel
+cinza-azulado, tinta navy, grifo de marca-texto amarelo, canetas categóricas.
 
-1. **Use as classes do design system (`.ui-*`) antes de qualquer coisa.** Elas
-   estão em `frontend/src/app/globals.css` dentro de `@layer components`. Botão é
-   `.ui-btn`, badge é `.ui-badge`, input é `.ui-input`, etc. Veja o catálogo
-   completo na skill `criar-componente`.
-2. **Cores só vêm dos tokens Grifo**: `pen` (ação primária), `ink`/`line`/`paper`
-   (neutros), `correction` (SÓ correção/erro), `marker` (SÓ gamificação e o
-   grifo da marca). `brand` é alias legado de `pen` (some na varredura).
-   **Nunca** invente um hex novo nem use `style={{ color: '#...' }}`.
-3. **Uma cor de ação por tela: `pen`.** `correction` nunca decora — quando o
-   vermelho aparece, é professor corrigindo ou erro real. `.ui-marker` (grifo
-   amarelo) com extrema parcimônia: wordmark, herói do marketing, XP.
-   Acentos por seção (legado, migrar na varredura):
-   Matérias → `indigo` · Alunos → `violet` · Aulas → `blue` · Exercícios → `emerald`
-4. **Tipografia**: `font-sans` (Instrument Sans) é o padrão; `font-display`
-   (Bricolage Grotesque) em títulos/números de destaque; `font-mono`
-   (Spline Sans Mono) em XP, scores, contadores e nomes de arquivo.
-5. **Nada de `style={{}}`** exceto valores de runtime genuínos (posição de campo
-   sobre o canvas do PDF, dimensões calculadas). Cor, espaçamento e tipografia
-   sempre via classe Tailwind.
+1. **Só tokens semânticos** (`bg-card`, `text-muted-foreground`, `border-border`,
+   `bg-ink`, `bg-highlight`, `bg-pen-blue`…). Cor nova = estender o `@theme`
+   primeiro; **nunca** literal de cor em JSX.
+2. **CTAs têm só duas formas**: ink-filled (`bg-ink text-highlight`) ou
+   ink-bordered-on-highlight (`border-2 border-ink bg-highlight text-ink`).
+3. **`pen-*` é categórico**: `pen-red` erro/alerta · `pen-blue` info ·
+   `pen-green` sucesso/grátis · `pen-orange` destaque/aviso. Em loop de dados,
+   `style={{ backgroundColor: "var(--color-pen-blue)" }}` é aceitável.
+4. **Tipografia**: `font-sans` (Inter) corpo/UI · `font-display` (Archivo Black)
+   em heros e H2 de seção · `font-mono` (JetBrains Mono) em eyebrows
+   (`text-[10px] uppercase tracking-[0.2em]`), badges e teclas.
+5. **Loading = skeleton, nunca spinner bloqueante.** O skeleton espelha a
+   geometria real do card. No editor, o skeleton **sobrepõe** o canvas
+   (`absolute inset-0`) — nunca substitui (o `canvasRef` precisa ficar montado).
+6. A marca é o wordmark "Grifo" com traço amarelo por trás
+   (`.text-highlight-mark` em palavra-chave de hero; logo = bloco `bg-ink` com
+   `Highlighter` em `text-highlight`).
 
 ## Como escrever um componente
 
 - Um componente = uma responsabilidade. Passou de ~80 linhas? Extraia partes.
 - Props tipadas com `interface Props { ... }` no topo. **Sem `React.FC`** —
   escreva `export function Nome(props: Props)`.
-- **Named export** para componentes reutilizáveis; **default export só em
-  páginas** (`frontend/src/app/**`).
-- Reexporte primitivos novos em `frontend/src/components/ui/index.ts`.
-- Combine classes com o helper **`cn()`** de `frontend/src/lib/cn.ts` — nunca
-  monte strings gigantes com ternários aninhados.
-- `"use client"` só quando o componente usa estado, efeito ou evento. Server
-  Component é o padrão no App Router.
-- Antes de criar: **confira se o componente já existe** em
-  `frontend/src/components/ui/`.
-
-```tsx
-import { cn } from "@/lib/cn";
-
-interface StatProps {
-  label: string;
-  value: string;
-  active?: boolean;
-}
-
-export function Stat({ label, value, active = false }: StatProps) {
-  return (
-    <div className={cn("card-base", active && "border-brand bg-brand-light")}>
-      <span className="text-xs text-slate-500">{label}</span>
-      <span className="text-lg font-bold text-slate-900">{value}</span>
-    </div>
-  );
-}
-```
+- **Named export** para componentes reutilizáveis; rotas usam
+  `createFileRoute` em `src/routes/`.
+- Combine classes com o **`cn()`** de `src/lib/utils.ts` (clsx +
+  tailwind-merge) — nunca monte strings gigantes com ternários aninhados.
+- Antes de criar: **confira se o primitivo já existe** em `src/components/ui/`
+  (shadcn) — estenda em vez de duplicar.
 
 ## TypeScript
 
@@ -151,57 +140,60 @@ export function Stat({ label, value, active = false }: StatProps) {
 - Estenda os atributos nativos quando fizer sentido:
   `interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement>`.
 
-## Tailwind
+## Tailwind v4
 
+- Entry é `@import "tailwindcss";` — sem `@tailwind base/components/utilities`.
+- **Sem `tailwind.config.js`** — tokens no `@theme` de `src/styles.css`;
+  tokens shadcn em `@theme inline`.
+- Utility custom = `@utility nome { ... }` (nunca `@layer utilities`);
+  variant custom = `@custom-variant`.
 - Ordem das classes: **layout → tamanho → espaçamento → visual → interação → responsivo**.
 - Espaçamento entre irmãos: `flex`/`grid` + `gap-*`, não margens soltas.
-- Animações: use `.animate-fadeUp` / `.animate-slideIn` (já existem). O estado
-  final visível é a base; nada de loops infinitos em conteúdo.
+- Micro-interações padrão: `hover:scale-[1.02]` em CTA, `hover:shadow-lg` em card.
 
-## Zustand
+## Estado e dados
 
-- Uma store por domínio (`frontend/src/features/editor/store.ts` = editor de PDF;
-  `frontend/src/store/authStore.ts` = auth).
-- Estado mínimo — não duplique o que dá pra derivar. Actions dentro do `create()`.
-- Sem mutação direta: use spread/immer.
+- Estado de servidor via **TanStack Query** (queries/mutations no contexto do
+  router); não duplique cache em store local.
+- O editor de PDF é browser-only: rota com `ssr: false`. Documentos anônimos
+  persistem em `localStorage` (`grifo:tool:docs`); campos usam coordenadas
+  normalizadas 0..1 sobre o tamanho renderizado da página.
+- `style={{}}` só para valores genuínos de runtime (posição de campo sobre o
+  canvas, `fontSize` por campo, cor `pen-*` vinda de dados).
 
-## Estrutura de arquivos (front-end)
+## Estrutura de arquivos (front-end novo)
 
 ```
-frontend/src/
-  app/                  # páginas e layouts (App Router) — default export
-  features/
-    editor/             # editor de PDF como produto isolado
-      components/       # EditorShell, EditorScreen, Toolbar, painéis, upload
-      persistence/      # EditorPersistence: adapter Local (anônimo) × Api (logado)
-      lib/              # export (pdf-lib), coordinates, ocr, loadPdfDocument
-      hooks/ store.ts   # useFieldInteraction + store Zustand do editor
-      index.ts          # API pública da feature — importe daqui fora dela
-  components/
-    ui/                 # primitivos genéricos (Button, Badge, Header…) + index.ts
-    upload/             # PdfDropZone (usado pelo dashboard)
-    auth/               # telas de login/registro
-  hooks/                # custom hooks reutilizáveis
-  lib/                  # utilitários puros (cn, api, auth…)
-  store/                # Zustand de outros domínios (authStore)
-  types.ts              # tipos compartilhados
+web/src/
+  routes/            # rotas file-based (TanStack)
+    __root.tsx       # shell html, fonts (Google Fonts via <link>), meta global
+    index.tsx        # Landing
+    dashboard.tsx    # Dashboard (3 colunas: sidebar 260px · main · detalhes 340px)
+    tool.tsx         # Editor de PDF (ssr: false)
+  components/ui/     # primitivos shadcn (Button, Skeleton, ...)
+  lib/utils.ts       # cn()
+  styles.css         # TODO o design system (tokens @theme, fonts, utilities)
 ```
 
-> **O editor não fala com a API de exercícios direto** — toda persistência passa pelo
-> `EditorPersistence` (`features/editor/persistence/`). O modo anônimo
-> (`/editor`, sem sessão) usa o adapter Local e funciona sem backend.
+> Blueprints completos de Landing, Dashboard e Tool em
+> `docs/design-system-grifo.md` §6 — siga-os ao criar essas telas.
 
 ## Não fazer (front-end)
 
 - `console.log` em código commitado.
 - `key={index}` em listas que reordenam.
-- Componente novo do zero quando já existe um `.ui-*` ou um primitivo em `ui/`.
-- Hex de cor inventado / `style` para cor / gradiente decorativo.
+- Criar `tailwind.config.js` (é Tailwind v4, CSS-first).
+- Literal de cor novo em JSX — estenda o `@theme` primeiro.
+- Importar de `react-router-dom` — o router é `@tanstack/react-router`.
+- Rotas fora de `src/routes/` (nada de `src/pages/`).
+- Substituir o canvas do PDF durante loading — sobreponha um skeleton.
+- Spinner centralizado bloqueando a UI.
 - Refatorar além do escopo pedido.
 
 ## Antes de entregar (front-end)
 
-1. Reaproveitou as classes `.ui-*` e os tokens `brand`/`slate`?
-2. `npx tsc --noEmit` (dentro de `frontend/`) passa (sem `any`, sem erro de tipo)?
-3. Componente reexportado em `index.ts` se for primitivo?
-4. Sem `console.log`, sem `style` de cor, sem hex solto?
+1. Só tokens semânticos/brand/pen-* — nenhum literal de cor em JSX?
+2. `npx tsc --noEmit` passa (sem `any`, sem erro de tipo)?
+3. UI assíncrona tem skeleton com a geometria do conteúdo real?
+4. CTAs numa das duas formas oficiais? Eyebrows em mono uppercase?
+5. Sem `console.log`, sem `style` de cor estática?
