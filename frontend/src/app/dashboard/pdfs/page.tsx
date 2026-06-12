@@ -13,6 +13,7 @@ import {
 } from "@phosphor-icons/react/dist/ssr";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
+import { UploadPdfButton } from "./_components/UploadPdfButton";
 
 interface Exercise {
   id: string;
@@ -93,6 +94,9 @@ export default async function PdfsPage() {
         <span className="text-xs text-slate-400 font-medium">
           {exercises.length} exercício{exercises.length !== 1 ? "s" : ""}
         </span>
+        <div className="ml-auto">
+          <UploadPdfButton />
+        </div>
       </header>
 
       <div className="max-w-3xl mx-auto px-4 py-8 animate-fadeUp flex flex-col gap-8">
@@ -165,7 +169,8 @@ export default async function PdfsPage() {
             className="py-20"
             icon={<FilePdf size={36} />}
             title="Nenhum exercício ainda"
-            description="Seu professor ainda não enviou exercícios para você."
+            description="Envie seu próprio PDF para estudar ou aguarde seu professor enviar exercícios."
+            action={<UploadPdfButton />}
           />
         )}
       </div>
@@ -221,7 +226,7 @@ function ExerciseCard({ ex }: { ex: ExerciseWithCorrection }) {
           )}
         </div>
         <p className="text-xs text-slate-400 truncate">
-          {ex.professor?.name ?? "Professor"} · {ex.pdfName} ·{" "}
+          {ex.professor?.name ?? "Enviado por você"} · {ex.pdfName} ·{" "}
           {fmtDate(ex.createdAt)}
         </p>
       </div>

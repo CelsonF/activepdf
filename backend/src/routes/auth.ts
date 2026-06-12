@@ -32,7 +32,7 @@ const GOAL_LABELS: Record<string, string> = {
 };
 
 authRoutes.post("/register", jsonValidator(registerSchema), async (c) => {
-  const { name, email, password, role, teacherEmail, organizationName, level, goals } =
+  const { name, email, password, role, teacherEmail, organizationName, level, goals, isAutodidact } =
     c.req.valid("json");
 
   const existingP = await prisma.professor.findUnique({ where: { email } });
@@ -67,7 +67,7 @@ authRoutes.post("/register", jsonValidator(registerSchema), async (c) => {
   }
 
   const student = await prisma.student.create({
-    data: { name: name.trim(), email, password: hashed, professorId },
+    data: { name: name.trim(), email, password: hashed, professorId, isAutodidact: isAutodidact ?? false },
   });
 
   // Persiste o nível e os objetivos escolhidos no onboarding

@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { UploadSimple, X } from "@phosphor-icons/react";
-import { PdfDropZone } from "./PdfDropZone";
+import { PdfDropZone } from "@/components/upload/PdfDropZone";
 import { TagsInput } from "./TagsInput";
 
 interface UploadModalProps {

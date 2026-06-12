@@ -35,6 +35,7 @@ export const openApiSpec = {
           email: { type: "string", format: "email" },
           enrollment: { type: "string", nullable: true },
           professorId: { type: "string", nullable: true },
+          isAutodidact: { type: "boolean" },
           createdAt: { type: "string", format: "date-time" },
           updatedAt: { type: "string", format: "date-time" },
         },
@@ -189,6 +190,11 @@ export const openApiSpec = {
                     format: "email",
                     description: "Obrigatório apenas quando role=student. E-mail do professor responsável.",
                   },
+                  isAutodidact: {
+                    type: "boolean",
+                    description:
+                      "Apenas para role=student. Aluno autodidata (estuda sem professor) — ganha acesso ao editor de campos. Só um professor pode reverter para aluno regular.",
+                  },
                 },
               },
             },
@@ -327,6 +333,8 @@ export const openApiSpec = {
       patch: {
         tags: ["Alunos"],
         summary: "Atualizar aluno",
+        description:
+          "Apenas o professor responsável. Inclui a conversão de perfil autodidata ↔ aluno regular via `isAutodidact`.",
         requestBody: {
           required: true,
           content: {
@@ -337,6 +345,7 @@ export const openApiSpec = {
                   name: { type: "string" },
                   email: { type: "string", format: "email" },
                   enrollment: { type: "string", nullable: true },
+                  isAutodidact: { type: "boolean", description: "Perfil autodidata (true) ou aluno regular (false)" },
                 },
               },
             },
@@ -479,7 +488,9 @@ export const openApiSpec = {
       },
       post: {
         tags: ["Exercícios"],
-        summary: "Criar exercício (professor)",
+        summary: "Criar exercício",
+        description:
+          "Professor cria um exercício e pode atribuí-lo a um aluno (`studentId`). Aluno (autodidata) envia o próprio PDF: o exercício é criado vinculado a ele mesmo, sem professor — `studentId` e `lessonId` do body são ignorados.",
         requestBody: {
           required: true,
           content: {

@@ -7,6 +7,7 @@ import {
   CheckCircle, Clock, BookOpen, Pencil
 } from "@phosphor-icons/react/dist/ssr";
 import { PageShell } from "@/components/ui/PageShell";
+import { AutodidactBadge } from "./AutodidactBadge";
 
 interface VocabEntry { id: string; word: string; definition?: string | null; }
 interface LessonEntry {
@@ -25,6 +26,7 @@ interface StudentDetail {
   name: string;
   email: string;
   enrollment?: string | null;
+  isAutodidact: boolean;
   learningPlan?: { level: string; bookRef?: string | null; objective: string; notes?: string | null; } | null;
   subjects: Array<{ subject: { id: string; name: string } }>;
   lessons: LessonEntry[];
@@ -63,7 +65,10 @@ export default async function StudentDetailPage({ params }: { params: { id: stri
               {student.name.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h1 className="text-xl font-bold text-slate-900">{student.name}</h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-xl font-bold text-slate-900">{student.name}</h1>
+                {student.isAutodidact && <AutodidactBadge studentId={student.id} />}
+              </div>
               <p className="text-sm text-slate-500">{student.email} {student.enrollment && `· ${student.enrollment}`}</p>
             </div>
           </div>

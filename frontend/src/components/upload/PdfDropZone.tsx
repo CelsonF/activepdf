@@ -6,11 +6,27 @@ import { cn } from "@/lib/cn";
 interface PdfDropZoneProps {
   pdfFile: File | null;
   onFile: (file: File) => void;
+  /** Cor de acento da seção dona do fluxo (biblioteca = violet, exercícios = emerald). */
+  accent?: "violet" | "emerald";
 }
 
-export function PdfDropZone({ pdfFile, onFile }: PdfDropZoneProps) {
+const ACCENT = {
+  violet: {
+    dragging: "border-violet-400 bg-violet-50",
+    idle: "border-slate-300 hover:border-violet-300 hover:bg-violet-50/50",
+    cta: "text-violet-600",
+  },
+  emerald: {
+    dragging: "border-emerald-400 bg-emerald-50",
+    idle: "border-slate-300 hover:border-emerald-300 hover:bg-emerald-50/50",
+    cta: "text-emerald-600",
+  },
+} as const;
+
+export function PdfDropZone({ pdfFile, onFile, accent = "violet" }: PdfDropZoneProps) {
   const fileRef = useRef<HTMLInputElement>(null);
   const [dragging, setDragging] = useState(false);
+  const colors = ACCENT[accent];
 
   return (
     <>
@@ -27,10 +43,10 @@ export function PdfDropZone({ pdfFile, onFile }: PdfDropZoneProps) {
         className={cn(
           "border-2 border-dashed rounded-xl p-6 flex flex-col items-center gap-2 cursor-pointer transition-colors",
           dragging
-            ? "border-violet-400 bg-violet-50"
+            ? colors.dragging
             : pdfFile
             ? "border-emerald-300 bg-emerald-50"
-            : "border-slate-300 hover:border-violet-300 hover:bg-violet-50/50"
+            : colors.idle
         )}
       >
         <FilePdf
@@ -48,7 +64,7 @@ export function PdfDropZone({ pdfFile, onFile }: PdfDropZoneProps) {
         ) : (
           <p className="text-sm text-slate-500 text-center">
             Arraste um PDF aqui ou{" "}
-            <span className="text-violet-600 font-semibold">clique para selecionar</span>
+            <span className={cn("font-semibold", colors.cta)}>clique para selecionar</span>
           </p>
         )}
       </div>

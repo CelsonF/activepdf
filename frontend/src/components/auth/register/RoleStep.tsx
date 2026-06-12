@@ -1,5 +1,5 @@
 "use client";
-import { ArrowLeft, ArrowRight } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, Check } from "@phosphor-icons/react";
 import { cn } from "@/lib/cn";
 import { ROLES, type Role } from "./register-data";
 
@@ -8,13 +8,15 @@ interface RoleStepProps {
   onRole: (r: Role) => void;
   teacherEmail: string;
   onTeacherEmail: (v: string) => void;
+  isAutodidact: boolean;
+  onIsAutodidact: (v: boolean) => void;
   canNext: boolean;
   onBack: () => void;
   onNext: () => void;
 }
 
 export function RoleStep({
-  role, onRole, teacherEmail, onTeacherEmail, canNext, onBack, onNext,
+  role, onRole, teacherEmail, onTeacherEmail, isAutodidact, onIsAutodidact, canNext, onBack, onNext,
 }: RoleStepProps) {
   return (
     <>
@@ -47,17 +49,50 @@ export function RoleStep({
 
       {role === "student" && (
         <div className="mt-4">
-          <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-            E-mail do professor <span className="text-slate-400 font-normal">(opcional)</span>
-          </label>
-          <input
-            type="email" className="ui-input py-2.5 text-sm"
-            placeholder="professor@email.com" value={teacherEmail}
-            onChange={(e) => onTeacherEmail(e.target.value)}
-          />
-          <p className="text-[11px] text-slate-400 mt-1">
-            Informe para ser vinculado automaticamente.
-          </p>
+          <button
+            type="button"
+            onClick={() => onIsAutodidact(!isAutodidact)}
+            className={cn(
+              "flex items-start gap-2.5 w-full px-3 py-2.5 rounded-xl border-2 text-left transition-all",
+              isAutodidact
+                ? "border-brand bg-brand-light"
+                : "border-slate-200 bg-white hover:border-slate-300"
+            )}
+          >
+            <span
+              className={cn(
+                "w-4 h-4 mt-0.5 rounded border-2 flex items-center justify-center shrink-0 transition-colors",
+                isAutodidact ? "border-brand bg-brand" : "border-slate-300 bg-white"
+              )}
+            >
+              {isAutodidact && <Check size={10} weight="bold" color="white" />}
+            </span>
+            <span>
+              <span className={cn("block text-xs font-semibold", isAutodidact ? "text-brand" : "text-slate-700")}>
+                Não preciso de professor — sou autodidata
+              </span>
+              <span className="block text-[11px] text-slate-400 leading-snug mt-0.5">
+                Você cria seus próprios exercícios com campos para preencher. Depois,
+                só um professor pode mudar seu perfil para aluno regular.
+              </span>
+            </span>
+          </button>
+
+          {!isAutodidact && (
+            <div className="mt-3">
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                E-mail do professor <span className="text-slate-400 font-normal">(opcional)</span>
+              </label>
+              <input
+                type="email" className="ui-input py-2.5 text-sm"
+                placeholder="professor@email.com" value={teacherEmail}
+                onChange={(e) => onTeacherEmail(e.target.value)}
+              />
+              <p className="text-[11px] text-slate-400 mt-1">
+                Informe para ser vinculado automaticamente.
+              </p>
+            </div>
+          )}
         </div>
       )}
 

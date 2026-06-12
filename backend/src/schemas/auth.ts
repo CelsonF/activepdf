@@ -7,6 +7,8 @@ export const registerSchema = z.object({
   // company/dev são perfis de aluno no onboarding — qualquer role != teacher vira student
   role: z.enum(["teacher", "student", "company", "dev"]),
   teacherEmail: z.string().trim().email("Email do professor inválido").optional().or(z.literal("")),
+  // Aluno que estuda sem professor — ganha acesso ao editor de campos
+  isAutodidact: z.boolean().optional(),
   organizationName: z.string().optional(),
   level: z.string().max(10).optional(),
   goals: z.array(z.string().max(40)).max(10).optional(),

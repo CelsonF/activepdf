@@ -14,6 +14,8 @@ export const updateStudentSchema = z.object({
   name: z.string().nullish(),
   email: z.string().trim().email("Email inválido").optional(),
   enrollment: z.string().nullish(),
+  // Só o professor altera o perfil autodidata ↔ regular (rota é requireTeacher)
+  isAutodidact: z.boolean().optional(),
 });
 
 export const learningPlanSchema = z.object({

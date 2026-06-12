@@ -99,14 +99,15 @@ model Professor {
 }
 
 model Student {
-  id          String   @id @default(cuid())
-  name        String
-  email       String   @unique
-  password    String
-  enrollment  String?  @unique
-  professorId String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  password     String
+  enrollment   String?  @unique
+  professorId  String?
+  isAutodidact Boolean  @default(false) // estuda sem professor; só um professor pode reverter para aluno regular
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   professor         Professor?        @relation(fields: [professorId], references: [id])
   subjects          StudentSubject[]

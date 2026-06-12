@@ -6,9 +6,9 @@ import { UploadScreen } from "@/components/upload/UploadScreen";
 import { EditorScreen } from "@/components/editor/EditorScreen";
 import type { SessionRole } from "@/types";
 
-interface Props { role: SessionRole; name: string; }
+interface Props { role: SessionRole; name: string; canDesign?: boolean; }
 
-export function AppShell({ role, name }: Props) {
+export function AppShell({ role, name, canDesign = role === "teacher" }: Props) {
   const pdfDoc = useEditor((s) => s.pdfDoc);
   const { loadPdf, loadExerciseFields } = useEditor();
   const [mounted, setMounted] = useState(false);
@@ -24,8 +24,8 @@ export function AppShell({ role, name }: Props) {
     const params = new URLSearchParams(window.location.search);
     const exId = params.get("exerciseId");
 
-    // Student with no exercise to open → send to dashboard
-    if (!exId && role === "student") {
+    // Student without editor access and no exercise to open → send to dashboard
+    if (!exId && role === "student" && !canDesign) {
       router.replace("/dashboard");
       return;
     }
@@ -59,6 +59,6 @@ export function AppShell({ role, name }: Props) {
 
   if (!mounted) return null;
   return pdfDoc
-    ? <EditorScreen role={role} name={name} exerciseId={exerciseId} savedAnswersJson={savedAnswersJson} />
+    ? <EditorScreen role={role} name={name} canDesign={canDesign} exerciseId={exerciseId} savedAnswersJson={savedAnswersJson} />
     : <UploadScreen role={role} name={name} />;
 }

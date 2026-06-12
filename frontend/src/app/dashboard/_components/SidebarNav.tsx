@@ -58,11 +58,12 @@ const ACCOUNT_NAV: NavItem[] = [
 
 interface Props {
   role: string;
+  isAutodidact?: boolean;
   streakDays?: number;
   pendingCorrections?: number;
 }
 
-export function SidebarNav({ role, streakDays = 0, pendingCorrections = 0 }: Props) {
+export function SidebarNav({ role, isAutodidact = false, streakDays = 0, pendingCorrections = 0 }: Props) {
   const path = usePathname();
   const [org, setOrg] = useState<OrgInfo | null>(null);
   const [badgeCount, setBadgeCount] = useState(0);
@@ -161,14 +162,14 @@ export function SidebarNav({ role, streakDays = 0, pendingCorrections = 0 }: Pro
         </div>
       )}
 
-      {/* Primary CTA */}
+      {/* Primary CTA — autodidata cria exercícios no editor, aluno regular carrega PDF */}
       <div className="px-3 pt-3 pb-2">
         <Link
-          href={role === "teacher" ? "/dashboard/exercises/new" : "/dashboard/pdfs/new"}
+          href={role === "teacher" || isAutodidact ? "/dashboard/exercises/new" : "/dashboard/pdfs"}
           className="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl bg-brand text-white text-[13px] font-semibold hover:bg-brand-dark transition-colors"
         >
           <UploadSimple size={16} weight="bold" />
-          {role === "teacher" ? "Atribuir PDF" : "Carregar PDF"}
+          {role === "teacher" ? "Atribuir PDF" : isAutodidact ? "Criar exercício" : "Carregar PDF"}
         </Link>
       </div>
 

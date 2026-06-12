@@ -8,6 +8,8 @@ import type { PdfField } from "@/types";
 interface Props {
   isOpen: boolean;
   onClose: () => void;
+  /** Professor atribui a um aluno; autodidata salva para si mesmo. */
+  showStudentSelect?: boolean;
   pdfName: string;
   pdfBytes: ArrayBuffer | null;
   fields: PdfField[];
@@ -26,7 +28,7 @@ function arrayBufferToBase64(buf: ArrayBuffer): string {
   return btoa(binary);
 }
 
-export function SaveExerciseModal({ isOpen, onClose, pdfName, pdfBytes, fields, onSaved }: Props) {
+export function SaveExerciseModal({ isOpen, onClose, showStudentSelect = true, pdfName, pdfBytes, fields, onSaved }: Props) {
   const [title, setTitle] = useState(pdfName);
   const [studentId, setStudentId] = useState("");
   const [students, setStudents] = useState<Student[]>([]);
@@ -37,11 +39,12 @@ export function SaveExerciseModal({ isOpen, onClose, pdfName, pdfBytes, fields, 
     if (!isOpen) return;
     setTitle(pdfName);
     setError("");
+    if (!showStudentSelect) return;
     fetch("/api/dashboard/students")
       .then((r) => r.json())
       .then((data) => Array.isArray(data) && setStudents(data))
       .catch(() => undefined);
-  }, [isOpen, pdfName]);
+  }, [isOpen, pdfName, showStudentSelect]);
 
   async function handleSave() {
     if (!title.trim()) { setError("Informe um título para o exercício"); return; }
@@ -98,28 +101,31 @@ export function SaveExerciseModal({ isOpen, onClose, pdfName, pdfBytes, fields, 
             />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-700 mb-1.5">
-              Atribuir ao aluno <span className="text-slate-400 font-normal">(opcional)</span>
-            </label>
-            <Select
-              value={studentId}
-              onValueChange={setStudentId}
-              placeholder="Selecionar aluno..."
-            >
-              {students.map((s) => (
-                <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-              ))}
-            </Select>
-            {students.length === 0 && (
-              <p className="text-[11px] text-slate-400 mt-1">Nenhum aluno cadastrado ainda.</p>
-            )}
-          </div>
+          {showStudentSelect && (
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                Atribuir ao aluno <span className="text-slate-400 font-normal">(opcional)</span>
+              </label>
+              <Select
+                value={studentId}
+                onValueChange={setStudentId}
+                placeholder="Selecionar aluno..."
+              >
+                {students.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </Select>
+              {students.length === 0 && (
+                <p className="text-[11px] text-slate-400 mt-1">Nenhum aluno cadastrado ainda.</p>
+              )}
+            </div>
+          )}
 
           <div className="flex items-center gap-2 p-3 rounded-lg bg-slate-50 border border-slate-200">
             <p className="text-xs text-slate-600">
               <span className="font-semibold">{fields.length}</span>{" "}
-              campo{fields.length !== 1 ? "s" : ""} criado{fields.length !== 1 ? "s" : ""} serão salvos para o aluno preencher.
+              campo{fields.length !== 1 ? "s" : ""} criado{fields.length !== 1 ? "s" : ""} serão salvos para{" "}
+              {showStudentSelect ? "o aluno" : "você"} preencher.
             </p>
           </div>
         </div>

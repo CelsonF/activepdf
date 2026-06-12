@@ -14,14 +14,17 @@ import type { SessionRole } from "@/types";
 interface Props {
   role: SessionRole;
   name: string;
+  canDesign?: boolean;
   exerciseId: string | null;
   savedAnswersJson?: string;
 }
 
-export function Toolbar({ role, name, exerciseId, savedAnswersJson }: Props) {
+export function Toolbar({ role, name, canDesign, exerciseId, savedAnswersJson }: Props) {
   const { pdfBytes, pdfName, fields, appMode } = useEditor();
 
   const isTeacher = role === "teacher";
+  // Aluno autodidata também cria campos; só o professor atribui a outros alunos
+  const design = canDesign ?? isTeacher;
   const isFill = appMode === "fill";
   const [saveModalOpen, setSaveModalOpen] = useState(false);
 
@@ -29,10 +32,10 @@ export function Toolbar({ role, name, exerciseId, savedAnswersJson }: Props) {
     <>
       <Header
         brand={<Brand />}
-        left={<ToolbarLeft isTeacher={isTeacher} />}
+        left={<ToolbarLeft isTeacher={design} />}
         right={
           <>
-            {isTeacher && !isFill && <DesignActions onSaveExercise={() => setSaveModalOpen(true)} />}
+            {design && !isFill && <DesignActions onSaveExercise={() => setSaveModalOpen(true)} />}
             {isFill && (
               <FillActions isTeacher={isTeacher} exerciseId={exerciseId} savedAnswersJson={savedAnswersJson} />
             )}
@@ -43,6 +46,7 @@ export function Toolbar({ role, name, exerciseId, savedAnswersJson }: Props) {
       <SaveExerciseModal
         isOpen={saveModalOpen}
         onClose={() => setSaveModalOpen(false)}
+        showStudentSelect={isTeacher}
         pdfName={pdfName}
         pdfBytes={pdfBytes}
         fields={fields}

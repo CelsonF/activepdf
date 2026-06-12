@@ -20,7 +20,7 @@ studentRoutes.get("/", async (c) => {
 
   const students = await prisma.student.findMany({
     where: { professorId: session.userId },
-    select: { id: true, name: true, email: true },
+    select: { id: true, name: true, email: true, isAutodidact: true },
     orderBy: { name: "asc" },
   });
   return c.json(students);
@@ -79,7 +79,7 @@ studentRoutes.patch("/:id", jsonValidator(updateStudentSchema), async (c) => {
   const student = await findOwnedStudent(session.userId, c.req.param("id"));
   if (!student) return c.json({ error: "Aluno não encontrado" }, 404);
 
-  const { name, email, enrollment } = c.req.valid("json");
+  const { name, email, enrollment, isAutodidact } = c.req.valid("json");
 
   if (email !== undefined) {
     const conflict = await prisma.student.findFirst({
@@ -94,6 +94,7 @@ studentRoutes.patch("/:id", jsonValidator(updateStudentSchema), async (c) => {
       ...(name?.trim() && { name: name.trim() }),
       ...(email?.trim() && { email: email.trim() }),
       ...(enrollment !== undefined && { enrollment }),
+      ...(isAutodidact !== undefined && { isAutodidact }),
     },
   });
   return c.json({ id: updated.id });

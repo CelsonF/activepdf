@@ -51,9 +51,31 @@ exerciseRoutes.get("/", requireAuth, async (c) => {
   return c.json(exercises);
 });
 
-exerciseRoutes.post("/", requireTeacher, jsonValidator(createExerciseSchema), async (c) => {
+exerciseRoutes.post("/", requireAuth, jsonValidator(createExerciseSchema), async (c) => {
   const session = c.get("session");
   const { title, studentId, lessonId, pdfName, pdfData, fieldsJson } = c.req.valid("json");
+
+  // Aluno (autodidata ou não) envia o próprio PDF: exercício sem professor,
+  // sempre vinculado a ele mesmo — ignora studentId/lessonId do body.
+  // Campos interativos só são persistidos para autodidatas (donos do editor).
+  if (session.role === "student") {
+    const me = await prisma.student.findUnique({
+      where: { id: session.userId },
+      select: { isAutodidact: true },
+    });
+    if (!me) return c.json({ error: "Conta não encontrada" }, 404);
+
+    const exercise = await prisma.exercise.create({
+      data: {
+        title,
+        studentId: session.userId,
+        pdfName,
+        pdfData,
+        fieldsJson: JSON.stringify(me.isAutodidact ? fieldsJson ?? [] : []),
+      },
+    });
+    return c.json({ id: exercise.id }, 201);
+  }
 
   if (studentId) {
     const student = await findOwnedStudent(session.userId, studentId);

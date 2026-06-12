@@ -22,6 +22,7 @@ export default function RegisterPage() {
 
   // Step 1 — role
   const [role, setRole] = useState<Role | null>(null);
+  const [isAutodidact, setIsAutodidact] = useState(false);
 
   // Step 2 teacher — org
   const [orgName, setOrgName] = useState("");
@@ -60,7 +61,8 @@ export default function RegisterPage() {
         body.organizationName = orgName.trim();
         if (orgLogoB64) body.logoBase64 = orgLogoB64;
       } else {
-        body.teacherEmail = teacherEmail || undefined;
+        body.teacherEmail = isAutodidact ? undefined : teacherEmail || undefined;
+        body.isAutodidact = isAutodidact;
         body.level = level;
         body.goals = goals;
       }
@@ -117,6 +119,7 @@ export default function RegisterPage() {
             <RoleStep
               role={role} onRole={setRole}
               teacherEmail={teacherEmail} onTeacherEmail={setTeacherEmail}
+              isAutodidact={isAutodidact} onIsAutodidact={setIsAutodidact}
               canNext={canNext1} onBack={() => setStep(0)} onNext={() => setStep(2)}
             />
           )}

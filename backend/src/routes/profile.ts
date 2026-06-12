@@ -24,7 +24,7 @@ profileRoutes.get("/", async (c) => {
 
   const student = await prisma.student.findUnique({
     where: { id: session.userId },
-    select: { name: true, email: true },
+    select: { name: true, email: true, isAutodidact: true },
   });
   if (!student) return c.json({ error: "Conta não encontrada" }, 404);
   return c.json({ ...student, bio: null, role: "student" });
