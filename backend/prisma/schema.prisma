@@ -5,7 +5,20 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
+}
+
+enum ExerciseStatus {
+  assigned
+  in_progress
+  completed
+  corrected
+}
+
+enum LessonStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
 }
 
 model Exercise {
@@ -19,13 +32,17 @@ model Exercise {
   fieldsJson      String   @default("[]")
   answersJson     String   @default("{}")        // { [fieldId]: value } saved by student
   correctionJson  String   @default("{}")        // { grade, comment, items: { [fieldId]: { correct, feedback } } }
-  status          String   @default("assigned") // assigned | in_progress | completed | corrected
+  status          ExerciseStatus @default(assigned)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   professor Professor? @relation(fields: [professorId], references: [id], onDelete: SetNull)
   student   Student?   @relation(fields: [studentId], references: [id], onDelete: Cascade)
   lesson    Lesson?    @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  @@index([professorId])
+  @@index([studentId])
+  @@index([lessonId])
 }
 
 model Class {
@@ -38,6 +55,8 @@ model Class {
 
   professor Professor      @relation(fields: [professorId], references: [id], onDelete: Cascade)
   students  ClassStudent[]
+
+  @@index([professorId])
 }
 
 model ClassStudent {
@@ -49,6 +68,7 @@ model ClassStudent {
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
 
   @@id([classId, studentId])
+  @@index([studentId])
 }
 
 model LibraryPdf {
@@ -64,6 +84,8 @@ model LibraryPdf {
   updatedAt   DateTime @updatedAt
 
   professor Professor @relation(fields: [professorId], references: [id], onDelete: Cascade)
+
+  @@index([professorId])
 }
 
 model Organization {
@@ -119,6 +141,8 @@ model Student {
   achievements      Achievement[]
   xpEvents          XpEvent[]
   classes           ClassStudent[]
+
+  @@index([professorId])
 }
 
 model Subject {
@@ -134,6 +158,7 @@ model Subject {
   lessons   Lesson[]
 
   @@unique([professorId, name])
+  @@index([professorId])
 }
 
 model StudentSubject {
@@ -145,6 +170,7 @@ model StudentSubject {
   subject Subject @relation(fields: [subjectId], references: [id], onDelete: Cascade)
 
   @@id([studentId, subjectId])
+  @@index([subjectId])
 }
 
 model LearningPlan {
@@ -160,6 +186,8 @@ model LearningPlan {
 
   student   Student    @relation(fields: [studentId], references: [id], onDelete: Cascade)
   professor Professor? @relation(fields: [professorId], references: [id])
+
+  @@index([professorId])
 }
 
 model Lesson {
@@ -172,7 +200,7 @@ model Lesson {
   content     String?
   homework    String?
   notes       String?
-  status      String   @default("SCHEDULED")
+  status      LessonStatus @default(SCHEDULED)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -182,6 +210,10 @@ model Lesson {
   vocabularyEntries VocabularyEntry[]
   exercises         Exercise[]
   audioMaterials    AudioMaterial[]
+
+  @@index([studentId])
+  @@index([professorId])
+  @@index([subjectId])
 }
 
 model VocabularyEntry {
@@ -196,6 +228,9 @@ model VocabularyEntry {
 
   lesson  Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
+  @@index([studentId])
 }
 
 // ── Gamificação ──────────────────────────────────────────────────────────────
@@ -233,6 +268,8 @@ model XpEvent {
   createdAt   DateTime @default(now())
 
   student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
 }
 
 // ── Materiais de aula ────────────────────────────────────────────────────────
@@ -248,4 +285,6 @@ model AudioMaterial {
   createdAt    DateTime @default(now())
 
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([lessonId])
 }

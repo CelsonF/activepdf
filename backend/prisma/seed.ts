@@ -1,13 +1,16 @@
 import { PrismaClient } from "../src/generated/prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
+import type { ExerciseStatus, LessonStatus } from "../src/generated/prisma/enums";
+import { PrismaPg } from "@prisma/adapter-pg";
 import bcrypt from "bcryptjs";
 import { readFileSync } from "fs";
 import path from "path";
 
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL ?? `file:${path.join(process.cwd(), "dev.db")}`,
+const adapter = new PrismaPg({
+  connectionString:
+    process.env.DATABASE_URL ??
+    "postgresql://activepdf:activepdf@localhost:5433/activepdf",
 });
-const prisma = new PrismaClient({ adapter } as any);
+const prisma = new PrismaClient({ adapter });
 
 // ── XP helpers (mirrors src/lib/gamification.ts without the DB import) ──────
 
@@ -350,7 +353,7 @@ async function main() {
 
   async function ensureLesson(data: {
     studentId: string; subjectId?: string; scheduledAt: Date;
-    content: string; homework?: string; notes?: string; status: string;
+    content: string; homework?: string; notes?: string; status: LessonStatus;
   }) {
     const existing = await prisma.lesson.findFirst({
       where: { studentId: data.studentId, content: data.content },
@@ -466,7 +469,14 @@ async function main() {
     },
   });
 
-  const exerciseSeed = [
+  const exerciseSeed: Array<{
+    title: string;
+    studentId: string;
+    lessonId?: string;
+    status: ExerciseStatus;
+    answersJson: string;
+    correctionJson: string;
+  }> = [
     {
       title: "Unit 3 — Present Simple & Continuous",
       studentId: joao.id,
