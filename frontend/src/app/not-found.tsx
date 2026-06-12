@@ -8,7 +8,7 @@ export default function NotFound() {
     <div className="min-h-screen bg-slate-50 flex flex-col">
       {/* minimal header */}
       <header className="bg-white border-b border-slate-200 h-[52px] flex items-center px-6">
-        <Link href="/landing">
+        <Link href="/">
           <Logo size={26} />
         </Link>
       </header>
@@ -39,7 +39,7 @@ export default function NotFound() {
             <Link href="/dashboard" className="ui-btn ui-btn-primary ui-btn-md gap-1.5">
               <HouseLine size={15} weight="bold" /> Ir para o painel
             </Link>
-            <Link href="/landing" className="ui-btn ui-btn-secondary ui-btn-md gap-1.5">
+            <Link href="/" className="ui-btn ui-btn-secondary ui-btn-md gap-1.5">
               <ArrowLeft size={15} weight="bold" /> Página inicial
             </Link>
           </div>

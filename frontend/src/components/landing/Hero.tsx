@@ -2,8 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import gsap from "gsap";
 import { Upload, ArrowRight, CheckCircle } from "@phosphor-icons/react";
+import { useLoadPdfFile } from "@/features/editor";
+import { track } from "@/lib/analytics";
+import { cn } from "@/lib/cn";
 
 const HANDLES = [
   "-left-1 -top-1",
@@ -12,12 +16,20 @@ const HANDLES = [
   "-right-1 -bottom-1",
 ] as const;
 
-const GUARANTEES = ["Sem cartão de crédito", "Bilíngue PT / EN", "Conforme a LGPD"] as const;
+const GUARANTEES = [
+  "Sem cadastro",
+  "Nada sai do seu navegador",
+  "Conforme a LGPD",
+] as const;
 
 export function Hero() {
   const rootRef = useRef<HTMLElement>(null);
   const boxRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const [size, setSize] = useState({ w: 0, h: 0 });
+  const [dragging, setDragging] = useState(false);
+  const router = useRouter();
+  const { loadFile, loading, error } = useLoadPdfFile({ restoreLocalDraft: true });
 
   useEffect(() => {
     const box = boxRef.current;
@@ -46,27 +58,63 @@ export function Hero() {
     return () => mm.revert();
   }, []);
 
+  async function handleFile(file: File) {
+    const ok = await loadFile(file);
+    if (!ok) return;
+    track("editor_pdf_loaded", { source: "hero", mode: "local" });
+    router.push("/editor");
+  }
+
   return (
     <section
       ref={rootRef}
       id="top"
       className="relative mx-auto flex min-h-[88vh] max-w-6xl flex-col justify-center px-6 pb-16 pt-32"
+      onDragOver={(e) => { e.preventDefault(); setDragging(true); }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setDragging(false);
+        const f = e.dataTransfer.files[0];
+        if (f && !loading) handleFile(f);
+      }}
     >
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf"
+        className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); }}
+      />
+
       <p
         data-hero-eyebrow
         className="mb-8 font-pfmono text-xs uppercase tracking-[0.2em] text-slate-500"
       >
-        Grifo — Aprendizado nativo em PDF · PT / EN
+        Grifo — O editor é a capa · solte um PDF nesta página
       </p>
 
       <div ref={boxRef} data-hero-frame className="relative w-fit max-w-full">
         {/* Caixa de seleção do editor: a headline emoldurada como um campo sobre o PDF */}
-        <div aria-hidden className="pointer-events-none absolute -inset-3 border-2 border-brand sm:-inset-5">
+        <div
+          aria-hidden
+          className={cn(
+            "pointer-events-none absolute -inset-3 border-2 transition-colors sm:-inset-5",
+            dragging ? "border-marker bg-marker-light/40" : "border-brand"
+          )}
+        >
           {HANDLES.map((pos) => (
-            <span key={pos} className={`absolute ${pos} h-2 w-2 border-2 border-brand bg-white`} />
+            <span
+              key={pos}
+              className={cn(
+                "absolute h-2 w-2 border-2 bg-white",
+                pos,
+                dragging ? "border-marker" : "border-brand"
+              )}
+            />
           ))}
           <span className="absolute -bottom-7 right-0 rounded-sm bg-brand px-1.5 py-0.5 font-pfmono text-[11px] font-medium leading-none text-white">
-            {size.w} × {size.h}
+            {dragging ? "solte para abrir" : `${size.w} × ${size.h}`}
           </span>
         </div>
 
@@ -81,18 +129,34 @@ export function Hero() {
       </div>
 
       <p data-hero-sub className="mt-12 max-w-xl text-lg leading-relaxed text-slate-500">
-        Suba sua apostila, responda exercícios sobre a própria página e mantenha o ritmo com XP,
-        streaks e rankings — para alunos, professores e times.
+        Solte sua apostila aqui: crie campos sobre a própria página, responda e
+        exporte o PDF preenchido — direto no navegador, sem criar conta.
       </p>
 
       <div data-hero-cta className="mt-10 flex flex-wrap items-center gap-4">
-        <Link href="/register" className="ui-btn ui-btn-primary ui-btn-lg gap-2 font-pfmono">
-          <Upload size={16} weight="bold" /> Começar grátis
-        </Link>
-        <Link href="/dashboard" className="ui-btn ui-btn-ghost ui-btn-lg gap-2 font-pfmono">
-          Ver o dashboard <ArrowRight size={15} />
+        <button
+          type="button"
+          disabled={loading}
+          onClick={() => inputRef.current?.click()}
+          className="ui-btn ui-btn-primary ui-btn-lg gap-2 font-pfmono"
+        >
+          {loading
+            ? <span className="ui-spinner h-4 w-4 border-2 text-white" />
+            : <Upload size={16} weight="bold" />}
+          {loading ? "Abrindo seu PDF..." : "Enviar um PDF agora"}
+        </button>
+        <Link
+          href="/editor"
+          onClick={() => track("editor_opened", { source: "hero" })}
+          className="ui-btn ui-btn-ghost ui-btn-lg gap-2 font-pfmono"
+        >
+          Abrir o editor <ArrowRight size={15} />
         </Link>
       </div>
+
+      {error && (
+        <p data-hero-cta className="mt-4 text-sm text-correction">{error}</p>
+      )}
 
       <div data-hero-cta className="mt-8 flex flex-wrap gap-5 font-pfmono text-xs text-slate-500">
         {GUARANTEES.map((item) => (

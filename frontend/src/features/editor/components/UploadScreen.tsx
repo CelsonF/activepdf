@@ -12,10 +12,9 @@ import {
   SquaresFour,
   SignOut,
 } from "@phosphor-icons/react";
-import { useEditor } from "../store";
 import { useEditorPersistence } from "../persistence/context";
-import { draftFingerprint, readLocalDraft } from "../persistence/local";
-import { loadPdfDocument } from "../lib/loadPdfDocument";
+import { useLoadPdfFile } from "../hooks/useLoadPdfFile";
+import { track } from "@/lib/analytics";
 import { Button } from "@/components/ui/Button";
 import type { EditorSession } from "@/types";
 
@@ -30,34 +29,16 @@ const STEPS: { icon: typeof FilePdf; text: string }[] = [
 interface Props { session: EditorSession | null; }
 
 export function UploadScreen({ session }: Props) {
-  const { loadPdf, loadExerciseFields, setAppMode } = useEditor();
   const persistence = useEditorPersistence();
+  const { loadFile, loading, error } = useLoadPdfFile({
+    restoreLocalDraft: persistence.mode === "local",
+  });
   const [dragging, setDragging] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
   async function handleFile(file: File) {
-    if (file.type !== "application/pdf") { setError("Por favor, envie um arquivo PDF."); return; }
-    setLoading(true); setError("");
-    try {
-      const bytes = await file.arrayBuffer();
-      const doc = await loadPdfDocument(bytes);
-      const name = file.name.replace(/\.pdf$/i, "");
-      loadPdf(doc, bytes, name, doc.numPages);
-
-      // Modo anônimo: reenviar o mesmo arquivo restaura o rascunho salvo
-      if (persistence.mode === "local") {
-        const draft = readLocalDraft(draftFingerprint(name, bytes.byteLength));
-        if (draft) {
-          loadExerciseFields(draft.fields, draft.answers);
-          setAppMode("design");
-        }
-      }
-    } catch (e: unknown) {
-      setError("Erro ao carregar PDF: " + (e instanceof Error ? e.message : String(e)));
-    }
-    setLoading(false);
+    const ok = await loadFile(file);
+    if (ok) track("editor_pdf_loaded", { source: "editor", mode: persistence.mode });
   }
 
   async function handleLogout() {

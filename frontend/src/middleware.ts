@@ -5,11 +5,15 @@ import { jwtVerify } from "jose";
 const PUBLIC = [
   "/login",
   "/register",
-  "/landing",
+  "/landing", // legado: redireciona para a capa
+  "/precos",
   "/portfolio",
   "/editor", // editor anônimo: 100% client-side, sem sessão
   "/api/auth/login",
   "/api/auth/register",
+  "/sitemap.xml",
+  "/robots.txt",
+  "/opengraph-image",
 ];
 const SECRET = new TextEncoder().encode(
   process.env.JWT_SECRET ?? "activepdf-dev-secret-change-in-production"
@@ -18,7 +22,8 @@ const SECRET = new TextEncoder().encode(
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname === "/") return NextResponse.redirect(new URL("/landing", request.url));
+  // A capa (/) é pública: editor gratuito embutido
+  if (pathname === "/") return NextResponse.next();
   if (PUBLIC.some((p) => pathname.startsWith(p))) return NextResponse.next();
   if (pathname.startsWith("/_next") || pathname.startsWith("/favicon")) return NextResponse.next();
 

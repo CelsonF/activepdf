@@ -94,7 +94,7 @@ export default function RegisterPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center px-4 py-12">
       <div className="w-full max-w-md animate-fadeUp">
-        <Link href="/landing" className="inline-flex justify-center mb-8 w-full">
+        <Link href="/" className="inline-flex justify-center mb-8 w-full">
           <Logo size={30} />
         </Link>
 

@@ -3,6 +3,7 @@ import { BookOpen, GraduationCap, SignOut, SquaresFour } from "@phosphor-icons/r
 import { Button } from "@/components/ui/Button";
 import { Tooltip } from "@/components/ui/Tooltip";
 import { useEditor } from "../../store";
+import { track } from "@/lib/analytics";
 import type { EditorSession } from "@/types";
 
 interface UserChipProps {
@@ -23,7 +24,13 @@ export function UserChip({ session }: UserChipProps) {
     return (
       <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
         <a href="/login" className="ui-btn ui-btn-ghost ui-btn-xs">Entrar</a>
-        <a href="/register" className="ui-btn ui-btn-primary ui-btn-xs">Criar conta grátis</a>
+        <a
+          href="/register"
+          onClick={() => track("signup_cta_clicked", { placement: "editor_toolbar" })}
+          className="ui-btn ui-btn-primary ui-btn-xs"
+        >
+          Criar conta grátis
+        </a>
       </div>
     );
   }

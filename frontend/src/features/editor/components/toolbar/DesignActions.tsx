@@ -4,8 +4,9 @@ import {
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/Button";
 import { Tooltip } from "@/components/ui/Tooltip";
-import { useEditor } from "@/features/editor/store";
-import { exportPDF } from "@/features/editor/lib/export";
+import { useEditor } from "../../store";
+import { exportPDF } from "../../lib/export";
+import { track } from "@/lib/analytics";
 import { toast } from "../Toast";
 
 interface DesignActionsProps {
@@ -23,6 +24,7 @@ export function DesignActions({ onSaveExercise }: DesignActionsProps) {
     if (!pdfBytes || !pdfDoc) { toast("PDF não disponível. Carregue novamente.", "error"); return; }
     try {
       const msg = await exportPDF(exportMode, pdfBytes, pdfDoc, fields, pdfName, (s) => toast(s));
+      track("editor_exported", { kind: "design", exportMode });
       toast(msg, "success");
     } catch (e: unknown) {
       toast("Erro ao exportar: " + (e instanceof Error ? e.message : String(e)), "error");

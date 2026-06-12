@@ -66,7 +66,7 @@ export default function LoginPage() {
       {/* ── Left — form ─────────────────────────────────── */}
       <div className="flex flex-col justify-center px-6 py-12 bg-white">
         <div className="w-full max-w-[392px] mx-auto animate-fadeUp">
-          <Link href="/landing" className="inline-flex mb-10">
+          <Link href="/" className="inline-flex mb-10">
             <Logo size={32} />
           </Link>
 

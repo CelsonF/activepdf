@@ -3,9 +3,10 @@ import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import { Logo } from "@/components/ui";
 
 const NAV = [
-  { label: "Recursos", href: "#recursos" },
-  { label: "Para quem", href: "#para-quem" },
-  { label: "Plataforma", href: "#plataforma" },
+  { label: "Recursos", href: "/#recursos" },
+  { label: "Para quem", href: "/#para-quem" },
+  { label: "Plataforma", href: "/#plataforma" },
+  { label: "Preços", href: "/precos" },
 ] as const;
 
 export function LandingHeader() {

@@ -8,6 +8,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import { useEditor } from "../../store";
 import { useEditorPersistence } from "../../persistence/context";
 import { exportFilledPDF } from "../../lib/export";
+import { track } from "@/lib/analytics";
 import { toast } from "../Toast";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
@@ -59,6 +60,7 @@ export function FillActions({ isTeacher, exerciseId, savedAnswersJson }: FillAct
     if (!filledCount) { toast("Preencha pelo menos um campo antes de exportar", "error"); return; }
     try {
       const msg = await exportFilledPDF(pdfBytes, fields, fieldValues, pdfName, (s) => toast(s));
+      track("editor_exported", { kind: "fill" });
       toast(msg, "success");
     } catch (e: unknown) {
       toast("Erro ao exportar: " + (e instanceof Error ? e.message : String(e)), "error");
