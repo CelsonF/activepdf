@@ -50,6 +50,20 @@ export const openApiSpec = {
           updatedAt: { type: "string", format: "date-time" },
         },
       },
+      SavedDocument: {
+        type: "object",
+        properties: {
+          id: { type: "string" },
+          studentId: { type: "string" },
+          title: { type: "string" },
+          pdfName: { type: "string" },
+          pdfData: { type: "string", description: "PDF em Base64" },
+          fieldsJson: { type: "string", description: "Campos do editor serializados em JSON" },
+          answersJson: { type: "string", description: "Respostas serializadas em JSON" },
+          createdAt: { type: "string", format: "date-time" },
+          updatedAt: { type: "string", format: "date-time" },
+        },
+      },
       Exercise: {
         type: "object",
         properties: {
@@ -469,6 +483,123 @@ export const openApiSpec = {
     },
 
     // ─── Exercises ────────────────────────────────────────────────────────────
+    "/api/documents": {
+      get: {
+        tags: ["Documentos"],
+        summary: "Listar documentos salvos",
+        description:
+          "Documentos da conta gratuita (aluno). Retorna metadados sem o PDF; suporta paginação via `take`/`skip`.",
+        responses: {
+          "200": {
+            description: "Lista de documentos (sem pdfData)",
+            content: { "application/json": { schema: { type: "array", items: { $ref: "#/components/schemas/SavedDocument" } } } },
+          },
+          "401": { description: "Não autenticado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+      post: {
+        tags: ["Documentos"],
+        summary: "Salvar documento",
+        description:
+          "Cria um documento do editor para a conta do aluno. O plano gratuito tem limite de documentos (ver /api/documents/usage); ao atingir, responde 409.",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                required: ["title", "pdfName", "pdfData"],
+                properties: {
+                  title: { type: "string", example: "Prova de Frações — 7º ano" },
+                  pdfName: { type: "string", example: "prova_fracoes.pdf" },
+                  pdfData: { type: "string", description: "PDF codificado em Base64" },
+                  fieldsJson: { type: "array", items: { type: "object" }, description: "Campos do editor" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "201": { description: "Documento criado", content: { "application/json": { schema: { $ref: "#/components/schemas/SavedDocument" } } } },
+          "400": { description: "Campos obrigatórios ausentes", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "401": { description: "Não autenticado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "409": { description: "Limite do plano gratuito atingido", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+
+    "/api/documents/usage": {
+      get: {
+        tags: ["Documentos"],
+        summary: "Uso × limite do plano",
+        description: "Quantos documentos a conta já salvou e o limite do plano (`null` = ilimitado).",
+        responses: {
+          "200": {
+            description: "Uso atual",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object",
+                  properties: {
+                    used: { type: "integer", example: 2 },
+                    limit: { type: "integer", nullable: true, example: 3 },
+                  },
+                },
+              },
+            },
+          },
+          "401": { description: "Não autenticado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+
+    "/api/documents/{id}": {
+      parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+      get: {
+        tags: ["Documentos"],
+        summary: "Buscar documento por ID",
+        description: "Aluno acessa apenas os próprios documentos.",
+        responses: {
+          "200": { description: "Documento completo (com pdfData)", content: { "application/json": { schema: { $ref: "#/components/schemas/SavedDocument" } } } },
+          "401": { description: "Não autenticado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "404": { description: "Documento não encontrado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+      patch: {
+        tags: ["Documentos"],
+        summary: "Atualizar título, campos ou respostas",
+        requestBody: {
+          required: true,
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  title: { type: "string" },
+                  fieldsJson: { type: "array", items: { type: "object" } },
+                  answersJson: { type: "string", description: "JSON serializado { [fieldId]: valor }" },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          "200": { description: "Documento atualizado", content: { "application/json": { schema: { $ref: "#/components/schemas/SavedDocument" } } } },
+          "401": { description: "Não autenticado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "404": { description: "Documento não encontrado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+      delete: {
+        tags: ["Documentos"],
+        summary: "Excluir documento",
+        responses: {
+          "200": { description: "Documento excluído", content: { "application/json": { schema: { $ref: "#/components/schemas/Ok" } } } },
+          "401": { description: "Não autenticado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+          "404": { description: "Documento não encontrado", content: { "application/json": { schema: { $ref: "#/components/schemas/Error" } } } },
+        },
+      },
+    },
+
     "/api/exercises": {
       get: {
         tags: ["Exercícios"],

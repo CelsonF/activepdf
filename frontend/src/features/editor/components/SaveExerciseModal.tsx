@@ -4,16 +4,34 @@ import { FloppyDisk, BookOpen, Highlighter, Check } from "@phosphor-icons/react"
 import { DialogRoot, DialogContent, DialogHeader, DialogFooter } from "@/components/ui/Dialog";
 import { Select, SelectItem } from "@/components/ui/Select";
 import { useEditorPersistence } from "../persistence/context";
-import { DraftLimitError } from "../persistence/local";
+import { PlanLimitError } from "../persistence/errors";
 import type { StudentOption } from "../persistence/types";
 import { track } from "@/lib/analytics";
 import type { PdfField } from "@/types";
 
-const ACCOUNT_PERKS = [
-  "Salve quantas atividades quiser",
-  "Reabra e continue de qualquer lugar",
-  "Acompanhe seu progresso com XP",
-] as const;
+// Upsell por degrau do funil: anônimo → conta grátis; conta grátis → Professor
+const UPSELL = {
+  local: {
+    title: "Seu navegador está cheio de ideias",
+    body: "O modo sem conta guarda 1 rascunho por navegador — e o seu já está em uso. Crie uma conta gratuita para continuar de onde parou.",
+    perks: [
+      "Salve até 3 documentos na nuvem",
+      "Reabra e continue de qualquer lugar",
+      "Acompanhe seu progresso com XP",
+    ],
+    cta: { label: "Criar conta grátis", href: "/register", placement: "save_limit_modal" },
+  },
+  api: {
+    title: "Você usou seus 3 documentos grátis",
+    body: "O plano gratuito guarda 3 documentos na nuvem. Exclua um em Meus documentos — ou conheça o plano Professor, com documentos ilimitados e turmas.",
+    perks: [
+      "Documentos e atividades ilimitados",
+      "Turmas, correção e relatórios",
+      "Seus alunos entram grátis",
+    ],
+    cta: { label: "Conhecer o plano Professor", href: "/precos", placement: "free_limit_modal" },
+  },
+} as const;
 
 interface Props {
   isOpen: boolean;
@@ -66,8 +84,8 @@ export function SaveExerciseModal({ isOpen, onClose, showStudentSelect = true, p
       onSaved(id);
       onClose();
     } catch (e: unknown) {
-      if (e instanceof DraftLimitError) {
-        track("draft_limit_reached");
+      if (e instanceof PlanLimitError) {
+        track("draft_limit_reached", { mode: persistence.mode });
         setLimitReached(true);
         return;
       }
@@ -77,23 +95,20 @@ export function SaveExerciseModal({ isOpen, onClose, showStudentSelect = true, p
     }
   }
 
-  // Limite do anônimo atingido: o modal vira convite à conta gratuita
+  // Limite atingido: o modal vira o próximo degrau do funil
   if (limitReached) {
+    const upsell = UPSELL[persistence.mode];
     return (
       <DialogRoot open={isOpen} onOpenChange={(o) => !o && onClose()}>
         <DialogContent>
           <DialogHeader
-            title="Seu navegador está cheio de ideias"
+            title={upsell.title}
             icon={<Highlighter size={14} weight="fill" className="text-brand" />}
           />
           <div className="p-5 flex flex-col gap-4">
-            <p className="text-sm leading-relaxed text-slate-600">
-              O modo sem conta guarda <span className="font-semibold">1 rascunho</span> por
-              navegador — e o seu já está em uso. Crie uma conta gratuita para
-              continuar de onde parou.
-            </p>
+            <p className="text-sm leading-relaxed text-slate-600">{upsell.body}</p>
             <ul className="flex flex-col gap-2">
-              {ACCOUNT_PERKS.map((perk) => (
+              {upsell.perks.map((perk) => (
                 <li key={perk} className="flex items-start gap-2 text-sm text-slate-600">
                   <Check size={15} weight="bold" className="mt-0.5 shrink-0 text-brand" />
                   {perk}
@@ -106,11 +121,11 @@ export function SaveExerciseModal({ isOpen, onClose, showStudentSelect = true, p
               Agora não
             </button>
             <a
-              href="/register"
-              onClick={() => track("signup_cta_clicked", { placement: "save_limit_modal" })}
+              href={upsell.cta.href}
+              onClick={() => track("signup_cta_clicked", { placement: upsell.cta.placement })}
               className="ui-btn ui-btn-primary ui-btn-md"
             >
-              Criar conta grátis
+              {upsell.cta.label}
             </a>
           </DialogFooter>
         </DialogContent>

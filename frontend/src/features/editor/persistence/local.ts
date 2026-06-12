@@ -7,18 +7,12 @@ import type {
   StudentOption,
 } from "./types";
 
+import { PlanLimitError } from "./errors";
+
 const PREFIX = "grifo.editor.draft:";
 
 /** Quantos rascunhos o visitante anônimo guarda antes do convite à conta. */
 export const ANON_DRAFT_LIMIT = 1;
-
-/** Anônimo bateu no limite de rascunhos — a UI converte isso em CTA de conta. */
-export class DraftLimitError extends Error {
-  constructor() {
-    super("Limite de rascunhos atingido neste navegador.");
-    this.name = "DraftLimitError";
-  }
-}
 
 function countDrafts(): number {
   let count = 0;
@@ -74,7 +68,9 @@ export function createLocalPersistence(): EditorPersistence {
       const id = draftFingerprint(input.pdfName, input.pdfBytes.byteLength);
       const existing = readLocalDraft(id);
       // Regravar o mesmo documento não conta; documento novo respeita o limite
-      if (!existing && countDrafts() >= ANON_DRAFT_LIMIT) throw new DraftLimitError();
+      if (!existing && countDrafts() >= ANON_DRAFT_LIMIT) {
+        throw new PlanLimitError("Limite de rascunhos atingido neste navegador.");
+      }
       writeLocalDraft(id, {
         title: input.title,
         fields: input.fields,

@@ -8,9 +8,10 @@ export {
   createLocalPersistence,
   readLocalDraft,
   draftFingerprint,
-  DraftLimitError,
   ANON_DRAFT_LIMIT,
 } from "./persistence/local";
+export { createDocumentsPersistence } from "./persistence/apiDocuments";
+export { PlanLimitError } from "./persistence/errors";
 export type {
   EditorPersistence,
   PersistenceMode,

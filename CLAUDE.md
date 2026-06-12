@@ -50,6 +50,9 @@ TypeScript strict, ESM — imports relativos terminam em `.js`.
 9. **Regra de negócio em `backend/src/services/`** — a rota valida, chama o
    service e mapeia o `Result` (`services/result.ts`) para HTTP. Query complexa
    ou efeito colateral (XP, correção) não nasce inline na rota.
+10. **Limites de plano só em `backend/src/lib/entitlements.ts`** (FREE × PRO) —
+    gate de recurso Pro via `requirePlan("PRO")`; nunca hardcode um limite em
+    rota ou service. Limite estourado responde 409 com mensagem de upsell.
 
 ## Não fazer (back-end)
 

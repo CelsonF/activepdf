@@ -141,8 +141,28 @@ model Student {
   achievements      Achievement[]
   xpEvents          XpEvent[]
   classes           ClassStudent[]
+  savedDocuments    SavedDocument[]
 
   @@index([professorId])
+}
+
+// Documento salvo da conta gratuita: o PDF do próprio aluno com os campos
+// do editor — sem fluxo de correção (isso é Exercise). Limite por plano
+// em src/lib/entitlements.ts.
+model SavedDocument {
+  id          String   @id @default(cuid())
+  studentId   String
+  title       String
+  pdfName     String
+  pdfData     String   // base64-encoded PDF bytes
+  fieldsJson  String   @default("[]")
+  answersJson String   @default("{}")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
 }
 
 model Subject {

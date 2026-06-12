@@ -34,6 +34,21 @@ export interface PdfField {
   fontSize: number;
 }
 
+/** Metadados de SavedDocument (lista de "Meus documentos" — sem pdfData). */
+export interface SavedDocumentMeta {
+  id: string;
+  title: string;
+  pdfName: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface DocumentsUsage {
+  used: number;
+  /** `null` = ilimitado (plano Professor). */
+  limit: number | null;
+}
+
 export type ExportMode = "interactive" | "watermark" | "answers";
 
 export type AppMode = "design" | "fill";

@@ -19,6 +19,7 @@ import {
   ClipboardText,
   ChartBar,
   Building,
+  FloppyDisk,
 } from "@phosphor-icons/react";
 import { cn } from "@/lib/cn";
 
@@ -36,6 +37,7 @@ interface NavItem {
 
 const STUDENT_NAV: NavItem[] = [
   { href: "/dashboard", icon: <SquaresFour size={18} weight="bold" />, label: "Painel" },
+  { href: "/dashboard/documents", icon: <FloppyDisk size={18} weight="bold" />, label: "Meus documentos" },
   { href: "/dashboard/pdfs", icon: <FilePdf size={18} weight="bold" />, label: "Meus PDFs" },
   { href: "/dashboard/exercises", icon: <PencilLine size={18} weight="bold" />, label: "Exercícios" },
   { href: "/dashboard/ranking", icon: <Trophy size={18} weight="bold" />, label: "Ranking" },

@@ -6,6 +6,7 @@ import { UploadScreen } from "./UploadScreen";
 import { EditorScreen } from "./EditorScreen";
 import { EditorPersistenceProvider } from "../persistence/context";
 import { createApiPersistence } from "../persistence/api";
+import { createDocumentsPersistence } from "../persistence/apiDocuments";
 import { createLocalPersistence } from "../persistence/local";
 import { loadPdfDocument } from "../lib/loadPdfDocument";
 import type { EditorSession } from "@/types";
@@ -14,9 +15,11 @@ interface Props {
   /** `null` = modo anônimo: persistência local, sem chamadas à API. */
   session: EditorSession | null;
   canDesign?: boolean;
+  /** Onde salvar quando logado: exercícios (padrão) ou Meus documentos. */
+  target?: "exercises" | "documents";
 }
 
-export function EditorShell({ session, canDesign }: Props) {
+export function EditorShell({ session, canDesign, target = "exercises" }: Props) {
   const pdfDoc = useEditor((s) => s.pdfDoc);
   const { loadPdf, loadExerciseFields } = useEditor();
   const [mounted, setMounted] = useState(false);
@@ -26,10 +29,10 @@ export function EditorShell({ session, canDesign }: Props) {
 
   const design = canDesign ?? (session ? session.role === "teacher" : true);
   const mode = session ? "api" : "local";
-  const persistence = useMemo(
-    () => (mode === "api" ? createApiPersistence() : createLocalPersistence()),
-    [mode]
-  );
+  const persistence = useMemo(() => {
+    if (mode === "local") return createLocalPersistence();
+    return target === "documents" ? createDocumentsPersistence() : createApiPersistence();
+  }, [mode, target]);
 
   useEffect(() => { setMounted(true); }, []);
 
