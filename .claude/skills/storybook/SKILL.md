@@ -10,7 +10,7 @@ description: >
 # Storybook — ActivePDF Design System
 
 O Storybook documenta e isola os componentes do design system em um catálogo
-interativo. **Todo primitivo em `src/components/ui/` deve ter uma story.**
+interativo. **Todo primitivo em `frontend/src/components/ui/` deve ter uma story.**
 
 ---
 
@@ -93,7 +93,7 @@ export default config;
 ## 2. Onde criar stories
 
 ```
-src/
+frontend/src/
   components/
     ui/
       Button.stories.tsx      ← história do primitivo
@@ -164,7 +164,7 @@ Editor / FieldsPanel
 ```
 
 ### Tags obrigatórias
-- `"autodocs"` em todo primitivo de `src/components/ui/` — gera docs automáticos.
+- `"autodocs"` em todo primitivo de `frontend/src/components/ui/` — gera docs automáticos.
 - Sem tags em componentes de domínio — só stories manuais.
 
 ### Decorators para contexto
@@ -185,7 +185,7 @@ estilos inline na story; o componente deve estar com a aparência real do app.
 
 ## 5. Stories para o catálogo de design tokens
 
-Crie `src/components/ui/DesignTokens.stories.tsx` para documentar a paleta:
+Crie `frontend/src/components/ui/DesignTokens.stories.tsx` para documentar a paleta:
 
 ```tsx
 import type { Meta, StoryObj } from "@storybook/react";
@@ -230,6 +230,8 @@ export const Palette: StoryObj = { render: () => <TokenPage /> };
 ---
 
 ## 6. Rodar e verificar
+
+Execute dentro de `frontend/`:
 
 ```bash
 npm run storybook        # abre em http://localhost:6006

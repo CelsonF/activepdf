@@ -16,14 +16,14 @@ description: >
 | Camada | Tecnologia |
 |---|---|
 | HTTP | **Hono 4** (`@hono/node-server`) — porta 4000 |
-| ORM | **Prisma 7** + adapter `better-sqlite3` (client gerado em `src/generated/prisma/`) |
-| Validação | **Zod 4** via `jsonValidator()` de `src/lib/validate.ts` |
+| ORM | **Prisma 7** + adapter `better-sqlite3` (client gerado em `backend/src/generated/prisma/`) |
+| Validação | **Zod 4** via `jsonValidator()` de `backend/src/lib/validate.ts` |
 | Auth | JWT com **jose** + **bcryptjs**; sessão em `c.get("session")` |
-| Docs | OpenAPI manual em `src/openapi.ts`, servido em `/docs` (Scalar) |
+| Docs | OpenAPI manual em `backend/src/openapi.ts`, servido em `/docs` (Scalar) |
 
 Imports relativos terminam em `.js` (ESM): `import { prisma } from "../lib/prisma.js"`.
 
-## Anatomia de uma rota (o padrão canônico é `src/routes/subjects.ts`)
+## Anatomia de uma rota (o padrão canônico é `backend/src/routes/subjects.ts`)
 
 ```ts
 import { Hono } from "hono";
@@ -50,19 +50,19 @@ Regras inegociáveis:
    depende desse shape. Sucesso de DELETE: `{ ok: true }`.
 2. **Ownership em toda query**: nada de `findUnique({ where: { id } })` solto.
    Use `findFirst({ where: { id, professorId: session.userId } })` ou os
-   helpers de `src/lib/ownership.ts` (`findOwnedStudent`, `findOwnedLesson`).
+   helpers de `backend/src/lib/ownership.ts` (`findOwnedStudent`, `findOwnedLesson`).
 3. **Auth via middleware**, nunca manual: `requireAuth`, `requireTeacher`,
-   `requireStudent` (`src/middleware/auth.ts`). Tipar o router com
+   `requireStudent` (`backend/src/middleware/auth.ts`). Tipar o router com
    `new Hono<AuthEnv>()`.
 4. **Validação via `jsonValidator(schema)`** + `c.req.valid("json")`. Schemas
-   Zod vivem em `src/schemas/`, nunca inline na rota.
+   Zod vivem em `backend/src/schemas/`, nunca inline na rota.
 5. **Senha nunca sai**: o client Prisma tem `omit: { password: true }` global
-   para professor e student (`src/lib/prisma.ts`). Só o login reabilita com
+   para professor e student (`backend/src/lib/prisma.ts`). Só o login reabilita com
    `omit: { password: false }`.
 6. **Listas grandes**: paginação opt-in com `parsePagination(c)` de
-   `src/lib/pagination.ts` — resposta continua sendo array puro.
+   `backend/src/lib/pagination.ts` — resposta continua sendo array puro.
 7. **Sem try/catch boilerplate** nas rotas: o `app.onError` global em
-   `src/index.ts` já devolve `{ error: "Erro interno" }` 500. Só capture
+   `backend/src/index.ts` já devolve `{ error: "Erro interno" }` 500. Só capture
    quando houver tratamento real.
 
 ## Onde cada coisa mora
@@ -71,7 +71,8 @@ Regras inegociáveis:
 backend/src/
   index.ts          # app Hono, CORS, onError, registro app.route("/api/x", ...)
   openapi.ts        # spec manual — atualizar ao criar/mudar endpoint
-  routes/           # um arquivo por recurso, exporta `xRoutes`
+  routes/           # HTTP fino: valida, chama service, mapeia resultado
+  services/         # regra de negócio (exercises, lessons, gamification, ...)
   schemas/          # schemas Zod por domínio (auth, lessons, misc, ...)
   middleware/       # requireAuth/requireTeacher/requireStudent, rateLimit
   lib/              # prisma, validate, ownership, pagination, files, auth
@@ -83,8 +84,7 @@ backend/prisma/
 
 ## O que evitar
 
-- Lógica de negócio inline em rota quando já existe helper em `lib/` (XP →
-  `gamification.ts`, upload → `files.ts`).
+- Lógica de negócio inline em rota: regra de negócio vive em `backend/src/services/` (ex.: `gamification.service.ts`); `lib/` guarda utilitários (upload → `files.ts`, ownership, paginação).
 - `any` — `c.req.valid("json")` já vem tipado pelo schema.
 - Confiar em `mimeType` do client para arquivos (o tipo real vem dos magic bytes).
 - Mensagem de erro vazando detalhe interno (stack, SQL) para o cliente.
@@ -96,4 +96,4 @@ backend/prisma/
 1. Leia uma rota vizinha antes de criar a sua — copie o padrão, não invente.
 2. Mudou o schema Prisma? `npx prisma migrate dev --name <nome>` e revise `seed.ts`.
 3. Mensagens de erro em pt-BR, como as existentes.
-4. Verifique com `npm run build` (tsc) antes de entregar.
+4. Verifique com `npm run build` (tsc, dentro de `backend/`) antes de entregar.

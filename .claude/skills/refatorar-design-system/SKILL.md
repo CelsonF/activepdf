@@ -12,7 +12,7 @@ description: >
 
 Use este fluxo sempre que precisar trazer um componente ou página existente para
 o padrão do projeto. O objetivo é **zero regressão visual + máxima reutilização
-do que já existe em `globals.css` e `src/components/ui/`**.
+do que já existe em `globals.css` e `frontend/src/components/ui/`**.
 
 ---
 
@@ -72,7 +72,7 @@ Anote cada violação antes de começar a refatorar.
 
 | Elemento | Substituto |
 |---|---|
-| `<button>` customizado | `<Button>` de `src/components/ui/` ou `.ui-btn .ui-btn-*` |
+| `<button>` customizado | `<Button>` de `frontend/src/components/ui/` ou `.ui-btn .ui-btn-*` |
 | `<span className="badge...">` | `<Badge>` ou `.ui-badge .ui-badge-*` |
 | `<input>` sem classe | `.ui-input` |
 | Divisor inline | `<Divider />` ou `.ui-divider` |
@@ -103,7 +103,7 @@ className={cn(
 
 ### 2.5 Exports
 
-- Componente primitivo reutilizável → `src/components/ui/` + linha em `index.ts`.
+- Componente primitivo reutilizável → `frontend/src/components/ui/` + linha em `index.ts`.
 - Componente de domínio → pasta do domínio, sem tocar em `index.ts`.
 - Página → `default export`, nada mais muda.
 
@@ -128,7 +128,7 @@ className={cn(
    o que é apenas estilo subótimo.
 3. Refatore arquivo a arquivo, menor dependência primeiro (primitivos antes de
    páginas que os consomem).
-4. Após cada arquivo: `npx tsc --noEmit` — não deixe acumular erro de tipo.
+4. Após cada arquivo: `npx tsc --noEmit` (dentro de `frontend/`) — não deixe acumular erro de tipo.
 5. Checklist final (seção 5).
 
 ---
@@ -143,7 +143,7 @@ className={cn(
 - [ ] `React.FC` removido.
 - [ ] `console.log` removido.
 - [ ] `key={index}` substituído por id estável em listas reordenáveis.
-- [ ] `npx tsc --noEmit` passa sem erros.
+- [ ] `npx tsc --noEmit` (dentro de `frontend/`) passa sem erros.
 - [ ] Sem regressão visual nas rotas afetadas.
 
 ---

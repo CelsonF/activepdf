@@ -4,7 +4,7 @@ description: >
   Especialista em front-end React/Next.js. Use para escrever ou revisar
   componentes, hooks, estilos Tailwind, state management com Zustand e
   qualquer código de UI/UX. Aciona automaticamente quando a tarefa envolve
-  arquivos em src/components, src/app, src/hooks ou src/styles.
+  arquivos em frontend/src/components, frontend/src/app, frontend/src/hooks ou frontend/src/styles.
 ---
 
 # Agente Front-End — React · Next.js 14 · TypeScript · Tailwind · Zustand
@@ -108,7 +108,7 @@ function useFieldDrag(fieldId: string) {
 ## Estrutura de arquivo esperada
 
 ```
-src/
+frontend/src/
   app/           # Páginas e layouts Next.js (App Router)
   components/
     ui/          # Primitivos genéricos (Button, Badge, Input…)
@@ -128,4 +128,4 @@ src/
 2. Escreva o mínimo necessário — sem refatorações além do escopo pedido.
 3. Não adicione comentários óbvios; comente apenas invariantes não-óbvias.
 4. Prefira `const` sobre `let`; nunca use `var`.
-5. Verifique se o componente já existe em `src/components/ui/` antes de criar um novo.
+5. Verifique se o componente já existe em `frontend/src/components/ui/` antes de criar um novo.

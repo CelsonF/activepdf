@@ -2,7 +2,7 @@
 name: alterar-modelo
 description: >
   Passo a passo para criar ou alterar um modelo no schema Prisma do ActivePDF
-  (Prisma 7 + SQLite via better-sqlite3, client gerado em src/generated/prisma).
+  (Prisma 7 + SQLite via better-sqlite3, client gerado em backend/src/generated/prisma).
   Use sempre que a tarefa envolver backend/prisma/schema.prisma — novo modelo,
   novo campo, nova relação, índice ou enum. Garante migration nomeada, client
   regenerado, seed coerente e as convenções do projeto (cuid, timestamps,
@@ -12,9 +12,9 @@ description: >
 # Alterar modelo Prisma (ActivePDF)
 
 O banco é SQLite (`backend/dev.db`) com Prisma 7 e client gerado em
-`src/generated/prisma/` — **nunca edite os arquivos gerados à mão**.
+`backend/src/generated/prisma/` — **nunca edite os arquivos gerados à mão**.
 
-## 1. Editar `prisma/schema.prisma`
+## 1. Editar `backend/prisma/schema.prisma`
 
 Convenções de todo modelo do projeto:
 
@@ -54,19 +54,19 @@ nova. Para recomeçar o banco local: `npm run db:reset` (roda o seed).
 
 Mudou o schema? Verifique, nesta ordem:
 
-1. **`prisma/seed.ts`** — o seed precisa continuar válido e, se o modelo é
+1. **`backend/prisma/seed.ts`** — o seed precisa continuar válido e, se o modelo é
    central, ganhar dados de exemplo.
 2. **Omit de senha** — se o modelo novo tiver campo sensível (senha, token),
-   adicione ao `omit` global em `src/lib/prisma.ts`, como já é feito para
+   adicione ao `omit` global em `backend/src/lib/prisma.ts`, como já é feito para
    `professor.password` e `student.password`.
-3. **Schemas Zod** em `src/schemas/` que espelham o modelo (create/update).
+3. **Schemas Zod** em `backend/src/schemas/` que espelham o modelo (create/update).
 4. **Rotas** que fazem `include`/`select` no modelo alterado — `npm run build`
    aponta as quebras.
-5. **`src/openapi.ts`** se o shape de alguma resposta mudou.
+5. **`backend/src/openapi.ts`** se o shape de alguma resposta mudou.
 
 ## 4. Antes de entregar
 
-1. `npx prisma validate` e `npm run build` passam?
+1. `npx prisma validate` e `npm run build` (dentro de `backend/`) passam?
 2. Migration tem nome descritivo e está commitada junto com o schema?
 3. `npm run db:reset` roda sem erro (migrations + seed coerentes)?
-4. Nenhum arquivo de `src/generated/` editado manualmente?
+4. Nenhum arquivo de `backend/src/generated/` editado manualmente?

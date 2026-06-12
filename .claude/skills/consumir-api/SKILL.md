@@ -6,7 +6,7 @@ description: >
   carregar lista numa página, submeter formulário, criar um route handler
   proxy, tratar erro de request ou tipar resposta da API. Garante uso de
   serverFetch/proxyRequest, do contrato de erro { error: string } e dos tipos
-  compartilhados em src/types.ts.
+  compartilhados em frontend/src/types.ts.
 ---
 
 # Consumir a API — Next.js → Hono (ActivePDF)
@@ -19,8 +19,8 @@ token da sessão (cookie `activepdf_session`) como `Authorization: Bearer`.
 
 | Contexto | Helper | Onde mora |
 |---|---|---|
-| Server Component / página carregando dados | `serverFetch<T>(path)` | `src/lib/api.ts` |
-| Client Component que precisa de fetch (form, ação) | `fetch("/api/...")` relativo → catch-all `src/app/api/[...path]/route.ts` | `src/lib/proxy.ts` |
+| Server Component / página carregando dados | `serverFetch<T>(path)` | `frontend/src/lib/api.ts` |
+| Client Component que precisa de fetch (form, ação) | `fetch("/api/...")` relativo → catch-all `frontend/src/app/api/[...path]/route.ts` | `frontend/src/lib/proxy.ts` |
 
 Não invente um terceiro caminho: nada de `fetch("http://localhost:4000/...")`
 em componente, nem de ler o cookie manualmente.
@@ -41,13 +41,13 @@ export default async function SubjectsPage() {
 - `serverFetch` lança o body de erro (`{ error: string }`) quando `!res.ok` —
   trate com `try/catch` quando a página tiver fallback, ou deixe propagar
   para o `error.tsx` do segmento.
-- O tipo `T` vem de `src/types.ts`; se o shape ainda não existe lá, crie-o
+- O tipo `T` vem de `frontend/src/types.ts`; se o shape ainda não existe lá, crie-o
   espelhando a resposta real do backend (confira em `backend/src/routes/` ou
   em `http://localhost:4000/docs`).
 
 ## 2. Mutação a partir de Client Component
 
-**Já existe um catch-all** em `src/app/api/[...path]/route.ts` que repassa
+**Já existe um catch-all** em `frontend/src/app/api/[...path]/route.ts` que repassa
 qualquer `/api/*` (GET/POST/PATCH/PUT/DELETE, com query string) para o
 backend via `proxyRequest`. Na maioria dos casos **não crie route handler
 novo** — só faça o fetch relativo do client:
@@ -66,7 +66,7 @@ if (!res.ok) {
 ```
 
 - O catch-all devolve o status original do backend — não reembrulhe a resposta.
-- Só crie um route handler específico (ex.: `src/app/api/exercises/route.ts`)
+- Só crie um route handler específico (ex.: `frontend/src/app/api/exercises/route.ts`)
   quando precisar de lógica extra antes/depois do proxy; o Next prioriza a
   rota específica sobre o catch-all, então não há conflito.
 
@@ -81,6 +81,6 @@ if (!res.ok) {
 ## 4. Antes de entregar
 
 1. Nenhum componente client falando direto com `localhost:4000`?
-2. Resposta tipada com tipo de `src/types.ts` (sem `any`)?
+2. Resposta tipada com tipo de `frontend/src/types.ts` (sem `any`)?
 3. Erro tratado lendo `.error` do body, exibido com os padrões da UI?
-4. `npx tsc --noEmit` passa?
+4. `npx tsc --noEmit` (dentro de `frontend/`) passa?

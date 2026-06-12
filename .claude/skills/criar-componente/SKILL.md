@@ -4,7 +4,7 @@ description: >
   Passo a passo para criar QUALQUER componente novo de UI no front-end do
   ActivePDF usando Tailwind CSS + TypeScript e o design system do projeto.
   Use sempre que a tarefa for criar, adaptar ou revisar um componente React
-  em src/components ou src/app — botão, badge, card, input, modal, painel,
+  em frontend/src/components ou frontend/src/app — botão, badge, card, input, modal, painel,
   item de lista, tela de dashboard, etc. Garante uso das classes .ui-*, dos
   tokens de cor (brand/slate) e das convenções de TypeScript do projeto.
 ---
@@ -17,7 +17,7 @@ cores, sem CSS solto e sem reescrever o que já existe.
 
 ## 1. Antes de escrever — reaproveite
 
-1. **Já existe?** Procure em `src/components/ui/` (primitivos: `Button`,
+1. **Já existe?** Procure em `frontend/src/components/ui/` (primitivos: `Button`,
    `Badge`, `Header`, `AsideMenu`, `Divider`…). Se existir, use/estenda; não
    recrie.
 2. **Tem classe `.ui-*` pra isso?** Veja `referencia-design-system.md` (nesta
@@ -30,9 +30,9 @@ cores, sem CSS solto e sem reescrever o que já existe.
 ## 2. Estrutura do arquivo
 
 - Nome do arquivo = nome do componente em PascalCase (`StatCard.tsx`).
-- Primitivo reutilizável → `src/components/ui/` + reexport em `index.ts`.
+- Primitivo reutilizável → `frontend/src/components/ui/` + reexport em `index.ts`.
 - Componente de domínio → pasta do domínio (`editor/`, `upload/`, `auth/`).
-- Página → `src/app/.../page.tsx` (**default export**, é a única exceção).
+- Página → `frontend/src/app/.../page.tsx` (**default export**, é a única exceção).
 
 ```tsx
 "use client"; // só se usar estado/efeito/evento. Senão, deixe como Server Component.
@@ -67,7 +67,7 @@ export function StatCard({ label, value, active = false, className }: StatCardPr
 
 - **Classes `.ui-*` primeiro.** Botão = `ui-btn ui-btn-{variante} ui-btn-{tamanho}`.
   Badge = `ui-badge ui-badge-{tamanho} ui-badge-{variante}`. Input = `ui-input`.
-- **Combine classes com `cn()`** (`src/lib/cn.ts`). Nada de ternário aninhado
+- **Combine classes com `cn()`** (`frontend/src/lib/cn.ts`). Nada de ternário aninhado
   dentro do `className`.
 - **Estados ativos via `data-*`**, igual ao projeto:
   `data-active="true"`, `data-selected="true"` (as classes `.ui-*` já reagem a eles).
@@ -92,8 +92,8 @@ export function StatCard({ label, value, active = false, className }: StatCardPr
 - [ ] `cn()` para classes condicionais.
 - [ ] Named export (ou default só se for `page.tsx`); reexportado em `ui/index.ts` se for primitivo.
 - [ ] `"use client"` só se realmente precisa.
-- [ ] Props tipadas, sem `any`. `npx tsc --noEmit` passa.
+- [ ] Props tipadas, sem `any`. `npx tsc --noEmit` (dentro de `frontend/`) passa.
 - [ ] Sem `console.log`, sem `key={index}` em lista reordenável.
 
-> Quando estiver na dúvida sobre estilo, abra `src/components/ui/Button.tsx` e
+> Quando estiver na dúvida sobre estilo, abra `frontend/src/components/ui/Button.tsx` e
 > `Badge.tsx` — eles são o molde do padrão de primitivo deste projeto.

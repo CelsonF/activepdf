@@ -1,7 +1,7 @@
 # Referência do Design System — ActivePDF
 
-Fonte da verdade: `src/app/globals.css` (`@layer components`) e
-`tailwind.config.js`. Este arquivo é o resumo consultável para criar componentes.
+Fonte da verdade: `frontend/src/app/globals.css` (`@layer components`) e
+`frontend/tailwind.config.js`. Este arquivo é o resumo consultável para criar componentes.
 
 ---
 
@@ -18,7 +18,7 @@ Fonte da verdade: `src/app/globals.css` (`@layer components`) e
 | `bg-slate-50` | `#f8fafc` | Fundo de página |
 | `border-slate-200` | `#e2e8f0` | Borda padrão de cards/inputs |
 
-**Sombras** (do `tailwind.config.js`): `shadow-xs`, `shadow-card`,
+**Sombras** (do `frontend/tailwind.config.js`): `shadow-xs`, `shadow-card`,
 `shadow-brand`, `shadow-brand-lg`, `shadow-brand-hover`, `shadow-success`.
 
 **Background especial:** `bg-upload-gradient` (gradiente sutil da tela de upload — o único gradiente sancionado).
@@ -54,7 +54,7 @@ Fonte da verdade: `src/app/globals.css` (`@layer components`) e
 .ui-export-btn                  seletor de modo de exportação — usa data-active
 ```
 Uso: `className="ui-btn ui-btn-primary ui-btn-md"`. Em React, prefira o
-componente `<Button variant="primary" size="md">` de `src/components/ui/`.
+componente `<Button variant="primary" size="md">` de `frontend/src/components/ui/`.
 
 ### Badges
 ```
@@ -124,5 +124,5 @@ import { Upload, MagnifyingGlass, Trash, CheckCircle, FilePdf } from "@phosphor-
 
 ## Tipos compartilhados
 
-`src/types.ts` tem os contratos do domínio (ex.: `PdfField`). Importe de lá em
+`frontend/src/types.ts` tem os contratos do domínio (ex.: `PdfField`). Importe de lá em
 vez de redeclarar. Tipos só de um componente ficam no próprio arquivo.
