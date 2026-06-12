@@ -1,7 +1,7 @@
 "use client";
 
 import { SpecTag } from "./Spec";
-import { useReveal } from "./useReveal";
+import { useReveal } from "@/hooks/useReveal";
 
 interface Step {
   index: string;

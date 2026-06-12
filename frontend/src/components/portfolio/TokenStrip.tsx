@@ -1,6 +1,6 @@
 "use client";
 
-import { useReveal } from "./useReveal";
+import { useReveal } from "@/hooks/useReveal";
 
 interface Token {
   name: string;

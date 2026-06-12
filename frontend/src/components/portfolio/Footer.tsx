@@ -1,7 +1,7 @@
 "use client";
 
 import { SpecTag } from "./Spec";
-import { useReveal } from "./useReveal";
+import { useReveal } from "@/hooks/useReveal";
 
 export function Footer() {
   const ref = useReveal<HTMLElement>();

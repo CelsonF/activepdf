@@ -1,7 +1,7 @@
 "use client";
 
 import { SpecTag } from "./Spec";
-import { useReveal } from "./useReveal";
+import { useReveal } from "@/hooks/useReveal";
 
 const FACTS = [
   ["Experience", "8 years in product"],

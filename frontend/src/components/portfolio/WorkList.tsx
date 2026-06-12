@@ -1,7 +1,7 @@
 "use client";
 
 import { SpecGap, SpecTag } from "./Spec";
-import { useReveal } from "./useReveal";
+import { useReveal } from "@/hooks/useReveal";
 
 interface Project {
   name: string;
