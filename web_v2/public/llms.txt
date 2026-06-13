@@ -1,0 +1,11 @@
+# Grifo
+
+> Grifo turns any PDF into an interactive practice worksheet directly in the browser — add fields over the page, fill them in, and export the completed PDF. No upload, no account.
+
+Grifo is a browser-based PDF editor focused on study practice. Users drop a PDF, place inputs/checkboxes/date/number fields and rich notes over the rendered page, then export a flattened PDF or PNG. All processing happens locally in the browser.
+
+## Pages
+
+- [Home](/): Landing page explaining how Grifo turns PDFs into interactive practice.
+- [Dashboard](/dashboard): Study dashboard with continue-where-you-left-off, recommended practices, streak and stats.
+- [Editor](/tool): Interactive PDF editor — load a PDF, draw fields, take notes, export.
