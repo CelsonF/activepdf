@@ -13,7 +13,7 @@ export const LOCALE_FULL_LABEL: Record<Locale, string> = {
   es: "Español",
 };
 
-export const BASE_URL = "https://pdf-charm-kit.lovable.app";
+export const BASE_URL = "https://www.grifo-pdf.com";
 
 /** Build URL prefix for a locale (PT = no prefix). */
 export function localePrefix(locale: Locale): string {

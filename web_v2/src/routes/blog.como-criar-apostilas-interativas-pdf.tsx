@@ -1,10 +1,17 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowRight, CheckCircle2, ShieldCheck, Upload, PenLine, Download } from "lucide-react";
+import { BASE_URL } from "@/lib/i18n";
+import { ogImageMeta, ogImageUrl } from "@/lib/route-heads";
 
-const URL = "https://pdf-charm-kit.lovable.app/blog/como-criar-apostilas-interativas-pdf";
+const URL = `${BASE_URL}/blog/como-criar-apostilas-interativas-pdf`;
 const TITLE = "Como criar apostilas interativas em PDF (sem upload) — Grifo";
 const DESC = "Guia prático para professores: transforme PDFs estáticos em apostilas interativas no navegador, com campos preenchíveis, sem upload e sem cadastro.";
 const PUBLISHED = "2026-06-13";
+const OG_IMAGE = ogImageUrl({
+  eyebrow: "Grifo · Blog",
+  title: "Apostilas interativas em PDF, sem upload",
+  desc: "Guia prático para professores transformarem PDFs estáticos em prática preenchível.",
+});
 
 export const Route = createFileRoute("/blog/como-criar-apostilas-interativas-pdf")({
   head: () => ({
@@ -16,9 +23,9 @@ export const Route = createFileRoute("/blog/como-criar-apostilas-interativas-pdf
       { property: "og:type", content: "article" },
       { property: "og:url", content: URL },
       { property: "article:published_time", content: PUBLISHED },
-      { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:title", content: TITLE },
       { name: "twitter:description", content: DESC },
+      ...ogImageMeta(OG_IMAGE, TITLE),
     ],
     links: [{ rel: "canonical", href: URL }],
     scripts: [

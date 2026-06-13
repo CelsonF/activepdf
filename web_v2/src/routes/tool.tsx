@@ -1,6 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BASE_URL } from "@/lib/i18n";
+import { ogImageMeta, ogImageUrl } from "@/lib/route-heads";
 import {
   TOOL_LOCALES,
   TOOL_LOCALE_LABEL,
@@ -52,9 +54,17 @@ export const Route = createFileRoute("/tool")({
         content:
           "Editor interativo de PDFs no navegador: adicione campos, anotações e exporte preenchido — sem cadastro.",
       },
-      { property: "og:url", content: "https://pdf-charm-kit.lovable.app/tool" },
+      { property: "og:url", content: `${BASE_URL}/tool` },
+      ...ogImageMeta(
+        ogImageUrl({
+          eyebrow: "Grifo · Editor de PDF",
+          title: "Editor interativo de PDF no navegador",
+          desc: "Adicione campos, escreva anotações e exporte preenchido — sem cadastro.",
+        }),
+        "Editor de PDF — Grifo",
+      ),
     ],
-    links: [{ rel: "canonical", href: "https://pdf-charm-kit.lovable.app/tool" }],
+    links: [{ rel: "canonical", href: `${BASE_URL}/tool` }],
   }),
   ssr: false,
   component: ToolPage,

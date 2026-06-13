@@ -11,6 +11,15 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
+import { BASE_URL } from "../lib/i18n";
+import { ogImageMeta, ogImageUrl } from "../lib/route-heads";
+
+// Fallback OG image for any route that doesn't set its own (child heads override).
+const DEFAULT_OG_IMAGE = ogImageUrl({
+  eyebrow: "Grifo · Editor de PDF",
+  title: "Qualquer PDF vira prática que engaja",
+  desc: "Adicione campos sobre a página, responda e exporte preenchido — direto no navegador.",
+});
 
 function NotFoundComponent() {
   return (
@@ -79,17 +88,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "viewport", content: "width=device-width, initial-scale=1" },
       { title: "Grifo — Prática e Edição de PDF" },
       { name: "description", content: "Transforme qualquer PDF em prática interativa: adicione campos sobre a página, responda e exporte preenchido — direto no navegador, sem cadastro." },
-      { name: "author", content: "Lovable" },
+      { name: "author", content: "Grifo" },
       { property: "og:title", content: "Grifo — Prática e Edição de PDF" },
       { property: "og:description", content: "Transforme qualquer PDF em prática interativa: adicione campos, responda e exporte preenchido — direto no navegador." },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Grifo" },
-      { name: "twitter:card", content: "summary" },
-      { name: "twitter:site", content: "@Lovable" },
       { name: "twitter:title", content: "Grifo — Prática e Edição de PDF" },
       { name: "twitter:description", content: "Transforme qualquer PDF em prática interativa: adicione campos, responda e exporte preenchido — direto no navegador." },
-      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a506c6dd-670c-414d-862b-9d1ec89a21d4/id-preview-eb2b541d--a9c00fe0-5c52-45e2-8ca0-e8c8280652c6.lovable.app-1781287743868.png" },
-      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/a506c6dd-670c-414d-862b-9d1ec89a21d4/id-preview-eb2b541d--a9c00fe0-5c52-45e2-8ca0-e8c8280652c6.lovable.app-1781287743868.png" },
+      ...ogImageMeta(DEFAULT_OG_IMAGE, "Grifo — qualquer PDF vira prática interativa"),
     ],
     links: [
       {
@@ -112,12 +118,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
             {
               "@type": "Organization",
               name: "Grifo",
-              url: "https://pdf-charm-kit.lovable.app",
+              url: BASE_URL,
             },
             {
               "@type": "WebSite",
               name: "Grifo",
-              url: "https://pdf-charm-kit.lovable.app",
+              url: BASE_URL,
             },
           ],
         }),

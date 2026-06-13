@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import type {} from "@tanstack/react-start";
-
-const BASE_URL = "https://pdf-charm-kit.lovable.app";
+import { BASE_URL, LOCALES, localePath } from "@/lib/i18n";
 
 interface SitemapEntry {
   path: string;
@@ -13,7 +12,15 @@ export const Route = createFileRoute("/sitemap.xml")({
   server: {
     handlers: {
       GET: async () => {
+        // Landing in every locale (PT = "/", EN = "/en", ES = "/es").
+        const landing: SitemapEntry[] = LOCALES.map((l) => ({
+          path: localePath(l, "/"),
+          changefreq: "weekly",
+          priority: l === "pt" ? "1.0" : "0.9",
+        }));
+
         const entries: SitemapEntry[] = [
+          ...landing,
           { path: "/tool", changefreq: "weekly", priority: "1.0" },
           { path: "/blog/como-criar-apostilas-interativas-pdf", changefreq: "monthly", priority: "0.7" },
         ];
