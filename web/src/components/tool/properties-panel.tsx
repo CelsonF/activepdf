@@ -61,6 +61,30 @@ export function PropertiesPanel({
                 className="w-full accent-[var(--color-primary)]"
               />
             </Labeled>
+            <Labeled label={`Largura — ${Math.round((field.w ?? 0.18) * 100)}% da página`}>
+              <input
+                type="range"
+                min={4}
+                max={90}
+                value={Math.round((field.w ?? 0.18) * 100)}
+                onChange={(e) =>
+                  onFieldChange({ ...field, w: Number(e.target.value) / 100 })
+                }
+                className="w-full accent-[var(--color-primary)]"
+              />
+            </Labeled>
+            <Labeled label={`Altura — ${Math.round((field.h ?? 0.05) * 100)}% da página`}>
+              <input
+                type="range"
+                min={2}
+                max={30}
+                value={Math.round((field.h ?? 0.05) * 100)}
+                onChange={(e) =>
+                  onFieldChange({ ...field, h: Number(e.target.value) / 100 })
+                }
+                className="w-full accent-[var(--color-primary)]"
+              />
+            </Labeled>
             <Button
               variant="ghost"
               size="sm"

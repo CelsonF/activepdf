@@ -123,19 +123,41 @@ function ToolScreen() {
   }
 
   function handleCanvasClick(x: number, y: number): void {
-    if (!activeTool || !activeDoc) return
+    if (!activeDoc) return
+    // Clique sobre um campo existente seleciona — nunca empilha um novo em cima
+    const hit = activeDoc.fields.find(
+      (f) =>
+        f.page === page &&
+        x >= f.x &&
+        x <= f.x + (f.w ?? 0.15) &&
+        y >= f.y &&
+        y <= f.y + (f.h ?? 0.05),
+    )
+    if (hit) {
+      setSelectedFieldId(hit.id)
+      return
+    }
+    if (!activeTool) return
+    const canvas = canvasRef.current
+    const h = canvas
+      ? clamp(0.02, 0.3, (14 * scale + 18) / canvas.height)
+      : 0.05
     const field: ToolField = {
       id: newDocId(),
       type: activeTool,
       page,
       x,
       y,
+      w: activeTool === 'check' && canvas ? h * (canvas.height / canvas.width) + 0.03 : 0.18,
+      h,
       fontSize: 14,
       label: '',
       value: '',
     }
     updateActiveDoc((d) => ({ ...d, fields: [...d.fields, field] }))
     setSelectedFieldId(field.id)
+    // Desarma a ferramenta: o próximo clique edita em vez de criar outro campo
+    setActiveTool(null)
   }
 
   function handleFieldChange(field: ToolField): void {
@@ -163,29 +185,37 @@ function ToolScreen() {
     }
   }
 
-  function handleExportImage(): void {
-    const src = canvasRef.current
-    if (!src || !activeDoc) return
-    const out = document.createElement('canvas')
-    out.width = src.width
-    out.height = src.height
-    const ctx = out.getContext('2d')
-    if (!ctx) return
-    ctx.drawImage(src, 0, 0)
-    ctx.fillStyle = '#181c28'
-    for (const field of activeDoc.fields.filter((f) => f.page === page)) {
-      const text = field.type === 'check' ? (field.value ? 'X' : '') : field.value
-      if (!text) continue
-      const px = field.fontSize * scale
-      ctx.font = `${px}px "JetBrains Mono", monospace`
-      ctx.fillText(text, field.x * out.width, field.y * out.height + px)
-    }
-    out.toBlob((blob) => {
+  async function handleExportImage(): Promise<void> {
+    if (!pdf || !activeDoc) return
+    setExporting(true)
+    try {
+      // Render limpo e fora da tela: nada de borda de campo nem zoom da UI no PNG
+      const exportScale = 2
+      const out = document.createElement('canvas')
+      await renderPage(pdf, page, exportScale, out)
+      const ctx = out.getContext('2d')
+      if (!ctx) return
+      const ink = getComputedStyle(document.documentElement)
+        .getPropertyValue('--color-ink')
+        .trim()
+      ctx.fillStyle = ink || '#181c28'
+      for (const field of activeDoc.fields.filter((f) => f.page === page)) {
+        const text = field.type === 'check' ? (field.value ? 'X' : '') : field.value
+        if (!text) continue
+        const px = field.fontSize * exportScale
+        ctx.font = `${px}px "JetBrains Mono", monospace`
+        ctx.fillText(text, field.x * out.width + px * 0.15, field.y * out.height + px)
+      }
+      const blob = await new Promise<Blob | null>((resolve) => out.toBlob(resolve))
       if (!blob) return
-      blob.arrayBuffer().then((buf) => {
-        downloadBytes(new Uint8Array(buf), `${activeDoc.name}-p${page}.png`, 'image/png')
-      })
-    })
+      downloadBytes(
+        new Uint8Array(await blob.arrayBuffer()),
+        `${activeDoc.name}-p${page}.png`,
+        'image/png',
+      )
+    } finally {
+      setExporting(false)
+    }
   }
 
   return (

@@ -39,7 +39,16 @@ export async function renderPage(
   canvas.height = viewport.height
   const context = canvas.getContext('2d')
   if (!context) return
-  await page.render({ canvas, canvasContext: context, viewport }).promise
+  // ENABLE_FORMS deixa os widgets de formulário do PDF fora do canvas —
+  // sem isso as bordas dos campos nativos aparecem na tela e no PNG exportado
+  await page
+    .render({
+      canvas,
+      canvasContext: context,
+      viewport,
+      annotationMode: pdfjs.AnnotationMode.ENABLE_FORMS,
+    })
+    .promise
 }
 
 /** Grava os campos no PDF e devolve os bytes prontos para download. */

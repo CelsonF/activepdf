@@ -8,6 +8,9 @@ export interface ToolField {
   /** coordenadas normalizadas 0..1 sobre a página renderizada */
   x: number
   y: number
+  /** tamanho normalizado 0..1 — ausente em docs antigos (caixa auto) */
+  w?: number
+  h?: number
   fontSize: number
   label: string
   value: string
