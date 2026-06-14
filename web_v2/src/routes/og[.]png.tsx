@@ -4,10 +4,11 @@ import { createFileRoute } from "@tanstack/react-router";
 // Each page points og:image at /og.png?eyebrow=…&title=…&desc=… so the social
 // card mirrors that page. Brand tokens below are hex approximations of the
 // oklch tokens in styles.css (Satori doesn't parse oklch reliably).
-const PAPER = "#f1f4f8"; // --background (paper)
-const INK = "#141728"; // --ink / --foreground (navy)
-const HIGHLIGHT = "#f5d21e"; // --highlight (marker yellow)
-const MUTED = "#5b6172"; // muted ink for body copy
+const PAPER = "#faf6f0"; // --background (warm off-white)
+const INK = "#1f1a16"; // --ink / --foreground (warm near-black)
+const CRIMSON = "#b11226"; // --primary / --highlight (deep crimson)
+const CREAM = "#faf6f0"; // --primary-foreground (cream text on crimson)
+const MUTED = "#6e645c"; // muted ink for body copy
 
 // Satori reads ttf/otf/woff (not woff2). Fontsource ships stable .woff files.
 const FONT_FILES = {
@@ -83,8 +84,8 @@ export const Route = createFileRoute("/og.png")({
                   letterSpacing: 5,
                   textTransform: "uppercase",
                   fontWeight: 700,
-                  color: INK,
-                  backgroundColor: HIGHLIGHT,
+                  color: CREAM,
+                  backgroundColor: CRIMSON,
                   padding: "8px 16px",
                 }}
               >
@@ -123,10 +124,10 @@ export const Route = createFileRoute("/og.png")({
                       width: 60,
                       height: 60,
                       borderRadius: 14,
-                      backgroundColor: INK,
+                      backgroundColor: CRIMSON,
                       fontFamily: "Archivo Black",
                       fontSize: 32,
-                      color: HIGHLIGHT,
+                      color: CREAM,
                     }}
                   >
                     G
