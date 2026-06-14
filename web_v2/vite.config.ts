@@ -12,4 +12,8 @@ export default defineConfig({
     // nitro/vite builds from this
     server: { entry: "server" },
   },
+  // O target padrão do config é cloudflare, que NÃO emite o Build Output API
+  // (.vercel/output) que a Vercel serve — sem ele todas as rotas dão 404 NOT_FOUND.
+  // Fixamos o preset vercel para o build sair no formato que a Vercel entende.
+  nitro: { preset: "vercel" },
 });

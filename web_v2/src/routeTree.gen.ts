@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ToolRouteImport } from './routes/tool'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as OgDotpngRouteImport } from './routes/og[.]png'
 import { Route as EsRouteImport } from './routes/es'
 import { Route as EnRouteImport } from './routes/en'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -27,6 +28,11 @@ const ToolRoute = ToolRouteImport.update({
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OgDotpngRoute = OgDotpngRouteImport.update({
+  id: '/og.png',
+  path: '/og.png',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EsRoute = EsRouteImport.update({
@@ -71,6 +77,7 @@ export interface FileRoutesByFullPath {
   '/dashboard': typeof DashboardRoute
   '/en': typeof EnRouteWithChildren
   '/es': typeof EsRouteWithChildren
+  '/og.png': typeof OgDotpngRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tool': typeof ToolRoute
   '/blog/como-criar-apostilas-interativas-pdf': typeof BlogComoCriarApostilasInterativasPdfRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByTo {
   '/dashboard': typeof DashboardRoute
   '/en': typeof EnRouteWithChildren
   '/es': typeof EsRouteWithChildren
+  '/og.png': typeof OgDotpngRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tool': typeof ToolRoute
   '/blog/como-criar-apostilas-interativas-pdf': typeof BlogComoCriarApostilasInterativasPdfRoute
@@ -94,6 +102,7 @@ export interface FileRoutesById {
   '/dashboard': typeof DashboardRoute
   '/en': typeof EnRouteWithChildren
   '/es': typeof EsRouteWithChildren
+  '/og.png': typeof OgDotpngRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/tool': typeof ToolRoute
   '/blog/como-criar-apostilas-interativas-pdf': typeof BlogComoCriarApostilasInterativasPdfRoute
@@ -107,6 +116,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/en'
     | '/es'
+    | '/og.png'
     | '/sitemap.xml'
     | '/tool'
     | '/blog/como-criar-apostilas-interativas-pdf'
@@ -118,6 +128,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/en'
     | '/es'
+    | '/og.png'
     | '/sitemap.xml'
     | '/tool'
     | '/blog/como-criar-apostilas-interativas-pdf'
@@ -129,6 +140,7 @@ export interface FileRouteTypes {
     | '/dashboard'
     | '/en'
     | '/es'
+    | '/og.png'
     | '/sitemap.xml'
     | '/tool'
     | '/blog/como-criar-apostilas-interativas-pdf'
@@ -141,6 +153,7 @@ export interface RootRouteChildren {
   DashboardRoute: typeof DashboardRoute
   EnRoute: typeof EnRouteWithChildren
   EsRoute: typeof EsRouteWithChildren
+  OgDotpngRoute: typeof OgDotpngRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   ToolRoute: typeof ToolRoute
   BlogComoCriarApostilasInterativasPdfRoute: typeof BlogComoCriarApostilasInterativasPdfRoute
@@ -160,6 +173,13 @@ declare module '@tanstack/react-router' {
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og.png': {
+      id: '/og.png'
+      path: '/og.png'
+      fullPath: '/og.png'
+      preLoaderRoute: typeof OgDotpngRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/es': {
@@ -239,6 +259,7 @@ const rootRouteChildren: RootRouteChildren = {
   DashboardRoute: DashboardRoute,
   EnRoute: EnRouteWithChildren,
   EsRoute: EsRouteWithChildren,
+  OgDotpngRoute: OgDotpngRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   ToolRoute: ToolRoute,
   BlogComoCriarApostilasInterativasPdfRoute:
@@ -247,3 +268,13 @@ const rootRouteChildren: RootRouteChildren = {
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

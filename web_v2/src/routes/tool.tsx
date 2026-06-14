@@ -1,6 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { BASE_URL } from "@/lib/i18n";
+import { ogImageMeta, ogImageUrl } from "@/lib/route-heads";
 import {
   TOOL_LOCALES,
   TOOL_LOCALE_LABEL,
@@ -52,9 +54,17 @@ export const Route = createFileRoute("/tool")({
         content:
           "Editor interativo de PDFs no navegador: adicione campos, anotações e exporte preenchido — sem cadastro.",
       },
-      { property: "og:url", content: "https://pdf-charm-kit.lovable.app/tool" },
+      { property: "og:url", content: `${BASE_URL}/tool` },
+      ...ogImageMeta(
+        ogImageUrl({
+          eyebrow: "Grifo · Editor de PDF",
+          title: "Editor interativo de PDF no navegador",
+          desc: "Adicione campos, escreva anotações e exporte preenchido — sem cadastro.",
+        }),
+        "Editor de PDF — Grifo",
+      ),
     ],
-    links: [{ rel: "canonical", href: "https://pdf-charm-kit.lovable.app/tool" }],
+    links: [{ rel: "canonical", href: `${BASE_URL}/tool` }],
   }),
   ssr: false,
   component: ToolPage,
@@ -103,7 +113,7 @@ function ToolPage() {
   const [pdfName, setPdfName] = useState<string>("");
   const [numPages, setNumPages] = useState(0);
   const [page, setPage] = useState(1);
-  const [scale, setScale] = useState(1.3);
+  const [scale, setScale] = useState(1);
   const [mode, setMode] = useState<"edit" | "fill">("edit");
   const [pdfLoading, setPdfLoading] = useState(false);
   const [tool, setTool] = useState<FieldType>("text");
@@ -609,13 +619,19 @@ function ToolPage() {
       {/* Topbar */}
       <header className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-b-2 border-ink/10 bg-card px-3 py-2 sm:px-5 lg:h-16 lg:flex-nowrap lg:py-0">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-ink text-highlight">
-            <Highlighter className="h-4.5 w-4.5" />
-          </div>
-          <span className="relative hidden text-lg font-bold tracking-tight sm:inline">
-            <span className="relative z-10 px-1">Grifo</span>
-            <span className="absolute inset-x-0 bottom-1 h-2 bg-highlight" aria-hidden />
-          </span>
+          <Link
+            to="/"
+            aria-label="Grifo — voltar para a página inicial"
+            className="flex items-center gap-3 rounded-xl transition-opacity hover:opacity-80"
+          >
+            <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+              <Highlighter className="h-4.5 w-4.5" />
+            </span>
+            <span className="relative hidden text-lg font-bold tracking-tight sm:inline">
+              <span className="relative z-10 px-1">Grifo</span>
+              <span className="absolute inset-x-0 bottom-1 h-2 bg-highlight" aria-hidden />
+            </span>
+          </Link>
           <span className="ml-2 min-w-0 truncate text-xs text-ink/60 sm:text-sm md:max-w-[280px]">
             {pdfName || t.noPdf}
           </span>
@@ -661,7 +677,7 @@ function ToolPage() {
             <button
               onClick={() => setMode("edit")}
               className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition sm:px-3 sm:text-sm ${
-                mode === "edit" ? "bg-ink text-highlight" : "text-ink/70 hover:bg-ink/5"
+                mode === "edit" ? "bg-primary text-primary-foreground" : "text-ink/70 hover:bg-ink/5"
               }`}
             >
               <PenLine className="h-3.5 w-3.5" />{" "}
@@ -671,7 +687,7 @@ function ToolPage() {
             <button
               onClick={() => setMode("fill")}
               className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition sm:px-3 sm:text-sm ${
-                mode === "fill" ? "bg-ink text-highlight" : "text-ink/70 hover:bg-ink/5"
+                mode === "fill" ? "bg-primary text-primary-foreground" : "text-ink/70 hover:bg-ink/5"
               }`}
             >
               <CheckSquare className="h-3.5 w-3.5" /> {t.fill}
@@ -684,7 +700,7 @@ function ToolPage() {
               aria-haspopup="menu"
               aria-expanded={showExportMenu}
               aria-label={t.openMenu}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-ink px-3 py-1.5 text-xs font-semibold text-highlight transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 disabled:opacity-50 sm:px-3.5 sm:text-sm"
+              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 disabled:opacity-50 sm:px-3.5 sm:text-sm"
             >
               <Save className="h-3.5 w-3.5" />
               <span>{savedFlash ? t.saved : t.save}</span>
@@ -774,7 +790,7 @@ function ToolPage() {
                         setShowExportMenu(false);
                         exportPdfRange(Number(rangeStart) || 1, Number(rangeEnd) || 1);
                       }}
-                      className="ml-auto inline-flex min-h-8 items-center gap-1 rounded-lg bg-ink px-2.5 py-1 text-xs font-semibold text-highlight hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
+                      className="ml-auto inline-flex min-h-8 items-center gap-1 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
                     >
                       {t.exportBtn}
                     </button>
@@ -794,7 +810,7 @@ function ToolPage() {
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                 PDF
               </span>
-              <div className="mt-3 flex items-center justify-center rounded-2xl border-2 border-dashed border-ink/20 bg-highlight/60 p-4 text-center hover:border-ink cursor-pointer transition-colors">
+              <div className="mt-3 flex items-center justify-center rounded-2xl border-2 border-dashed border-ink/20 bg-accent p-4 text-center hover:border-ink cursor-pointer transition-colors">
                 <input
                   type="file"
                   accept="application/pdf"
@@ -831,7 +847,7 @@ function ToolPage() {
                   }}
                   className={`flex flex-col items-center gap-1 rounded-xl border p-2.5 text-xs font-medium transition ${
                     tool === ttype && mode === "edit"
-                      ? "border-ink bg-ink text-highlight"
+                      ? "border-ink bg-primary text-primary-foreground"
                       : "border-border text-ink/70 hover:bg-secondary"
                   }`}
                 >
@@ -866,7 +882,7 @@ function ToolPage() {
                 <li
                   key={n}
                   className={`group flex items-center justify-between rounded-xl px-2.5 py-2 text-xs font-medium ${
-                    n === pdfName ? "bg-ink text-highlight" : "text-ink/70 hover:bg-secondary"
+                    n === pdfName ? "bg-primary text-primary-foreground" : "text-ink/70 hover:bg-secondary"
                   }`}
                 >
                   <button
@@ -905,7 +921,7 @@ function ToolPage() {
         </aside>
 
         {/* PDF Canvas */}
-        <main className="order-1 min-h-[60vh] flex-1 overflow-auto bg-highlight/30 p-3 sm:p-6 lg:order-2 lg:min-h-0">
+        <main className="order-1 min-h-[60vh] flex-1 overflow-auto bg-muted p-3 sm:p-6 lg:order-2 lg:min-h-0">
           {!pdfBytes ? (
             <EmptyState onPick={onFile} t={t} />
           ) : (
@@ -1357,7 +1373,7 @@ function EmptyState({
 }) {
   return (
     <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-ink text-highlight">
+      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
         <Upload className="h-7 w-7" />
       </div>
       <h2 className="font-display text-2xl text-ink">{t.emptyTitle}</h2>

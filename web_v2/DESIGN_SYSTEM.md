@@ -46,16 +46,18 @@ src/
 
 ## 2. Design Language
 
-**Concept:** *"the editor is the cover"* — a school-notebook aesthetic.
-Bluish-gray paper canvas, navy ink, a yellow highlighter mark for emphasis,
-and four ballpoint-pen accents (red / blue / green / orange) for category cues.
+**Concept:** *"the editor is the cover"* — an editorial document aesthetic with a
+PDF/paperwork identity. Warm off-white paper canvas, near-black ink, a deep
+**crimson** accent (the brand "grifo"/highlighter mark) for emphasis, and four
+ballpoint-pen accents (red / blue / green / orange) for category cues.
 
 - Bold display typography (Archivo Black) for hero headlines.
 - Heavy rounded corners (`rounded-xl` / `rounded-2xl`).
 - 2px ink borders on premium cards (`border-2 border-ink`).
 - Hover micro-interactions: `hover:scale-[1.02]` on CTAs, `hover:shadow-lg` on cards.
 - Monospace mini-labels in all caps (`font-mono text-[10px] uppercase tracking-[0.2em]`).
-- The brand mark = word "Grifo" with a yellow underline span behind it.
+- The brand mark = word "Grifo" with a crimson highlighter mark behind it
+  (`.text-highlight-mark`, cream text on crimson).
 
 ---
 
@@ -68,35 +70,38 @@ then mapped to Tailwind utilities via `@theme inline`.
 
 | Token                      | oklch value                  | Tailwind class examples                |
 | -------------------------- | ---------------------------- | -------------------------------------- |
-| `--background`             | `oklch(0.972 0.008 240)`     | `bg-background`                        |
-| `--surface`                | `oklch(0.985 0.005 240)`     | `bg-surface`                           |
-| `--foreground` / `--ink`   | `oklch(0.18 0.04 260)`       | `text-foreground`, `bg-ink`, `text-ink`|
+| `--background`             | `oklch(0.98 0.006 75)` (warm off-white) | `bg-background`             |
+| `--surface`                | `oklch(1 0 0)`               | `bg-surface`                           |
+| `--foreground` / `--ink`   | `oklch(0.2 0.012 55)` (warm near-black) | `text-foreground`, `bg-ink`, `text-ink`|
 | `--card`                   | `oklch(1 0 0)`               | `bg-card`                              |
-| `--primary`                | `oklch(0.55 0.24 264)` (electric blue) | `bg-primary`                |
-| `--primary-foreground`     | `oklch(0.99 0 0)`            | `text-primary-foreground`              |
-| `--secondary` / `--muted`  | `oklch(0.94 0.01 240)`       | `bg-secondary`, `bg-muted`             |
-| `--muted-foreground`       | `oklch(0.5 0.03 250)`        | `text-muted-foreground`                |
-| `--accent`                 | `oklch(0.92 0.02 240)`       | `bg-accent`                            |
-| `--border` / `--input`     | `oklch(0.9 0.015 250)`       | `border-border`, `border-input`        |
-| `--ring`                   | `oklch(0.55 0.24 264)`       | `ring-ring`                            |
-| `--destructive`            | `oklch(0.577 0.245 27.325)`  | `bg-destructive`                       |
+| `--primary`                | `oklch(0.47 0.18 21)` (deep crimson) | `bg-primary`                  |
+| `--primary-foreground`     | `oklch(0.98 0.006 75)` (cream) | `text-primary-foreground`            |
+| `--secondary` / `--muted`  | `oklch(0.96 0.008 60)`       | `bg-secondary`, `bg-muted`             |
+| `--muted-foreground`       | `oklch(0.46 0.02 40)`        | `text-muted-foreground`                |
+| `--accent`                 | `oklch(0.95 0.025 25)` (faint crimson tint) | `bg-accent`             |
+| `--border` / `--input`     | `oklch(0.9 0.008 60)`        | `border-border`, `border-input`        |
+| `--ring`                   | `oklch(0.47 0.18 21)`        | `ring-ring`                            |
+| `--destructive`            | `oklch(0.55 0.22 25)`        | `bg-destructive`                       |
 
 ### Brand palette
 
 | Token            | Purpose                                | oklch                  |
 | ---------------- | -------------------------------------- | ---------------------- |
-| `--highlight`    | Yellow highlighter, brand accent       | `oklch(0.92 0.18 95)`  |
-| `--highlight-foreground` | Text on highlight              | `oklch(0.18 0.04 260)` |
-| `--ink`          | Almost-black navy, primary text/CTA bg | `oklch(0.18 0.04 260)` |
+| `--highlight`    | Crimson brand accent / highlighter mark | `oklch(0.47 0.18 21)`  |
+| `--highlight-foreground` | Cream text on highlight/crimson | `oklch(0.98 0.006 75)` |
+| `--ink`          | Warm near-black, primary text          | `oklch(0.2 0.012 55)`  |
+
+> `--highlight` and `--primary` are the same crimson — the brand pop doubles as
+> the highlighter mark. CTAs are crimson-filled with cream text (not red-on-black).
 
 ### School-pen accents (categorical)
 
 | Token           | Use                            | oklch                  |
 | --------------- | ------------------------------ | ---------------------- |
-| `--pen-red`     | Errors, alerts, "red pen" tag  | `oklch(0.62 0.22 27)`  |
-| `--pen-blue`    | Math / info category           | `oklch(0.52 0.2 255)`  |
-| `--pen-green`   | Success, free, recommended     | `oklch(0.62 0.17 150)` |
-| `--pen-orange`  | Highlights, warnings           | `oklch(0.72 0.18 55)`  |
+| `--pen-red`     | Errors, alerts, "red pen" tag  | `oklch(0.55 0.2 25)`   |
+| `--pen-blue`    | Math / info category           | `oklch(0.52 0.16 245)` |
+| `--pen-green`   | Success, free, recommended     | `oklch(0.6 0.15 150)`  |
+| `--pen-orange`  | Highlights, warnings           | `oklch(0.7 0.16 55)`   |
 
 Use them either as Tailwind tokens (`bg-pen-blue`) or as inline style
 `style={{ backgroundColor: "var(--color-pen-blue)" }}` when looping over data.
@@ -150,26 +155,25 @@ Body defaults: `font-feature-settings: "ss01", "cv11"` on `body`.
 ### Logo (reused on every page)
 ```tsx
 <Link to="/" className="flex items-center gap-2.5">
-  <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink text-highlight">
+  <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
     <Highlighter className="h-5 w-5" />
   </span>
   <span className="relative text-lg font-bold tracking-tight">
-    <span className="relative z-10 px-1">Grifo</span>
-    <span className="absolute inset-x-0 bottom-0.5 h-2.5 bg-highlight" aria-hidden />
+    <span className="relative z-10 px-1 text-highlight-mark">Grifo</span>
   </span>
 </Link>
 ```
 
-### Primary CTA (ink to highlight)
+### Primary CTA (crimson filled)
 ```tsx
-<Link to="/tool" className="inline-flex items-center gap-2 rounded-xl bg-ink px-6 py-3.5 text-base font-semibold text-highlight shadow-lg shadow-ink/20 transition-transform hover:scale-[1.02]">
+<Link to="/tool" className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-[1.02]">
   <Upload className="h-5 w-5" /> Enviar um PDF agora
 </Link>
 ```
 
-### Secondary CTA (highlight + ink border)
+### Secondary CTA (ink-bordered on surface)
 ```tsx
-<Link to="/dashboard" className="inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-highlight px-6 py-3.5 text-base font-semibold text-ink transition-transform hover:scale-[1.02]">
+<Link to="/dashboard" className="inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-surface px-6 py-3.5 text-base font-semibold text-ink transition-transform hover:scale-[1.02]">
   Abrir o editor <ArrowRight className="h-4 w-4" />
 </Link>
 ```
@@ -203,7 +207,7 @@ Rule of thumb: build a skeleton component that mirrors the real card geometry
 
 ### Avatar / initials
 ```tsx
-<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink text-highlight font-mono text-sm font-bold">BS</div>
+<div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground font-mono text-sm font-bold">BS</div>
 ```
 
 ---
@@ -220,7 +224,7 @@ Single-column scroll page with a sticky-feeling nav, hero, and feature grid.
 |  - eyebrow (font-mono uppercase)                                         |
 |  - giant H1 with text-highlight-mark accent word                         |
 |  - paragraph (max-w-2xl, muted)                                          |
-|  - two CTAs (primary ink, secondary highlight)                           |
+|  - two CTAs (primary crimson, secondary ink-bordered)                    |
 |  - checklist row (CheckCircle2 + pen-green)                              |
 +--------------------------------------------------------------------------+
 | Features (3 cards - grid md:grid-cols-3)                                 |
@@ -229,8 +233,8 @@ Single-column scroll page with a sticky-feeling nav, hero, and feature grid.
 | Footer (logo + copyright, bg-card)                                       |
 +--------------------------------------------------------------------------+
 ```
-Shell: `flex h-screen flex-col bg-highlight/40 text-ink` so the yellow tint
-frames the whole viewport while `<main>` scrolls.
+Shell: `flex min-h-screen flex-col bg-background text-ink` (warm off-white)
+while `<main>` scrolls.
 
 ### 6.2 Dashboard — `src/routes/dashboard.tsx`
 
@@ -242,16 +246,16 @@ Full-screen 3-column app shell (responsive: stacks on mobile, 2-col on lg,
 | Logo                | Topbar (title - search  | ProfileCard         |
 | Menu                |  - bell - avatar)       | StreakCard          |
 | active item:        | ContinueSection (cards) | StatsCard           |
-|  bg-ink             | RecommendedSection      | "Soltar novo PDF"   |
-|  text-highlight     |                         |  CTA                |
+|  bg-primary         | RecommendedSection      | "Soltar novo PDF"   |
+|  text-primary-fg    |                         |  CTA                |
 | UpgradeCard         |                         |                     |
 +---------------------+-------------------------+---------------------+
 ```
 
 Key patterns:
-- Outer wrapper: `h-screen w-screen bg-highlight/40`.
+- Outer wrapper: `h-screen w-screen bg-background`.
 - Grid: `grid-cols-1 lg:grid-cols-[260px_1fr] xl:grid-cols-[260px_1fr_340px]`.
-- Active menu item uses ink/highlight inversion; badges use `bg-[var(--color-pen-red)]`.
+- Active menu item uses crimson fill (`bg-primary text-primary-foreground`); badges use `bg-[var(--color-pen-red)]`.
 - Progress bars: `h-2 rounded-full bg-secondary` with inner `div` colored by the card's `pen-*` token.
 - Cards inside Details panel nest a `bg-background` outer + `bg-card` inner for a layered feel.
 - All async lists have matching skeletons (`ContinueCardSkeleton`, `RecommendedCardSkeleton`, `ProfileCardSkeleton`, ...).
@@ -291,7 +295,7 @@ Notes for replication:
 - Compose class strings with `cn()` from `src/lib/utils.ts`.
 - Use lucide-react icons sized via `className="h-4 w-4"` (not the `size` prop, for consistency).
 - Use skeletons for any async UI; never use blocking spinners.
-- Keep CTAs to two shapes: ink-filled or ink-bordered-on-highlight.
+- Keep CTAs to two shapes: crimson-filled (`bg-primary text-primary-foreground`) or ink-bordered on surface.
 
 **Don't**
 - Don't introduce `tailwind.config.js` (Tailwind v4).

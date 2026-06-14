@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://pdf-charm-kit.lovable.app/sitemap.xml
+Sitemap: https://www.grifo-pdf.com/sitemap.xml

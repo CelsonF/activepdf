@@ -98,14 +98,16 @@ TypeScript strict, ESM — imports relativos terminam em `.js`.
 
 ## Regra de ouro do visual — identidade Grifo
 
-Conceito: **"o editor é a capa"** — estética de caderno escolar. Papel
-cinza-azulado, tinta navy, grifo de marca-texto amarelo, canetas categóricas.
+Conceito: **"o editor é a capa"** — estética editorial de documento/PDF (rebrand
+13/jun/2026). Papel off-white quente, tinta quase-preta, grifo de marca-texto
+**carmim** (`highlight` = `primary`, mesma cor), canetas categóricas.
 
 1. **Só tokens semânticos** (`bg-card`, `text-muted-foreground`, `border-border`,
-   `bg-ink`, `bg-highlight`, `bg-pen-blue`…). Cor nova = estender o `@theme`
+   `bg-ink`, `bg-primary`, `bg-pen-blue`…). Cor nova = estender o `@theme`
    primeiro; **nunca** literal de cor em JSX.
-2. **CTAs têm só duas formas**: ink-filled (`bg-ink text-highlight`) ou
-   ink-bordered-on-highlight (`border-2 border-ink bg-highlight text-ink`).
+2. **CTAs têm só duas formas**: carmim preenchido (`bg-primary text-primary-foreground`)
+   ou contornado (`border-2 border-ink bg-surface text-ink`). Nunca texto carmim
+   sobre fundo escuro.
 3. **`pen-*` é categórico**: `pen-red` erro/alerta · `pen-blue` info ·
    `pen-green` sucesso/grátis · `pen-orange` destaque/aviso. Em loop de dados,
    `style={{ backgroundColor: "var(--color-pen-blue)" }}` é aceitável.
@@ -115,9 +117,9 @@ cinza-azulado, tinta navy, grifo de marca-texto amarelo, canetas categóricas.
 5. **Loading = skeleton, nunca spinner bloqueante.** O skeleton espelha a
    geometria real do card. No editor, o skeleton **sobrepõe** o canvas
    (`absolute inset-0`) — nunca substitui (o `canvasRef` precisa ficar montado).
-6. A marca é o wordmark "Grifo" com traço amarelo por trás
-   (`.text-highlight-mark` em palavra-chave de hero; logo = bloco `bg-ink` com
-   `Highlighter` em `text-highlight`).
+6. A marca é o wordmark "Grifo" com marca-texto carmim por trás
+   (`.text-highlight-mark`, palavra creme sobre carmim, em palavra-chave de hero;
+   logo = bloco `bg-primary` com `Highlighter` em `text-primary-foreground`).
 
 ## Como escrever um componente
 

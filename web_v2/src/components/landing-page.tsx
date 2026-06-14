@@ -28,7 +28,7 @@ export function LandingPage({ locale }: { locale: Locale }) {
   const t = getDict(locale);
   useGsapReveals();
   return (
-    <div className="flex min-h-screen flex-col bg-highlight/40 text-ink">
+    <div className="flex min-h-screen flex-col bg-background text-ink">
       <Nav locale={locale} t={t} />
       <main className="flex-1">
         <Hero locale={locale} t={t} />
@@ -95,12 +95,11 @@ function useGsapReveals() {
 function Logo({ locale }: { locale: Locale }) {
   return (
     <Link to={asRoute(localePath(locale, "/"))} className="flex items-center gap-2.5">
-      <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-ink text-highlight">
+      <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
         <Highlighter className="h-5 w-5" />
       </span>
       <span className="relative text-lg font-bold tracking-tight">
-        <span className="relative z-10 px-1">Grifo</span>
-        <span className="absolute inset-x-0 bottom-0.5 h-2.5 bg-highlight" aria-hidden />
+        <span className="relative z-10 px-1 text-highlight-mark">Grifo</span>
       </span>
     </Link>
   );
@@ -120,7 +119,7 @@ function Nav({ locale, t }: { locale: Locale; t: ReturnType<typeof getDict> }) {
       </nav>
       <div className="flex items-center gap-2">
         <LanguageSwitcher current={locale} page="/" />
-        <Link to="/tool" className="inline-flex items-center gap-1.5 rounded-xl bg-ink px-4 py-2 text-sm font-semibold text-highlight transition-transform hover:scale-[1.02]">
+        <Link to="/tool" className="inline-flex items-center gap-1.5 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-transform hover:scale-[1.02]">
           {t.nav.openEditor} <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
@@ -131,19 +130,20 @@ function Nav({ locale, t }: { locale: Locale; t: ReturnType<typeof getDict> }) {
 function Hero({ locale, t }: { locale: Locale; t: ReturnType<typeof getDict> }) {
   return (
     <section className="relative overflow-hidden px-8 pb-20 pt-12 md:px-14 md:pt-16">
-      <div className="grid items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-l from-ink/35 via-ink/10 to-transparent" />
+      <div className="relative grid items-center gap-10 lg:grid-cols-[1.1fr_1fr]">
         <div data-hero-title>
-          <p className="font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground">{t.hero.eyebrow}</p>
+          <p className="font-mono text-xs uppercase tracking-[0.2em] text-ink/70">{t.hero.eyebrow}</p>
           <h1 className="font-display mt-8 text-[clamp(2.6rem,7vw,6rem)] text-ink">
             {t.hero.titleLine1}<br />
             {t.hero.titleLine2} <span className="text-highlight-mark">{t.hero.titleHighlight}</span>
           </h1>
-          <p className="mt-8 max-w-xl text-lg text-muted-foreground">{t.hero.description}</p>
+          <p className="mt-8 max-w-xl text-lg text-ink/80">{t.hero.description}</p>
           <div className="mt-8 flex flex-wrap items-center gap-3">
-            <Link to="/tool" className="inline-flex items-center gap-2 rounded-xl bg-ink px-6 py-3.5 text-base font-semibold text-highlight shadow-lg shadow-ink/20 transition-transform hover:scale-[1.02]">
+            <Link to="/tool" className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-[1.02]">
               <Upload className="h-5 w-5" /> {t.hero.ctaPrimary}
             </Link>
-            <Link to="/tool" className="inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-highlight px-6 py-3.5 text-base font-semibold text-ink transition-transform hover:scale-[1.02]">
+            <Link to="/tool" className="inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-surface px-6 py-3.5 text-base font-semibold text-ink transition-transform hover:scale-[1.02]">
               {t.hero.ctaSecondary} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
@@ -156,12 +156,7 @@ function Hero({ locale, t }: { locale: Locale; t: ReturnType<typeof getDict> }) 
           </ul>
         </div>
         <div className="relative h-[360px] w-full md:h-[460px] lg:h-[520px]">
-          <div className="absolute inset-0 rounded-3xl border border-border bg-gradient-to-br from-card to-highlight/30 shadow-xl shadow-ink/10" />
           <PaperScene />
-          <div className="pointer-events-none absolute bottom-4 left-4 right-4 flex items-center justify-between rounded-xl bg-ink/85 px-4 py-2 text-xs font-mono text-highlight backdrop-blur">
-            <span className="flex items-center gap-2"><Lock className="h-3.5 w-3.5" /> 0 KB enviados</span>
-            <span>render local · WebGL</span>
-          </div>
         </div>
       </div>
     </section>
@@ -248,10 +243,10 @@ function Compare({ t }: { t: ReturnType<typeof getDict> }) {
           <p className="mt-5 text-lg text-muted-foreground">{t.compare.sub}</p>
         </div>
         <div data-reveal className="mt-10 overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="grid grid-cols-[1.4fr_1fr_1fr] items-center border-b border-border bg-ink px-6 py-4 text-xs font-mono uppercase tracking-[0.15em] text-highlight">
+          <div className="grid grid-cols-[1.4fr_1fr_1fr] items-center border-b border-border bg-primary px-6 py-4 text-xs font-mono uppercase tracking-[0.15em] text-primary-foreground">
             <span>—</span>
             <span className="flex items-center gap-2"><Highlighter className="h-4 w-4" /> {t.compare.columns.grifo}</span>
-            <span className="text-highlight/70">{t.compare.columns.others}</span>
+            <span className="text-primary-foreground/70">{t.compare.columns.others}</span>
           </div>
           {t.compare.rows.map((row, i) => (
             <div
@@ -277,22 +272,22 @@ function Compare({ t }: { t: ReturnType<typeof getDict> }) {
 
 function Privacy({ t }: { t: ReturnType<typeof getDict> }) {
   return (
-    <section className="border-t border-border bg-ink text-highlight">
+    <section className="border-t border-border bg-primary text-primary-foreground">
       <div className="grid gap-10 px-8 py-20 md:px-14 lg:grid-cols-[1.1fr_1fr] lg:items-center">
         <div data-reveal>
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-highlight/60">{t.privacy.eyebrow}</p>
+          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-primary-foreground/70">{t.privacy.eyebrow}</p>
           <h2 className="font-display mt-3 text-4xl md:text-5xl">
             {t.privacy.heading}
           </h2>
-          <p className="mt-6 max-w-xl text-base text-highlight/80">{t.privacy.desc}</p>
-          <Link to="/tool" className="mt-8 inline-flex items-center gap-2 rounded-xl bg-highlight px-6 py-3.5 text-base font-semibold text-ink transition-transform hover:scale-[1.02]">
+          <p className="mt-6 max-w-xl text-base text-primary-foreground/85">{t.privacy.desc}</p>
+          <Link to="/tool" className="mt-8 inline-flex items-center gap-2 rounded-xl bg-surface px-6 py-3.5 text-base font-semibold text-primary transition-transform hover:scale-[1.02]">
             <Lock className="h-5 w-5" /> {t.privacy.cta}
           </Link>
         </div>
         <ul data-stagger className="grid gap-3">
           {t.privacy.points.map((p) => (
-            <li key={p} className="flex items-start gap-3 rounded-xl border border-highlight/15 bg-highlight/5 px-5 py-4 text-sm">
-              <ShieldCheck className="mt-0.5 h-5 w-5 text-highlight" />
+            <li key={p} className="flex items-start gap-3 rounded-xl border border-primary-foreground/20 bg-primary-foreground/5 px-5 py-4 text-sm">
+              <ShieldCheck className="mt-0.5 h-5 w-5 text-primary-foreground" />
               <span>{p}</span>
             </li>
           ))}
@@ -304,12 +299,12 @@ function Privacy({ t }: { t: ReturnType<typeof getDict> }) {
 
 function FinalCta({ locale, t }: { locale: Locale; t: ReturnType<typeof getDict> }) {
   return (
-    <section className="border-t border-border bg-highlight/40">
+    <section className="border-t border-border bg-accent">
       <div data-reveal className="px-8 py-20 text-center md:px-14">
         <h2 className="font-display mx-auto max-w-3xl text-4xl md:text-6xl text-ink">{t.finalCta.heading}</h2>
-        <p className="mx-auto mt-5 max-w-xl text-lg text-muted-foreground">{t.finalCta.sub}</p>
+        <p className="mx-auto mt-5 max-w-xl text-lg text-ink/75">{t.finalCta.sub}</p>
         <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link to="/tool" className="inline-flex items-center gap-2 rounded-xl bg-ink px-6 py-3.5 text-base font-semibold text-highlight shadow-lg shadow-ink/20 transition-transform hover:scale-[1.02]">
+          <Link to="/tool" className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3.5 text-base font-semibold text-primary-foreground shadow-lg shadow-primary/25 transition-transform hover:scale-[1.02]">
             <Upload className="h-5 w-5" /> {t.finalCta.primary}
           </Link>
           <Link to="/tool" className="inline-flex items-center gap-2 rounded-xl border-2 border-ink bg-card px-6 py-3.5 text-base font-semibold text-ink transition-transform hover:scale-[1.02]">

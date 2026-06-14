@@ -74,35 +74,35 @@
 
 :root {
   --radius: 0.75rem;
-  /* Grifo design system — light bluish-gray canvas, navy ink, electric blue CTA, yellow highlighter */
-  --background: oklch(0.972 0.008 240);
-  --surface: oklch(0.985 0.005 240);
-  --foreground: oklch(0.18 0.04 260);
-  --ink: oklch(0.18 0.04 260);
+  /* Grifo design system — editorial deep-crimson on warm off-white (PDF/document identity) */
+  --background: oklch(0.98 0.006 75);
+  --surface: oklch(1 0 0);
+  --foreground: oklch(0.2 0.012 55);
+  --ink: oklch(0.2 0.012 55);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.18 0.04 260);
+  --card-foreground: oklch(0.2 0.012 55);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.18 0.04 260);
-  --primary: oklch(0.55 0.24 264);
-  --primary-foreground: oklch(0.99 0 0);
-  --secondary: oklch(0.94 0.01 240);
-  --secondary-foreground: oklch(0.18 0.04 260);
-  --muted: oklch(0.94 0.01 240);
-  --muted-foreground: oklch(0.5 0.03 250);
-  --accent: oklch(0.92 0.02 240);
-  --accent-foreground: oklch(0.18 0.04 260);
-  --highlight: oklch(0.92 0.18 95);
-  --highlight-foreground: oklch(0.18 0.04 260);
-  /* School-pen analogous accents — classic Bic */
-  --pen-red: oklch(0.62 0.22 27);
-  --pen-blue: oklch(0.52 0.2 255);
-  --pen-green: oklch(0.62 0.17 150);
-  --pen-orange: oklch(0.72 0.18 55);
-  --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.984 0.003 247.858);
-  --border: oklch(0.9 0.015 250);
-  --input: oklch(0.9 0.015 250);
-  --ring: oklch(0.55 0.24 264);
+  --popover-foreground: oklch(0.2 0.012 55);
+  --primary: oklch(0.47 0.18 21);
+  --primary-foreground: oklch(0.98 0.006 75);
+  --secondary: oklch(0.96 0.008 60);
+  --secondary-foreground: oklch(0.2 0.012 55);
+  --muted: oklch(0.96 0.008 60);
+  --muted-foreground: oklch(0.46 0.02 40);
+  --accent: oklch(0.95 0.025 25);
+  --accent-foreground: oklch(0.2 0.012 55);
+  --highlight: oklch(0.47 0.18 21);
+  --highlight-foreground: oklch(0.98 0.006 75);
+  /* Functional pen accents — categorical data colors */
+  --pen-red: oklch(0.55 0.2 25);
+  --pen-blue: oklch(0.52 0.16 245);
+  --pen-green: oklch(0.6 0.15 150);
+  --pen-orange: oklch(0.7 0.16 55);
+  --destructive: oklch(0.55 0.22 25);
+  --destructive-foreground: oklch(0.98 0.006 75);
+  --border: oklch(0.9 0.008 60);
+  --input: oklch(0.9 0.008 60);
+  --ring: oklch(0.47 0.18 21);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -165,6 +165,13 @@
     font-feature-settings: "ss01", "cv11";
   }
 
+  /* Visible keyboard focus across every interactive element (a11y). */
+  :focus-visible {
+    outline: 2px solid var(--color-ring);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
+  }
+
   .font-display {
     font-family: var(--font-display);
     letter-spacing: -0.03em;
@@ -176,6 +183,7 @@
   }
 
   .text-highlight-mark {
+    color: var(--color-highlight-foreground);
     background-color: var(--color-highlight);
     box-shadow: 0.2em 0 0 var(--color-highlight), -0.2em 0 0 var(--color-highlight);
   }
