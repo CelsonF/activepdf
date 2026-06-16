@@ -1,0 +1,46 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Usuário único do Grifo. Sem distinção professor/aluno por agora —
+// quem cria conta só quer salvar e reabrir os PDFs preenchíveis dele.
+// Se a sala de aula (turmas, correção) vier a ser necessária no futuro,
+// adiciona-se um campo `role` e os modelos relacionados nessa hora.
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  documents Document[]
+
+  @@map("users")
+}
+
+// Um PDF carregado no editor + os campos posicionados sobre ele.
+// pdfData fica em base64 por simplicidade no MVP; se os arquivos crescerem,
+// trocar por upload em object storage (S3/R2) e guardar só a URL aqui.
+model Document {
+  id         String   @id @default(cuid())
+  ownerId    String
+  title      String
+  pdfName    String
+  pdfData    String // base64
+  fieldsJson String   @default("[]") // Field[] do editor (tipo, posição, valor)
+  notesJson  String   @default("{}") // Record<page, html> das anotações
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@index([ownerId])
+  @@map("documents")
+}

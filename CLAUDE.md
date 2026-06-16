@@ -1,106 +1,74 @@
-# ActivePDF — Regras do Projeto (Monorepo)
+# Grifo (activepdf) — Regras do Projeto
 
 > Este arquivo é lido automaticamente em toda conversa. São as regras
 > **inegociáveis** para escrever código neste repositório.
 >
-> Layout: `backend/` (API Hono, porta 4000), `web/` (app TanStack Start, porta
-> 3000) e `frontend/` (app Next.js **legado**, em migração).
-> Os comandos npm rodam **dentro da pasta** de cada app.
+> Layout: **um único app** em `web_v2/` (TanStack Start — front-end SSR +
+> back-end via server functions, mesmo processo, porta 3000). Não há mais
+> `backend/`, `frontend/` nem `web/` — foram removidos em 16/jun/2026 para
+> eliminar duplicação; `web_v2/` é o único projeto vivo.
 >
-> **Front-end em migração (decisão de 12/jun/2026):** o app novo vive em
-> `web/` e segue `docs/design-system-grifo.md` (referência canônica do design).
-> Todo código novo de UI nasce em `web/`; não invista em melhoria visual no
-> legado `frontend/` — ele some quando a migração terminar.
->
-> Skills disponíveis:
-> - `criar-endpoint` — criar ou alterar qualquer rota da API
-> - `alterar-modelo` — mudanças no schema Prisma (modelo, campo, relação, migration)
-> - `criar-componente` — criar ou revisar qualquer componente de UI ⚠️ ainda descreve o app legado
-> - `refatorar-design-system` — auditar e refatorar para o padrão do design system ⚠️ ainda descreve o app legado
-> - `storybook` — configurar o Storybook e escrever stories ⚠️ ainda descreve o app legado
-> - `consumir-api` — buscar/enviar dados para a API ⚠️ ainda descreve o app legado
+> Skills disponíveis (ainda referenciam a estrutura antiga em alguns pontos —
+> revisar/atualizar antes de seguir ao pé da letra):
+> - `criar-endpoint` — criar ou alterar uma server function (`web_v2/src/lib/api/*.functions.ts`)
+> - `alterar-modelo` — mudanças no schema Prisma (`web_v2/prisma/schema.prisma`)
+> - `criar-componente` — criar ou revisar qualquer componente de UI
+> - `refatorar-design-system` — auditar e refatorar para o padrão do design system
+> - `storybook` — configurar o Storybook e escrever stories
+> - `consumir-api` — buscar/enviar dados via server functions no front-end
 
 ---
 
-# Back-end (`backend/`)
-
-## Stack (não trocar sem pedir)
-
-| Camada | Tecnologia |
-|---|---|
-| HTTP | **Hono 4** + `@hono/node-server` — porta 4000 |
-| ORM | **Prisma 7** + SQLite (`better-sqlite3`), client em `backend/src/generated/prisma/` |
-| Validação | **Zod 4** via `jsonValidator()` (`backend/src/lib/validate.ts`) |
-| Auth | JWT (**jose**) + **bcryptjs**; middlewares em `backend/src/middleware/auth.ts` |
-| Docs | OpenAPI manual em `backend/src/openapi.ts` → `/docs` (Scalar) |
-
-TypeScript strict, ESM — imports relativos terminam em `.js`.
-
-## Regras de ouro
-
-1. **Contrato de erro fixo**: `{ error: string }` com status semântico
-   (400/401/404/409); o frontend depende desse shape. DELETE ok → `{ ok: true }`.
-2. **Ownership em toda query**: `findFirst({ where: { id, professorId: session.userId } })`
-   ou helpers de `backend/src/lib/ownership.ts`. Nunca `findUnique` solto por id.
-3. **Auth só via middleware** (`requireAuth` / `requireTeacher` / `requireStudent`)
-   e router tipado `new Hono<AuthEnv>()`.
-4. **Validação só via schema Zod** em `backend/src/schemas/` + `jsonValidator(schema)`;
-   leia com `c.req.valid("json")` — nada de `await c.req.json()` cru.
-5. **Senha nunca sai**: omit global em `backend/src/lib/prisma.ts`; só o login usa
-   `omit: { password: false }`.
-6. **Listas grandes**: `parsePagination(c)` (`backend/src/lib/pagination.ts`) —
-   resposta continua array puro.
-7. Endpoint novo = registrar em `backend/src/index.ts` **e** documentar em
-   `backend/src/openapi.ts`.
-8. Mensagens de erro em **pt-BR**, genéricas e seguras (sem stack/SQL).
-9. **Regra de negócio em `backend/src/services/`** — a rota valida, chama o
-   service e mapeia o `Result` (`services/result.ts`) para HTTP. Query complexa
-   ou efeito colateral (XP, correção) não nasce inline na rota.
-10. **Limites de plano só em `backend/src/lib/entitlements.ts`** (FREE × PRO) —
-    gate de recurso Pro via `requirePlan("PRO")`; nunca hardcode um limite em
-    rota ou service. Limite estourado responde 409 com mensagem de upsell.
-
-## Não fazer (back-end)
-
-- Editar `backend/src/generated/prisma/` à mão (use `npm run db:generate`).
-- Editar migrations já commitadas (crie uma nova).
-- try/catch vazio ou decorativo — o `onError` global já cobre o 500.
-- Confiar no `mimeType` enviado pelo client (tipo real vem dos magic bytes).
-- `any` em dados de request; `console.log` com PII.
-
-## Antes de entregar (back-end)
-
-1. `npm run build` (tsc, dentro de `backend/`) passa?
-2. Toda query escopada pela sessão?
-3. Erros no contrato `{ error }` com status correto?
-4. `index.ts` + `openapi.ts` atualizados se houve endpoint novo?
-
----
-
-# Front-end (`web/`)
-
-> **Referência canônica do design: `docs/design-system-grifo.md`.** Tokens,
-> tipografia, componentes e blueprints de página vivem lá — este arquivo só
-> resume as regras. O app Next.js 14 em `frontend/` é legado em migração.
+# App (`web_v2/`)
 
 ## Stack (não trocar sem pedir)
 
 | Camada | Tecnologia |
 |---|---|
 | Framework | **TanStack Start v1** (React 19 + SSR, rotas file-based em `src/routes/`) |
+| Back-end | **Server functions** (`createServerFn`) em `src/lib/api/*.functions.ts` — sem processo HTTP separado |
+| ORM | **Prisma** + **PostgreSQL** (Neon/Supabase), client em `src/generated/prisma/` |
+| Validação | **Zod** via `.inputValidator(schema)` nas server functions |
+| Auth | JWT (**jose**) em cookie httpOnly; helpers em `src/lib/auth.server.ts` e `src/lib/session.server.ts` |
 | Bundler | **Vite 7** via `@lovable.dev/vite-tanstack-config` |
 | Linguagem | **TypeScript** strict — sem `any` |
 | Estilo | **Tailwind CSS v4** (CSS-first, sem `tailwind.config.js`) — tokens em `@theme` no `src/styles.css` |
 | Primitivos | **shadcn/ui** (estilo `new-york`, Radix) em `src/components/ui/` |
 | Ícones | **lucide-react** (tamanho via `className="h-4 w-4"`, não a prop `size`) |
-| Dados | **TanStack Query** no contexto do router |
-| PDF | `pdfjs-dist` (render) · `pdf-lib` (export) · `tesseract.js` (OCR) |
+| PDF | `pdfjs-dist` (render) · `pdf-lib` (export) |
+
+## Regras de ouro do back-end (server functions)
+
+1. **Arquivo por domínio**: `src/lib/api/auth.functions.ts`, `documents.functions.ts` —
+   uma server function exportada por operação (`createServerFn`).
+2. **Sufixo `.server.ts`** para todo módulo server-only (`prisma.server.ts`,
+   `auth.server.ts`, `session.server.ts`) — o Vite tree-shake garante que não
+   vaza para o bundle do client. Nunca importe um `.server.ts` de um componente.
+3. **Sessão via `requireSession()`** (`src/lib/session.server.ts`) no topo do
+   handler de toda operação autenticada — nunca leia o cookie manualmente.
+4. **Ownership em toda query**: `findFirst({ where: { id, ownerId: session.userId } })`.
+   Nunca `findUnique` solto por id em dado de usuário.
+5. **Validação só via Zod** em `.inputValidator(schema)` — nada de assumir o
+   shape do `data` sem schema.
+6. **Erro como `Response` lançada** com `{ error: string }` em JSON e status
+   semântico (401/404/409) — é o padrão que o client trata.
+7. **Senha nunca sai**: `omit: { user: { password: true } }` no client Prisma
+   (`prisma.server.ts`); só o login usa `omit: { password: false }`.
+
+## Não fazer (back-end)
+
+- Editar `src/generated/prisma/` à mão (use `npm run db:generate`).
+- Editar migrations já commitadas (crie uma nova).
+- Confiar no `mimeType` enviado pelo client para arquivos (validar magic bytes).
+- `any` em dados de request; `console.log` com PII.
+- Criar um servidor Hono/Express separado — server functions bastam para o
+  tamanho atual do projeto.
 
 ## Regra de ouro do visual — identidade Grifo
 
-Conceito: **"o editor é a capa"** — estética editorial de documento/PDF (rebrand
-13/jun/2026). Papel off-white quente, tinta quase-preta, grifo de marca-texto
-**carmim** (`highlight` = `primary`, mesma cor), canetas categóricas.
+Conceito: **"o editor é a capa"** — estética editorial de documento/PDF.
+Papel off-white quente, tinta quase-preta, grifo de marca-texto **carmim**
+(`highlight` = `primary`, mesma cor), canetas categóricas.
 
 1. **Só tokens semânticos** (`bg-card`, `text-muted-foreground`, `border-border`,
    `bg-ink`, `bg-primary`, `bg-pen-blue`…). Cor nova = estender o `@theme`
@@ -132,6 +100,9 @@ Conceito: **"o editor é a capa"** — estética editorial de documento/PDF (reb
   tailwind-merge) — nunca monte strings gigantes com ternários aninhados.
 - Antes de criar: **confira se o primitivo já existe** em `src/components/ui/`
   (shadcn) — estenda em vez de duplicar.
+- `src/routes/tool.tsx` (o editor) está com ~1400 linhas — ao tocar nele,
+  prefira extrair um pedaço (hook, subcomponente) a adicionar mais lógica
+  inline. Não é necessário reescrever tudo de uma vez.
 
 ## TypeScript
 
@@ -155,32 +126,46 @@ Conceito: **"o editor é a capa"** — estética editorial de documento/PDF (reb
 
 ## Estado e dados
 
-- Estado de servidor via **TanStack Query** (queries/mutations no contexto do
-  router); não duplique cache em store local.
 - O editor de PDF é browser-only: rota com `ssr: false`. Documentos anônimos
-  persistem em `localStorage` (`grifo:tool:docs`); campos usam coordenadas
-  normalizadas 0..1 sobre o tamanho renderizado da página.
+  (sem conta) persistem em `localStorage` (`grifo:tool:docs`); campos usam
+  coordenadas normalizadas 0..1 sobre o tamanho renderizado da página.
+- Documentos de uma conta logada persistem via as server functions de
+  `src/lib/api/documents.functions.ts` (Postgres) — o `localStorage` é só
+  para o modo anônimo/rascunho.
 - `style={{}}` só para valores genuínos de runtime (posição de campo sobre o
   canvas, `fontSize` por campo, cor `pen-*` vinda de dados).
 
-## Estrutura de arquivos (front-end novo)
+## Estrutura de arquivos
 
 ```
-web/src/
-  routes/            # rotas file-based (TanStack)
-    __root.tsx       # shell html, fonts (Google Fonts via <link>), meta global
-    index.tsx        # Landing
-    dashboard.tsx    # Dashboard (3 colunas: sidebar 260px · main · detalhes 340px)
-    tool.tsx         # Editor de PDF (ssr: false)
-  components/ui/     # primitivos shadcn (Button, Skeleton, ...)
-  lib/utils.ts       # cn()
-  styles.css         # TODO o design system (tokens @theme, fonts, utilities)
+web_v2/
+  prisma/
+    schema.prisma      # User, Document
+  src/
+    routes/             # rotas file-based (TanStack)
+      __root.tsx         # shell html, fonts, meta global
+      index.tsx          # Landing
+      dashboard.tsx       # Dashboard
+      tool.tsx            # Editor de PDF (ssr: false)
+    lib/
+      api/
+        auth.functions.ts       # register, login, logout, me
+        documents.functions.ts  # CRUD de documentos
+      auth.server.ts     # assinar/verificar JWT
+      session.server.ts  # cookie de sessão (get/create/destroy/require)
+      prisma.server.ts   # client Prisma singleton
+      result.ts          # tipo Result<T> para retorno de operações
+      utils.ts            # cn()
+    components/ui/       # primitivos shadcn (Button, Skeleton, ...)
+    styles.css            # design system completo (tokens @theme, fonts, utilities)
 ```
 
 > Blueprints completos de Landing, Dashboard e Tool em
-> `docs/design-system-grifo.md` §6 — siga-os ao criar essas telas.
+> `docs/design-system-grifo.md` — siga-os ao criar essas telas (algumas
+> seções ainda referenciam a estrutura antiga; tratar como referência visual,
+> não como caminho de arquivo literal).
 
-## Não fazer (front-end)
+## Não fazer
 
 - `console.log` em código commitado.
 - `key={index}` em listas que reordenam.
@@ -192,10 +177,12 @@ web/src/
 - Spinner centralizado bloqueando a UI.
 - Refatorar além do escopo pedido.
 
-## Antes de entregar (front-end)
+## Antes de entregar
 
-1. Só tokens semânticos/brand/pen-* — nenhum literal de cor em JSX?
-2. `npx tsc --noEmit` passa (sem `any`, sem erro de tipo)?
-3. UI assíncrona tem skeleton com a geometria do conteúdo real?
-4. CTAs numa das duas formas oficiais? Eyebrows em mono uppercase?
-5. Sem `console.log`, sem `style` de cor estática?
+1. `npx tsc --noEmit` passa (sem `any`, sem erro de tipo)?
+2. Server function nova: validada por Zod, escopada por `requireSession()`,
+   erro no contrato `{ error }`?
+3. Só tokens semânticos/brand/pen-* — nenhum literal de cor em JSX?
+4. UI assíncrona tem skeleton com a geometria do conteúdo real?
+5. CTAs numa das duas formas oficiais? Eyebrows em mono uppercase?
+6. Sem `console.log`, sem `style` de cor estática?
