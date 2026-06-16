@@ -1,0 +1,183 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - link "Grifo" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - img [ref=e6]
+      - generic [ref=e9]: Grifo
+    - navigation [ref=e10]:
+      - link "Recursos" [ref=e11] [cursor=pointer]:
+        - /url: /#recursos
+      - link "Editor" [ref=e12] [cursor=pointer]:
+        - /url: /tool
+    - generic [ref=e13]:
+      - button "Language" [ref=e15]:
+        - img [ref=e16]
+        - generic [ref=e19]: PT
+        - img [ref=e20]
+      - link "Abrir editor" [ref=e22] [cursor=pointer]:
+        - /url: /tool
+        - text: Abrir editor
+        - img [ref=e23]
+  - main [ref=e25]:
+    - generic [ref=e28]:
+      - paragraph [ref=e29]: Grifo — o editor é a capa · Solte um PDF nesta página
+      - heading "Qualquer PDF vira prática que engaja." [level=1] [ref=e30]:
+        - text: Qualquer PDF vira
+        - text: prática que engaja.
+      - paragraph [ref=e31]: "Solte sua apostila aqui: crie campos sobre a própria página, responda e exporte o PDF preenchido — direto no navegador, sem criar conta."
+      - generic [ref=e32]:
+        - link "Enviar um PDF agora" [ref=e33] [cursor=pointer]:
+          - /url: /tool
+          - img [ref=e34]
+          - text: Enviar um PDF agora
+        - link "Abrir o editor" [ref=e37] [cursor=pointer]:
+          - /url: /tool
+          - text: Abrir o editor
+          - img [ref=e38]
+      - list [ref=e40]:
+        - listitem [ref=e41]:
+          - img [ref=e42]
+          - text: Sem cadastro
+        - listitem [ref=e45]:
+          - img [ref=e46]
+          - text: Nada sai do seu navegador
+        - listitem [ref=e49]:
+          - img [ref=e50]
+          - text: Conforme a LGPD
+    - generic [ref=e56]:
+      - generic [ref=e57]:
+        - paragraph [ref=e58]: O diferencial
+        - heading "Não é só mais um conversor de PDF." [level=2] [ref=e59]
+        - paragraph [ref=e60]: iLovePDF, Smallpdf, PDFFiller resolvem tarefa. O Grifo transforma o PDF em algo vivo — sem subir arquivo pra servidor nenhum.
+      - generic [ref=e61]:
+        - article [ref=e62]:
+          - generic [ref=e63]:
+            - img [ref=e65]
+            - generic [ref=e68]: 0 KB enviados
+          - heading "Zero upload" [level=3] [ref=e69]
+          - paragraph [ref=e70]: Seu PDF é aberto e processado no próprio navegador. Nada trafega, nada fica em log.
+        - article [ref=e71]:
+          - generic [ref=e72]:
+            - img [ref=e74]
+            - generic [ref=e78]: Camadas vetoriais
+          - heading "PDF interativo de verdade" [level=3] [ref=e79]
+          - paragraph [ref=e80]: Campos, marcações e respostas viram parte da página — não um overlay desalinhado.
+        - article [ref=e81]:
+          - generic [ref=e82]:
+            - img [ref=e84]
+            - generic [ref=e86]: < 2s pra abrir
+          - heading "Sem cadastro, sem espera" [level=3] [ref=e87]
+          - paragraph [ref=e88]: Solta o arquivo e já tá editando. Sem fila, sem captcha, sem upsell.
+        - article [ref=e89]:
+          - generic [ref=e90]:
+            - img [ref=e92]
+            - generic [ref=e95]: Compatível com qualquer LMS
+          - heading "Pronto pro professor moderno" [level=3] [ref=e96]
+          - paragraph [ref=e97]: Apostila estática vira atividade preenchível. Aluno responde, exporta e entrega.
+    - generic [ref=e99]:
+      - generic [ref=e100]:
+        - paragraph [ref=e101]: Como funciona
+        - heading "Três passos. Zero atrito." [level=2] [ref=e102]
+      - generic [ref=e103]:
+        - article [ref=e104]:
+          - img [ref=e106]
+          - heading "Solte qualquer PDF" [level=3] [ref=e109]
+          - paragraph [ref=e110]: Apostilas, formulários, provas. O editor abre a página como tela.
+        - article [ref=e111]:
+          - img [ref=e113]
+          - heading "Campos sobre a página" [level=3] [ref=e115]
+          - paragraph [ref=e116]: Posicione inputs, caixas e marcações exatamente onde precisa.
+        - article [ref=e117]:
+          - img [ref=e119]
+          - heading "Exporte preenchido" [level=3] [ref=e122]
+          - paragraph [ref=e123]: Baixe o PDF final com tudo no lugar — pronto para entregar.
+    - generic [ref=e125]:
+      - generic [ref=e126]:
+        - paragraph [ref=e127]: Comparativo honesto
+        - heading "Por que sair do iLovePDF e do PDFFiller." [level=2] [ref=e128]
+        - paragraph [ref=e129]: Ferramentas tradicionais foram feitas pra rodar no servidor delas. O Grifo foi feito pra rodar no seu computador.
+      - generic [ref=e130]:
+        - generic [ref=e131]:
+          - generic [ref=e132]: —
+          - generic [ref=e133]:
+            - img [ref=e134]
+            - text: Grifo
+          - generic [ref=e137]: iLovePDF / PDFFiller
+        - generic [ref=e138]:
+          - generic [ref=e139]: Upload do arquivo pro servidor
+          - generic [ref=e140]:
+            - img [ref=e141]
+            - text: Nunca
+          - generic [ref=e143]:
+            - img [ref=e144]
+            - text: Sempre
+        - generic [ref=e147]:
+          - generic [ref=e148]: Funciona offline depois de carregar
+          - generic [ref=e149]:
+            - img [ref=e150]
+            - text: Sim
+          - generic [ref=e152]:
+            - img [ref=e153]
+            - text: Não
+        - generic [ref=e156]:
+          - generic [ref=e157]: Criar campos preenchíveis sobre a página
+          - generic [ref=e158]:
+            - img [ref=e159]
+            - text: Direto, com snap
+          - generic [ref=e161]:
+            - img [ref=e162]
+            - text: Wizard pago
+        - generic [ref=e165]:
+          - generic [ref=e166]: Exporta PDF final preenchido
+          - generic [ref=e167]:
+            - img [ref=e168]
+            - text: Grátis e ilimitado
+          - generic [ref=e170]:
+            - img [ref=e171]
+            - text: Marca d'água ou paywall
+        - generic [ref=e174]:
+          - generic [ref=e175]: Precisa criar conta
+          - generic [ref=e176]:
+            - img [ref=e177]
+            - text: Não
+          - generic [ref=e179]:
+            - img [ref=e180]
+            - text: Sim, com cartão depois
+    - generic [ref=e184]:
+      - generic [ref=e185]:
+        - paragraph [ref=e186]: Privacidade por padrão
+        - heading "O PDF não sai do seu navegador. Nem o nosso servidor vê." [level=2] [ref=e187]
+        - paragraph [ref=e188]: Todo o processamento — leitura, edição, exportação — acontece localmente. Ideal pra contrato, prontuário, prova e qualquer documento sensível.
+        - link "Testar com um PDF agora" [ref=e189] [cursor=pointer]:
+          - /url: /tool
+          - img [ref=e190]
+          - text: Testar com um PDF agora
+      - list [ref=e193]:
+        - listitem [ref=e194]:
+          - img [ref=e195]
+          - generic [ref=e198]: Renderização local com WebAssembly
+        - listitem [ref=e199]:
+          - img [ref=e200]
+          - generic [ref=e203]: Sem cookies de rastreamento de terceiros
+        - listitem [ref=e204]:
+          - img [ref=e205]
+          - generic [ref=e208]: Compatível com LGPD e RGPD por design
+        - listitem [ref=e209]:
+          - img [ref=e210]
+          - generic [ref=e213]: Código auditável — sem caixa preta
+    - generic [ref=e215]:
+      - heading "Solta um PDF aqui e veja a diferença." [level=2] [ref=e216]
+      - paragraph [ref=e217]: Em menos de dois segundos você vai entender por que professor, advogado e RH tão migrando.
+      - generic [ref=e218]:
+        - link "Abrir o editor" [ref=e219] [cursor=pointer]:
+          - /url: /tool
+          - img [ref=e220]
+          - text: Abrir o editor
+        - link "Ver o painel" [ref=e223] [cursor=pointer]:
+          - /url: /tool
+          - text: Ver o painel
+          - img [ref=e224]
+  - contentinfo [ref=e226]:
+    - generic [ref=e227]:
+      - generic [ref=e228]: Grifo
+      - paragraph [ref=e229]: © 2026 Grifo. Feito no navegador.
