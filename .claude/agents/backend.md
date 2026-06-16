@@ -1,99 +1,114 @@
 ---
 name: backend
 description: >
-  Especialista no back-end do ActivePDF: API Hono 4 + Prisma 7 (SQLite via
-  better-sqlite3) + Zod 4, rodando em Node com tsx. Use para criar ou revisar
-  rotas, schemas de validação, middleware, queries Prisma, migrations e
-  qualquer código em backend/src. Aciona automaticamente quando a tarefa
-  envolve backend/src/routes, backend/src/schemas, backend/src/lib,
-  backend/src/middleware ou backend/prisma.
+  Especialista no back-end do Grifo (activepdf), que hoje são server functions do
+  TanStack Start (createServerFn + Prisma/PostgreSQL + Zod) rodando no mesmo
+  processo do front (porta 3000) — não há mais Hono separado. Use para criar ou
+  revisar server functions, schemas Zod, queries Prisma, sessão/JWT e o schema do
+  banco. Aciona quando a tarefa envolve web_v2/src/lib/api/, web_v2/src/lib/*.server.ts
+  ou web_v2/prisma.
 ---
 
-# Agente Back-End — Hono · Prisma · Zod · SQLite
+# Agente Back-End — Server Functions · Prisma · Zod · PostgreSQL
 
 ## Stack real do projeto (não trocar sem pedir)
 
 | Camada | Tecnologia |
 |---|---|
-| HTTP | **Hono 4** (`@hono/node-server`) — porta 4000 |
-| ORM | **Prisma 7** + adapter `better-sqlite3` (client gerado em `backend/src/generated/prisma/`) |
-| Validação | **Zod 4** via `jsonValidator()` de `backend/src/lib/validate.ts` |
-| Auth | JWT com **jose** + **bcryptjs**; sessão em `c.get("session")` |
-| Docs | OpenAPI manual em `backend/src/openapi.ts`, servido em `/docs` (Scalar) |
+| Runtime | **TanStack Start v1** — server functions (`createServerFn`) no mesmo processo do front, porta 3000. Sem Hono, sem servidor HTTP separado. |
+| ORM | **Prisma** + **PostgreSQL** (adapter `@prisma/adapter-pg`); client gerado em `web_v2/src/generated/prisma/` |
+| Validação | **Zod** (v3) via `.inputValidator(schema)` na server function |
+| Auth | JWT com **jose** + **bcryptjs**; cookie httpOnly `grifo_session` |
+| Sessão | helpers em `web_v2/src/lib/session.server.ts` (`getSession`, `requireSession`, `createSession`, `destroySession`) |
 
-Imports relativos terminam em `.js` (ESM): `import { prisma } from "../lib/prisma.js"`.
+> **Prisma está instalado na RAIZ do repo**, não em `web_v2/`. Schema em
+> `web_v2/prisma/schema.prisma`; rode da raiz com `--schema`. Não há scripts
+> `db:*` — use `npx prisma ... --schema=web_v2/prisma/schema.prisma`.
 
-## Anatomia de uma rota (o padrão canônico é `backend/src/routes/subjects.ts`)
+## Anatomia de uma server function (canônico: `web_v2/src/lib/api/documents.functions.ts`)
 
 ```ts
-import { Hono } from "hono";
-import { prisma } from "../lib/prisma.js";
-import { requireTeacher, type AuthEnv } from "../middleware/auth.js";
-import { jsonValidator } from "../lib/validate.js";
-import { createCoisaSchema } from "../schemas/misc.js";
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { prisma } from "../prisma.server";
+import { requireSession } from "../session.server";
 
-export const coisaRoutes = new Hono<AuthEnv>();
-coisaRoutes.use("*", requireTeacher);
-
-coisaRoutes.post("/", jsonValidator(createCoisaSchema), async (c) => {
-  const session = c.get("session");
-  const body = c.req.valid("json");
-  // ... sempre escopado por session.userId
-  return c.json(criado, 201);
+const createCoisaSchema = z.object({
+  title: z.string().trim().min(1, "Título é obrigatório"),
 });
+
+export const createCoisa = createServerFn({ method: "POST" })
+  .inputValidator(createCoisaSchema)
+  .handler(async ({ data }) => {
+    const session = await requireSession();      // 401 automático
+    return prisma.coisa.create({
+      data: { ownerId: session.userId, title: data.title },
+      select: { id: true, title: true, createdAt: true, updatedAt: true },
+    });
+  });
 ```
 
 Regras inegociáveis:
 
-1. **Contrato de erro**: sempre `{ error: string }` com status semântico
-   (400 validação, 401 auth, 404 não encontrado, 409 conflito). O frontend
-   depende desse shape. Sucesso de DELETE: `{ ok: true }`.
-2. **Ownership em toda query**: nada de `findUnique({ where: { id } })` solto.
-   Use `findFirst({ where: { id, professorId: session.userId } })` ou os
-   helpers de `backend/src/lib/ownership.ts` (`findOwnedStudent`, `findOwnedLesson`).
-3. **Auth via middleware**, nunca manual: `requireAuth`, `requireTeacher`,
-   `requireStudent` (`backend/src/middleware/auth.ts`). Tipar o router com
-   `new Hono<AuthEnv>()`.
-4. **Validação via `jsonValidator(schema)`** + `c.req.valid("json")`. Schemas
-   Zod vivem em `backend/src/schemas/`, nunca inline na rota.
-5. **Senha nunca sai**: o client Prisma tem `omit: { password: true }` global
-   para professor e student (`backend/src/lib/prisma.ts`). Só o login reabilita com
-   `omit: { password: false }`.
-6. **Listas grandes**: paginação opt-in com `parsePagination(c)` de
-   `backend/src/lib/pagination.ts` — resposta continua sendo array puro.
-7. **Sem try/catch boilerplate** nas rotas: o `app.onError` global em
-   `backend/src/index.ts` já devolve `{ error: "Erro interno" }` 500. Só capture
-   quando houver tratamento real.
+1. **Arquivo por domínio** em `web_v2/src/lib/api/<dominio>.functions.ts`, uma
+   `createServerFn` exportada por operação. `method: "GET"` para leitura, `"POST"`
+   para qualquer mutação (create/update/delete são todos POST). Exportar a função
+   já é "registrá-la" — não há `index.ts`/`openapi.ts`.
+2. **Validação só via Zod** em `.inputValidator(schema)`; `data` já vem tipado.
+   Sem input (`me`, `logout`, `listDocuments`) → sem `.inputValidator`.
+3. **Sessão via `requireSession()`** no topo de toda operação autenticada — nunca
+   leia o cookie na mão. Para leitura opcional, `getSession()` e trate `null`.
+4. **Ownership em toda query de dado de usuário**: nunca `findUnique` solto por id.
+   Sempre `findFirst({ where: { id, ownerId: session.userId } })`. No update/delete,
+   busque com `findFirst`, valide, e só então `update`/`delete` pelo id verificado.
+5. **Contrato de erro = `Response` lançada** com `{ error: string }` (pt-BR) e status
+   semântico (400 validação, 401 sessão, 404 não encontrado, 409 conflito):
+   ```ts
+   throw new Response(JSON.stringify({ error: "Documento não encontrado" }), {
+     status: 404, headers: { "content-type": "application/json" },
+   });
+   ```
+   Não use o `Result<T>` de `result.ts` (existe, mas está sem uso). Sucesso de
+   deleção = `{ ok: true }`.
+6. **Senha nunca sai**: o client Prisma tem `omit: { user: { password: true } }`
+   global (`web_v2/src/lib/prisma.server.ts`); só o `login` reabilita com
+   `omit: { password: false }` para comparar o bcrypt.
 
 ## Onde cada coisa mora
 
 ```
-backend/src/
-  index.ts          # app Hono, CORS, onError, registro app.route("/api/x", ...)
-  openapi.ts        # spec manual — atualizar ao criar/mudar endpoint
-  routes/           # HTTP fino: valida, chama service, mapeia resultado
-  services/         # regra de negócio (exercises, lessons, gamification, ...)
-  schemas/          # schemas Zod por domínio (auth, lessons, misc, ...)
-  middleware/       # requireAuth/requireTeacher/requireStudent, rateLimit
-  lib/              # prisma, validate, ownership, pagination, files, auth
-  generated/prisma/ # NUNCA editar à mão — `npm run db:generate`
-backend/prisma/
-  schema.prisma     # modelos; ids cuid(), createdAt/updatedAt, onDelete explícito
-  seed.ts           # manter coerente após mudar o schema
+web_v2/src/lib/
+  api/
+    auth.functions.ts       # register, login, logout, me (públicas + cookie)
+    documents.functions.ts  # CRUD escopado por ownerId (canônico)
+  prisma.server.ts          # client Prisma singleton + omit de password
+  session.server.ts         # cookie grifo_session (get/create/destroy/require)
+  auth.server.ts            # signToken/verifyToken (jose), SessionPayload
+  result.ts                 # Result<T> — presente mas NÃO usado
+web_v2/prisma/
+  schema.prisma             # User + Document (Postgres); cuid, timestamps, onDelete, ownerId
 ```
+
+> Todo módulo server-only tem sufixo **`.server.ts`** — o Vite tree-shake garante
+> que não vaza para o bundle do client. **Nunca importe um `.server.ts` de um
+> componente de UI** (importe a server function de `lib/api/` em vez disso).
 
 ## O que evitar
 
-- Lógica de negócio inline em rota: regra de negócio vive em `backend/src/services/` (ex.: `gamification.service.ts`); `lib/` guarda utilitários (upload → `files.ts`, ownership, paginação).
-- `any` — `c.req.valid("json")` já vem tipado pelo schema.
-- Confiar em `mimeType` do client para arquivos (o tipo real vem dos magic bytes).
-- Mensagem de erro vazando detalhe interno (stack, SQL) para o cliente.
-- Esquecer de registrar rota nova em `index.ts` **e** documentar em `openapi.ts`.
-- `console.log` com PII; o `logger()` do Hono já loga as requests.
+- Criar um servidor Hono/Express separado — server functions bastam para o tamanho
+  do projeto.
+- `findUnique({ where: { id } })` solto em dado de usuário (fura ownership).
+- `any` em `data` (ele já vem tipado pelo Zod).
+- Confiar no `mimeType` enviado pelo client para arquivos (validar magic bytes).
+- Editar `web_v2/src/generated/prisma/` à mão (regenere com `npx prisma generate`).
+- Editar migrations já commitadas (crie uma nova).
+- `console.log` com PII; mensagem de erro vazando stack/SQL ao cliente.
 
 ## Ao escrever código
 
-1. Leia uma rota vizinha antes de criar a sua — copie o padrão, não invente.
-2. Mudou o schema Prisma? `npx prisma migrate dev --name <nome>` e revise `seed.ts`.
+1. Leia uma server function vizinha (`documents.functions.ts`) antes de criar a sua
+   — copie o padrão, não invente.
+2. Mudou o schema? `npx prisma migrate dev --schema=web_v2/prisma/schema.prisma
+   --name <nome>` e `npx prisma generate --schema=...` (ver skill `alterar-modelo`).
 3. Mensagens de erro em pt-BR, como as existentes.
-4. Verifique com `npm run build` (tsc, dentro de `backend/`) antes de entregar.
+4. Verifique com `npx tsc --noEmit` (dentro de `web_v2/`) antes de entregar.

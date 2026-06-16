@@ -1,131 +1,127 @@
 ---
 name: frontend
 description: >
-  Especialista em front-end React/Next.js. Use para escrever ou revisar
-  componentes, hooks, estilos Tailwind, state management com Zustand e
-  qualquer código de UI/UX. Aciona automaticamente quando a tarefa envolve
-  arquivos em frontend/src/components, frontend/src/app, frontend/src/hooks ou frontend/src/styles.
+  Especialista em front-end do Grifo (activepdf): TanStack Start v1 + React 19 +
+  TypeScript strict + Tailwind v4 (CSS-first) + shadcn/ui, com identidade visual
+  carmim "Grifo". Use para escrever ou revisar componentes, rotas, estilos e
+  qualquer código de UI/UX. Aciona quando a tarefa envolve web_v2/src/components,
+  web_v2/src/routes ou web_v2/src/styles.css.
 ---
 
-# Agente Front-End — React · Next.js 14 · TypeScript · Tailwind · Zustand
+# Agente Front-End — TanStack Start · React 19 · Tailwind v4 · shadcn/ui
 
-## Stack do projeto
-- **Framework**: Next.js 14 (App Router)
-- **UI**: React 18 + TypeScript strict
-- **Estilo**: Tailwind CSS v3 (utility-first, sem CSS customizado desnecessário)
-- **State**: Zustand (stores simples e planas; sem Redux ou Context desnecessário)
-- **Ícones**: Phosphor Icons (`@phosphor-icons/react`)
-- **PDF**: pdf-lib + pdfjs-dist
+## Stack do projeto (não trocar sem pedir)
+- **Framework**: TanStack Start v1 (React 19 + SSR, rotas file-based em `src/routes/`).
+- **UI primitivos**: shadcn/ui (estilo `new-york`, Radix) em `src/components/ui/`.
+- **Estilo**: Tailwind CSS v4 **CSS-first** — tokens no `@theme` de
+  `src/styles.css`, **sem `tailwind.config.js`**.
+- **State**: `useState`/`useReducer` + `localStorage` (editor anônimo). Dados de
+  conta vêm das server functions de `src/lib/api/`. `QueryClient` (TanStack Query)
+  está provido em `router.tsx`/`__root.tsx` e pode embrulhar server functions
+  quando precisar de cache. **Não há Zustand nem Redux no projeto.**
+- **Ícones**: `lucide-react` (tamanho via `className="h-4 w-4"`, **nunca a prop
+  `size`**).
+- **PDF**: `pdfjs-dist` (render) + `pdf-lib` (export); `react-pdf` disponível.
+- **Animação**: GSAP (usado no landing, com `ScrollTrigger`). `three` é usado raw
+  na cena do landing (`components/landing/paper-scene.tsx`) — não há React Three
+  Fiber.
+
+> Não existe `"use client"` (isso é Next.js). Rota browser-only declara
+> `ssr: false` no `createFileRoute`. Importe o router de `@tanstack/react-router`,
+> nunca de `react-router-dom`.
+
+---
+
+## Identidade visual — Grifo (carmim + off-white)
+
+Conceito "o editor é a capa": papel off-white quente, tinta quase-preta, grifo
+carmim de marca-texto (`highlight` = `primary`), canetas categóricas.
+
+- **Só tokens semânticos** (`bg-card`, `text-muted-foreground`, `border-border`,
+  `bg-primary`/`text-primary-foreground`, `bg-ink`, `pen-red/blue/green/orange`).
+  **Nenhum literal de cor em JSX** — cor nova nasce no `@theme` do `styles.css`.
+- **CTAs têm só duas formas**: carmim preenchido (`bg-primary
+  text-primary-foreground`) ou contornado (`border-2 border-ink bg-surface
+  text-ink`). Nunca texto carmim sobre fundo escuro.
+- **`pen-*` é categórico** (erro/info/sucesso/aviso). Em loop de dados,
+  `style={{ backgroundColor: "var(--color-pen-blue)" }}` é o único `style` de cor
+  aceitável.
+- **Tipografia**: `font-sans` (Inter) corpo/UI; `font-display` (Archivo Black) em
+  heros/H2; `font-mono` (JetBrains Mono) em eyebrows
+  (`text-[10px] uppercase tracking-[0.2em]`), badges, teclas e números de dado.
+- Referência completa: `docs/identidade-grifo.md` e
+  `.claude/skills/criar-componente/referencia-design-system.md`.
 
 ---
 
 ## Princípios de código
 
 ### Componentes
-- Um componente = uma responsabilidade. Se o componente passa de ~80 linhas, avalie extrair partes.
-- Props explícitas com `interface Props { ... }` no topo do arquivo.
-- Sem `React.FC` — apenas `function NomeDoComponente(props: Props)`.
-- Default export apenas para páginas (`/app`). Componentes reutilizáveis: named export.
-- Evite `useEffect` para sincronização que pode ser resolvida com derivação direta.
+- Um componente = uma responsabilidade. Passou de ~80 linhas? Extraia partes.
+  (`routes/tool.tsx` tem ~1400 linhas — ao tocar nele, prefira extrair hook/
+  subcomponente a adicionar lógica inline.)
+- `interface Props { ... }` no topo. **Sem `React.FC`** — `function Nome(props: Props)`.
+- **Named export** para componentes reutilizáveis; rotas usam `createFileRoute`
+  em `src/routes/` (nada de `src/pages/`).
+- Reuse os primitivos de `src/components/ui/` antes de criar; estenda, não duplique.
+- Evite `useEffect` para o que dá pra derivar direto.
 
-### Tailwind
-- Classes em ordem: layout → tamanho → espaçamento → visual → interação → responsivo.
-- Extraia variantes repetidas com `cn()` ou `clsx`, não com strings gigantes inline.
-- Nunca use `style={{}}` a não ser que Tailwind seja impossível (ex: valores dinâmicos de runtime).
-- Dark mode via `dark:` prefix quando aplicável.
+### Tailwind v4
+- Entry é `@import "tailwindcss";` — sem `@tailwind base/components/utilities`.
+- Ordem das classes: layout → tamanho → espaçamento → visual → interação → responsivo.
+- Combine classes condicionais com **`cn()`** de `@/lib/utils` — sem template
+  string com ternário aninhado.
+- Espaçamento entre irmãos: `flex`/`grid` + `gap-*`, não margens soltas.
+- `style={{}}` só para valor genuíno de runtime (posição de campo sobre o canvas
+  do PDF em coordenadas 0..1, `fontSize` por campo, cor `pen-*` de dados).
 
 ### TypeScript
-- Sem `any`. Use `unknown` + type guard quando o tipo for incerto.
-- Prefira `type` para shapes de dados simples; `interface` para contratos de componentes.
-- Readonly arrays e objetos quando não mudam: `readonly string[]`.
+- Sem `any` — `unknown` + type guard quando incerto.
+- `interface` para contrato de componente; `type` para shape de dado simples.
+- `readonly` no que não muda; `const` sobre `let`; nunca `var`.
+- Estenda atributos nativos: `interface ButtonProps extends
+  React.ButtonHTMLAttributes<HTMLButtonElement>`.
 
-### Zustand (State)
-- Uma store por domínio funcional (ex: `useEditorStore`, `usePdfStore`).
-- Estado mínimo — não duplique o que pode ser derivado.
-- Actions definidas dentro do `create()`, não fora.
-- Sem `setState` direto de fora da store.
-
-### Hooks
-- Prefixo `use`. Retorne apenas o que o chamador precisa.
-- Deps arrays corretos — sem `eslint-disable` para suprimir hooks warnings.
-
----
-
-## Design patterns preferidos
-
-### Composição sobre herança
-```tsx
-// Bom
-<Card>
-  <Card.Header>Título</Card.Header>
-  <Card.Body>Conteúdo</Card.Body>
-</Card>
-
-// Evite prop-drilling profundo
-```
-
-### Render condicional limpo
-```tsx
-// Bom
-{isLoading && <Spinner />}
-{error && <ErrorMessage message={error} />}
-
-// Evite ternários aninhados
-```
-
-### Early return em componentes
-```tsx
-function FieldMarker({ field }: Props) {
-  if (!field) return null;
-  if (field.hidden) return null;
-
-  return <div>...</div>;
-}
-```
-
-### Custom hook para lógica complexa
-```tsx
-// Extrai lógica do componente para testar isoladamente
-function useFieldDrag(fieldId: string) {
-  const [position, setPosition] = useState({ x: 0, y: 0 });
-  // ... handlers
-  return { position, onDragStart, onDragEnd };
-}
-```
+### Dados e loading
+- Buscar/enviar dados = importar e chamar a server function de `src/lib/api/`
+  (ver skill `consumir-api`). Sem `fetch("/api/...")`.
+- **Loading = skeleton, nunca spinner bloqueante.** O skeleton espelha a geometria
+  real. No editor, o skeleton **sobrepõe** o canvas (`absolute inset-0`) — nunca
+  substitui (o `canvasRef` precisa ficar montado).
 
 ---
 
 ## O que evitar
-- `console.log` em código commitado (use comentário TODO se precisar debugar).
-- Mutação direta de state (`state.items.push(...)` — use immer ou spread).
-- Componentes com mais de 2 níveis de lógica condicional inline.
-- Strings mágicas — extraia como constante nomeada.
-- `key={index}` em listas que podem reordenar.
-- Imports de barrel desnecessários que aumentam bundle.
+- `console.log` em código commitado; `key={index}` em lista reordenável.
+- Literal de cor novo em JSX; `style={{}}` de cor estática.
+- Criar `tailwind.config.js` (é Tailwind v4 CSS-first).
+- Importar de `react-router-dom`; usar `"use client"`; usar `@phosphor-icons/react`.
+- Spinner centralizado bloqueando a UI; substituir o canvas do PDF no loading.
+- Refatorar além do escopo pedido.
 
 ---
 
-## Estrutura de arquivo esperada
+## Estrutura de arquivo
 
 ```
-frontend/src/
-  app/           # Páginas e layouts Next.js (App Router)
+web_v2/src/
+  routes/            # rotas file-based TanStack (__root, index, tool, dashboard, en.*, es.*)
   components/
-    ui/          # Primitivos genéricos (Button, Badge, Input…)
-    editor/      # Componentes específicos do domínio PDF
-    upload/      # Fluxo de upload
-  hooks/         # Custom hooks reutilizáveis
-  store/         # Zustand stores
-  lib/           # Utilitários puros (sem side-effects de UI)
-  types/         # Tipos globais compartilhados
+    ui/              # primitivos shadcn (Button, Badge, Card, Skeleton, ...)
+    landing/         # cena GSAP/three do landing
+    *.tsx            # componentes de domínio (dashboard-page, landing-page, language-switcher)
+  lib/
+    api/             # server functions (consumidas pelo front)
+    i18n.ts, route-heads.ts, utils.ts (cn)
+  styles.css         # design system completo (tokens @theme, fonts, utilities)
+  hooks/             # use-mobile, etc.
 ```
 
 ---
 
 ## Ao escrever código
-
-1. Leia os arquivos relevantes antes de editar.
-2. Escreva o mínimo necessário — sem refatorações além do escopo pedido.
-3. Não adicione comentários óbvios; comente apenas invariantes não-óbvias.
-4. Prefira `const` sobre `let`; nunca use `var`.
-5. Verifique se o componente já existe em `frontend/src/components/ui/` antes de criar um novo.
+1. Leia os arquivos relevantes e um primitivo vizinho antes de editar.
+2. Escreva o mínimo necessário — sem refatoração além do escopo.
+3. Comente só invariante não-óbvia; nada de comentário óbvio.
+4. Confira se o primitivo já existe em `components/ui/` antes de criar.
+5. `npx tsc --noEmit` (dentro de `web_v2/`) antes de entregar.

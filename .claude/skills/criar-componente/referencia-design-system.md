@@ -1,43 +1,60 @@
-# Referência do Design System v2 — Grifo (Folha & Caneta)
+# Referência do Design System — Grifo (carmim + off-white)
 
-Fonte da verdade: `frontend/src/app/globals.css` (`@layer components` + CSS vars)
-e `frontend/tailwind.config.js`. Identidade completa: `docs/identidade-grifo.md`.
-Este arquivo é o resumo consultável para criar componentes.
+Fonte da verdade: `web_v2/src/styles.css` (tokens `@theme` + variáveis oklch em
+`:root`). Conceito e voz: `docs/identidade-grifo.md`. Referência completa de
+tokens, tipografia e blueprints: `docs/design-system-grifo.md`. Este arquivo é o
+resumo consultável para criar componentes.
+
+> **Tailwind v4, CSS-first.** Não existe `tailwind.config.js`. Os tokens são CSS
+> custom properties no `@theme` de `styles.css`; cada `--color-<nome>` vira as
+> utilities `bg-<nome>`, `text-<nome>`, `border-<nome>`. Cor nova = adicionar a
+> variável em `:root` e registrá-la no `@theme inline` **antes** de usar em JSX.
 
 ---
 
-## Tokens de cor (Tailwind)
+## Tokens de cor (semânticos — use estes, nunca um hex)
 
-| Classe Tailwind | Valor | Uso |
+Todas as cores são **oklch**. Identidade: papel off-white quente, tinta
+quase-preta, grifo carmim (`highlight` = `primary`, mesma cor), canetas
+categóricas.
+
+| Token / classe | oklch (`:root`) | Uso |
 |---|---|---|
-| `bg-pen` `text-pen` `border-pen` | `#0B5FFF` | **Ação primária** (caneta azul): botões, links ativos, lacunas do PDF |
-| `bg-pen-dark` | `#0A4ED6` | Hover do botão primário |
-| `bg-pen-light` `border-pen-light` | `#EBF1FF` | Fundo de item ativo/selecionado |
-| `text-ink` | `#16181D` | Títulos e texto principal (tinta) |
-| `text-ink-soft` | `#4A4F57` | Parágrafos / labels |
-| `text-ink-muted` | `#8B9097` | Placeholder, texto muted |
-| `bg-paper` | `#F7F7F5` | Fundo de página (papel) |
-| `border-line` / `border-line-strong` | `#E5E5E1` / `#D2D2CC` | Bordas de cards/inputs (pauta) |
-| `bg-correction` `text-correction` | `#DE2B1F` | **SÓ correção e erro** — caneta vermelha do professor |
-| `bg-correction-light` | `#FDEDEB` | Fundo de erro/destrutivo suave |
-| `bg-marker` | `#FFD64D` | **SÓ gamificação e marca** — marca-texto |
-| `bg-marker-light` | `#FFF6D6` | Fundo suave de XP/streak |
+| `bg-background` | `0.98 0.006 75` (off-white quente) | Fundo de página |
+| `bg-surface` / `bg-card` | `1 0 0` (branco) | Superfícies, cartões |
+| `text-foreground` / `text-ink` / `bg-ink` | `0.2 0.012 55` (preto quente) | Texto principal, borda de tinta |
+| `bg-primary` / `text-primary-foreground` | `0.47 0.18 21` / `0.98 0.006 75` | **Carmim da marca** + creme: CTA primário, item ativo |
+| `bg-highlight` / `text-highlight` | mesmo carmim / creme | Grifo de marca-texto, destaque (= primary) |
+| `bg-secondary` / `bg-muted` | `0.96 0.008 60` | Neutros de apoio |
+| `text-muted-foreground` | `0.46 0.02 40` | Texto secundário, eyebrow, placeholder |
+| `bg-accent` | `0.95 0.025 25` (carmim levíssimo) | Bandas/realces sutis de seção |
+| `border-border` / `border-input` | `0.9 0.008 60` | Bordas de card/input (pauta) |
+| `ring-ring` | carmim `0.47 0.18 21` | Focus ring |
+| `bg-destructive` / `text-destructive-foreground` | `0.55 0.22 25` / creme | Ação destrutiva |
 
-`brand` (DEFAULT/dark/light) é **alias legado** de `pen` — não usar em código
-novo; a varredura da Sprint 6 remove. Escala `slate-*` é legada: prefira
-`ink`/`line`/`paper` em código novo.
+### Canetas categóricas (`pen-*`) — significado fixo, não decoração
 
-**Sombras**: `shadow-xs`, `shadow-card`, `shadow-pen`, `shadow-pen-hover`
-(aliases legados: `shadow-brand*`), `shadow-success`.
+| Classe | oklch | Significado |
+|---|---|---|
+| `pen-red` | `0.55 0.2 25` | Erro, alerta, tag "caneta vermelha" |
+| `pen-blue` | `0.52 0.16 245` | Info / matéria exata |
+| `pen-green` | `0.6 0.15 150` | Sucesso, grátis, recomendado |
+| `pen-orange` | `0.7 0.16 55` | Destaque, aviso |
 
-**Background especial**: `bg-upload-gradient` (pen-light → paper → marker-light;
-o único gradiente sancionado).
+Em **loop de dados** (a cor vem do dado), use
+`style={{ backgroundColor: "var(--color-pen-blue)" }}` — único `style` de cor
+aceitável. Fora disso, prefira a classe utilitária.
 
-### Semântica de sala de aula (não negociar)
+### Regras inegociáveis de cor
 
-- `pen` = quem faz (uma cor de ação por tela).
-- `correction` = quem corrige; **nunca decora**.
-- `marker` = a marca grifando; só wordmark, herói do marketing e XP/conquistas.
+1. **CTAs têm só duas formas**: carmim preenchido
+   (`bg-primary text-primary-foreground`) ou contornado
+   (`border-2 border-ink bg-surface text-ink`). Nunca texto carmim sobre escuro.
+2. **`pen-*` é categórico** — cada caneta tem um papel fixo (erro/info/sucesso/aviso).
+3. **Nenhum literal de cor em JSX** (`#...`, `rgb(...)`, `bg-[#...]`) — token novo
+   nasce no `@theme` do `styles.css`.
+4. O carmim `highlight` é a assinatura: marca o wordmark e pinta UMA palavra-chave
+   por hero (`.text-highlight-mark`). Usado com parcimônia; o fundo é off-white.
 
 ---
 
@@ -45,107 +62,81 @@ o único gradiente sancionado).
 
 | Classe | Fonte | Uso |
 |---|---|---|
-| `font-sans` (padrão) | Instrument Sans | UI e corpo |
-| `font-display` | Bricolage Grotesque | Títulos, números de destaque, wordmark |
-| `font-mono` | Spline Sans Mono | XP, scores, contadores, nomes de arquivo |
+| `font-sans` (padrão) | Inter | UI e corpo |
+| `font-display` | Archivo Black | Heros e H2 de seção (tracking -0.03em, line-height 0.95) |
+| `font-mono` | JetBrains Mono | Eyebrows em caps, badges, teclas, contadores, nomes de arquivo |
 
-Números de dados sempre em `font-mono` (tabular por natureza).
-
----
-
-## Classes de componente (`.ui-*`) — use estas, não recrie
-
-### Assinatura da marca
-```
-.ui-marker           grifo de marca-texto atrás do texto (amarelo)
-                     USO RARO: wordmark, 1 palavra-chave no herói, gamificação
-```
-
-### Botões
-```
-.ui-btn                         base (todo botão herda)
-.ui-btn-xs / -sm / -md / -lg    tamanhos
-.ui-btn-primary                 pen sólido, texto branco  ← 1 por tela
-.ui-btn-secondary               branco + borda line
-.ui-btn-ghost                   transparente + borda line
-.ui-btn-outline                 borda pen, fundo transparente
-.ui-btn-danger                  correction suave (hover vira sólido)
-.ui-btn-success                 emerald sólido
-.ui-btn-mode                    toggle (Editar / Preencher) — usa data-active
-.ui-btn-page-nav                navegação de página do PDF
-.ui-export-btn                  seletor de modo de exportação — usa data-active
-```
-Uso: `className="ui-btn ui-btn-primary ui-btn-md"`. Em React, prefira o
-componente `<Button variant="primary" size="md">` de `frontend/src/components/ui/`.
-
-### Badges v2 — carimbos de status
-Caixa alta + tracking + canto `4px`: lê-se como carimbo, não pílula.
-```
-.ui-badge            base
-.ui-badge-sm / -md   tamanhos
-.ui-badge-brand      pen (ex: "Aguardando exercício")
-.ui-badge-success    emerald (Concluído)
-.ui-badge-warning    marker-light/amber (Em andamento)
-.ui-badge-error      correction (erro, corrigido com ressalvas)
-.ui-badge-neutral    ink/line (tags neutras, vocabulário)
-```
-
-### Inputs
-```
-.ui-input            input / select / textarea (borda line, focus ring pen)
-```
-
-### Itens de lista / navegação
-```
-.ui-field-item       item de campo no painel do editor (usa data-selected)
-.ui-menu-item        item de menu lateral/aside (usa data-active, data-danger)
-```
-
-### Divisores e loaders
-```
-.ui-divider          divisor vertical (22px) — usado no header
-.ui-divider-h        divisor horizontal
-.ui-spinner          spinner CSS puro (passe width/height/borderWidth via style)
-```
-
-### Estados via atributo (não via classe extra)
-- `data-active="true"` → `.ui-btn-mode`, `.ui-export-btn`, `.ui-menu-item`
-- `data-selected="true"` → `.ui-field-item`
-- `data-danger="true"` → `.ui-menu-item`
-- `:disabled` já tratado nas classes de botão/input.
+Eyebrow padrão: `font-mono text-[10px] uppercase tracking-[0.2em]`. Números de
+dados (contagens, notas) sempre em `font-mono`.
 
 ---
 
-## Padrões de layout reutilizados
+## Primitivos shadcn (`web_v2/src/components/ui/`) — use estes, não recrie
 
-| Elemento | Receita Tailwind |
-|---|---|
-| **Header** (todas as páginas) | `h-[52px] bg-white border-b border-line shadow-[0_1px_0_rgba(0,0,0,0.04)]` |
-| **Card de navegação** (dashboard) | `p-4 bg-white rounded-2xl border border-line` + hover `border-pen` |
-| **Card de formulário** | `p-5 bg-white rounded-2xl border border-line flex flex-col gap-3.5` |
-| **Container de CRUD** | `max-w-lg mx-auto px-4 py-8 animate-fadeUp` |
-| **Label de form** | `text-xs font-semibold text-ink-soft` |
-| **Erro inline** | `px-3 py-2.5 rounded-lg bg-correction-light border border-correction/25 text-sm text-correction` |
-| **Modal** | `fixed inset-0 z-50` + backdrop blur; conteúdo em card branco `rounded-2xl` |
-| **Lacuna sobre o PDF** | `.field-marker` (CSS vars `--field-*`, traço pen) |
+Catálogo `new-york` completo (Radix por baixo). Os mais usados:
 
----
+| Componente | Import | Notas |
+|---|---|---|
+| `Button` | `@/components/ui/button` | `cva`: `variant` = `default`(carmim)/`outline`/`secondary`/`ghost`/`link`/`destructive`; `size` = `default`/`sm`/`lg`/`icon`. Suporta `asChild` (para `<Link>`). |
+| `Badge` | `@/components/ui/badge` | `variant` = `default`/`secondary`/`destructive`/`outline`. |
+| `Card` | `@/components/ui/card` | `Card`, `CardHeader`, `CardTitle`, `CardContent`, `CardFooter`. |
+| `Input` / `Textarea` / `Label` | `@/components/ui/input` … | Inputs com `border-input` + focus ring. |
+| `Skeleton` | `@/components/ui/skeleton` | `animate-pulse rounded-md bg-primary/10` — loading. |
+| `Dialog` / `Sheet` / `Drawer` | idem | Overlays Radix. |
+| `Select` / `Tabs` / `Tooltip` / `DropdownMenu` | idem | Primitivos Radix prontos. |
 
-## Ícones (Phosphor)
+Padrão de todo primitivo (siga ao criar um novo): `forwardRef`, variantes via
+`cva`, classes via `cn()`, `export { Componente, componenteVariants }`.
 
 ```tsx
-import { Upload, MagnifyingGlass, Trash, CheckCircle, Highlighter } from "@phosphor-icons/react";
+// CTA primário (carmim filled) usando o Button + Link
+import { Button } from "@/components/ui/button";
+import { Link } from "@tanstack/react-router";
+
+<Button asChild>
+  <Link to="/tool">Enviar um PDF</Link>
+</Button>
+
+// CTA contornado (ink-bordered) via variant outline + override
+<Button variant="outline" className="border-2 border-ink bg-surface text-ink">
+  Ver exemplo
+</Button>
 ```
-- Tamanho 14–18px em linha/botão; 24–30px em destaque; ~58px em empty state.
-- `weight="bold"` para realces; padrão `regular` no resto.
-- Cor herda de `currentColor` — controle pela classe de texto do container.
-- **Logo**: componente `<Logo />` (`frontend/src/components/ui/Logo.tsx`) —
-  bloco `ink` com `Highlighter` em `marker` + wordmark "Grifo" grifado
-  (`.ui-marker`). Não montar logo à mão.
+
+---
+
+## Assinatura visual (utilities de `styles.css`)
+
+- `.text-highlight-mark` — grifo de marca-texto: palavra creme sobre carmim
+  (`color` + `background` + `box-shadow` simétrico). Uso raro: wordmark, 1
+  palavra-chave do hero, gamificação.
+- `.font-display` / `.font-mono` — definidas em `@layer base`.
+- Cantos pesados (`rounded-xl`/`rounded-2xl`), borda de tinta (`border-2
+  border-ink`), chip de caneta (ícone claro sobre bloco `pen-*` arredondado).
+
+### Logo / wordmark
+
+Bloco `bg-primary` arredondado com `<Highlighter />` (lucide) em
+`text-primary-foreground`, ao lado do wordmark "Grifo" com marca-texto carmim
+(`.text-highlight-mark`). Veja `dashboard-page.tsx` (`Logo`) e
+`docs/design-system-grifo.md` §5 — não monte logo à mão.
+
+---
+
+## Ícones (lucide-react)
+
+```tsx
+import { Upload, Search, Trash2, CheckCircle, Highlighter } from "lucide-react";
+```
+
+- **Tamanho via `className="h-4 w-4"` — nunca a prop `size`.**
+- Cor herda de `currentColor` (controlada pela classe de texto do container).
+- `h-4 w-4` em linha/botão; `h-5 w-5`+ em destaque.
 
 ---
 
 ## Tipos compartilhados
 
-`frontend/src/types.ts` tem os contratos do domínio (ex.: `PdfField`). Importe
-de lá em vez de redeclarar. Tipos só de um componente ficam no próprio arquivo.
+Tipos de domínio do editor (ex.: `Field`, `FieldType`) vivem junto do código que
+os usa (`web_v2/src/routes/tool.tsx`). Tipos de retorno de server function podem ser
+derivados com `Awaited<ReturnType<typeof minhaServerFn>>` em vez de redeclarar.

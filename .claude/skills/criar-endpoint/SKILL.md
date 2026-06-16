@@ -1,114 +1,145 @@
 ---
 name: criar-endpoint
 description: >
-  Passo a passo para criar ou alterar QUALQUER endpoint da API do ActivePDF
-  (Hono 4 + Prisma 7 + Zod 4). Use sempre que a tarefa for criar uma rota,
-  adicionar um método a um recurso existente, validar um body novo ou expor
-  dados do Prisma — garante schema Zod em backend/src/schemas, ownership por
-  professorId/studentId, contrato de erro { error }, registro em index.ts e
-  documentação em openapi.ts.
+  Passo a passo para criar ou alterar QUALQUER operação de back-end do Grifo
+  (activepdf) — que agora são server functions do TanStack Start
+  (createServerFn + Zod + Prisma), não mais rotas Hono. Use sempre que a tarefa
+  for criar uma operação, adicionar um método a um domínio existente, validar um
+  input novo ou expor dados do Prisma — garante schema Zod via .inputValidator,
+  ownership por ownerId, sessão via requireSession() e o contrato de erro
+  (Response lançada com { error }).
 ---
 
-# Criar endpoint — Hono + Prisma + Zod (ActivePDF)
+# Criar / alterar uma server function (Grifo — TanStack Start)
 
-Siga este fluxo toda vez que criar ou alterar um endpoint. O objetivo é que
-**toda rota saia idêntica em forma às existentes** — `backend/src/routes/subjects.ts`
-é o exemplo canônico; em caso de dúvida, copie dele.
+> **Não existe mais backend Hono separado.** Toda a lógica de servidor roda no
+> mesmo processo do TanStack Start (porta 3000) como **server functions**
+> (`createServerFn`). Não há `app.route(...)`, nem `index.ts` de registro, nem
+> `openapi.ts`. Uma função exportada já é o "endpoint": o cliente a chama direto.
+
+Siga este fluxo toda vez que criar ou alterar uma operação. O objetivo é que
+**toda server function saia idêntica em forma às existentes** —
+`web_v2/src/lib/api/documents.functions.ts` é o exemplo canônico de CRUD com
+sessão; `auth.functions.ts` é o canônico de fluxo público + cookie.
 
 ## 0. Antes de escrever
 
-- O recurso já tem arquivo em `backend/src/routes/`? Adicione o método lá, não crie
-  arquivo novo.
-- A query já existe como helper? Confira `backend/src/services/` (gamification, exercises, lessons),
-  `backend/src/lib/ownership.ts`,
-  `backend/src/lib/files.ts`.
-- Quem pode chamar? Professor (`requireTeacher`), aluno (`requireStudent`) ou
-  ambos (`requireAuth` + checagem de `session.role` dentro da rota).
+- O domínio já tem arquivo em `web_v2/src/lib/api/`? Adicione a função lá, não
+  crie arquivo novo. Um arquivo por domínio: `auth.functions.ts`,
+  `documents.functions.ts`, …
+- Helpers de servidor (sessão, prisma, jwt) já existem em `web_v2/src/lib/*.server.ts`.
+  Nunca releia cookie nem instancie Prisma na mão.
+- Quem pode chamar? Operação pública (register/login) ou autenticada
+  (`requireSession()` no topo do handler).
 
-## 1. Schema Zod em `backend/src/schemas/`
+## 1. Anatomia de uma server function
 
-Todo body validado vive em `backend/src/schemas/<dominio>.ts` (recursos pequenos
-ficam em `misc.ts`). Mensagens em pt-BR, `trim()` em strings de nome/título:
+Arquivo: `web_v2/src/lib/api/<dominio>.functions.ts`. Uma função exportada por
+operação.
 
 ```ts
-export const createCoisaSchema = z.object({
+import { createServerFn } from "@tanstack/react-start";
+import { z } from "zod";
+import { prisma } from "../prisma.server";
+import { requireSession } from "../session.server";
+
+// 1) Schema Zod do input — mensagens em pt-BR, trim() em nomes/títulos.
+const createCoisaSchema = z.object({
   title: z.string().trim().min(1, "Título é obrigatório"),
-  description: z.string().nullish(),
+  notesJson: z.record(z.string(), z.string()).optional(),
 });
 
-// update: tudo opcional, mas sem aceitar string vazia onde não pode
-export const updateCoisaSchema = z.object({
-  title: z.string().trim().min(1, "Título não pode ser vazio").optional(),
-  description: z.string().nullish(),
-});
+// 2) GET para leitura, POST para mutação (create/update/delete também são POST).
+export const createCoisa = createServerFn({ method: "POST" })
+  .inputValidator(createCoisaSchema)        // validação SÓ via Zod
+  .handler(async ({ data }) => {            // `data` já vem tipado pelo schema
+    const session = await requireSession();  // 401 automático se não houver sessão
+    const coisa = await prisma.coisa.create({
+      data: { ownerId: session.userId, title: data.title },
+      select: { id: true, title: true, createdAt: true, updatedAt: true },
+    });
+    return coisa;                            // sucesso = retorno serializável
+  });
 ```
 
-## 2. A rota em `backend/src/routes/`
+Pontos não negociáveis (copie do código real, não invente):
+
+- **`createServerFn({ method })`** — `"GET"` para leitura, `"POST"` para qualquer
+  mutação. Não há PATCH/PUT/DELETE: create, update e delete são todos `POST`.
+- **`.inputValidator(schema)`** antes de `.handler` quando há input. Sem input
+  (ex.: `logout`, `me`, `listDocuments`) não use `.inputValidator`.
+- **`data` é o input já validado/tipado** — nunca assuma o shape sem schema, nunca
+  `any`.
+- **Retorno é o sucesso**: objeto/array serializável. Deleção retorna `{ ok: true }`.
+
+## 2. Sessão e ownership
 
 ```ts
-import { Hono } from "hono";
-import { prisma } from "../lib/prisma.js";          // imports ESM com .js
-import { requireTeacher, type AuthEnv } from "../middleware/auth.js";
-import { jsonValidator } from "../lib/validate.js";
-import { createCoisaSchema } from "../schemas/misc.js";
+const session = await requireSession();   // de "../session.server"
+```
 
-export const coisaRoutes = new Hono<AuthEnv>();
-coisaRoutes.use("*", requireTeacher);
+- `requireSession()` lança `Response` 401 (`{ error: "Não autorizado" }`) se não
+  houver cookie de sessão válido. Use no **topo** de todo handler autenticado.
+- Para ler sessão sem obrigar (ex.: `me`), use `getSession()` e trate `null`.
+- **Ownership em TODA query de dado de usuário**: nunca `findUnique` solto por id.
+  Sempre `findFirst({ where: { id, ownerId: session.userId } })`. No update/delete,
+  busque primeiro com `findFirst`, valide existência, e só então `update`/`delete`
+  pelo id já verificado:
 
-coisaRoutes.get("/", async (c) => {
-  const session = c.get("session");
-  const items = await prisma.coisa.findMany({
-    where: { professorId: session.userId },   // SEMPRE escopado
-    orderBy: { createdAt: "desc" },
-  });
-  return c.json(items);                       // lista = array puro
+```ts
+const existing = await prisma.document.findFirst({
+  where: { id: data.id, ownerId: session.userId },
 });
-
-coisaRoutes.post("/", jsonValidator(createCoisaSchema), async (c) => {
-  const session = c.get("session");
-  const { title, description } = c.req.valid("json"); // já tipado, sem any
-  const created = await prisma.coisa.create({
-    data: { title, description: description?.trim() || null, professorId: session.userId },
+if (!existing) {
+  throw new Response(JSON.stringify({ error: "Documento não encontrado" }), {
+    status: 404,
+    headers: { "content-type": "application/json" },
   });
-  return c.json(created, 201);
+}
+await prisma.document.update({ where: { id: existing.id }, data: { /* ... */ } });
+```
+
+## 3. Contrato de erro — `Response` lançada com `{ error }`
+
+O padrão real do projeto é **lançar uma `Response`** (não usar try/catch, não usar
+o `Result<T>` de `result.ts` — esse tipo existe mas está sem uso). Forma exata:
+
+```ts
+throw new Response(JSON.stringify({ error: "Mensagem em pt-BR" }), {
+  status: 404,                                   // status semântico
+  headers: { "content-type": "application/json" },
 });
 ```
 
-Checklist obrigatório por método:
+| Situação | Status | Texto (pt-BR) |
+|---|---|---|
+| Input inválido | 400 | o Zod já devolve a mensagem do schema |
+| Sem sessão | 401 | `requireSession()` já devolve `{ error: "Não autorizado" }` |
+| Registro não é do usuário **ou** não existe | 404 | `"<Recurso> não encontrado"` — mesmo texto para os dois casos |
+| Conflito / único duplicado | 409 | `"Este email já está cadastrado"` (ver `auth.functions.ts`) |
 
-| Situação | Resposta |
-|---|---|
-| Body inválido | o `jsonValidator` já devolve `{ error }` 400 |
-| Sem sessão / papel errado | middleware já devolve `{ error: "Não autorizado" }` 401 |
-| Registro não é do usuário ou não existe | `{ error: "<Recurso> não encontrad(o/a)" }` 404 — mesmo texto para os dois casos |
-| Nome/único duplicado | `{ error: "Já existe ..." }` 409 |
-| Criação | `c.json(objeto, 201)` |
-| Deleção | `c.json({ ok: true })` |
+## 4. Senha e dados sensíveis
 
-Regras que não se negociam:
+- O client Prisma (`web_v2/src/lib/prisma.server.ts`) já tem
+  `omit: { user: { password: true } }` global — o hash de senha **nunca** sai em
+  query. Só o `login` reabilita com `omit: { password: false }` para comparar o
+  bcrypt.
+- Modelo novo com campo sensível → adicione ao `omit` global em `prisma.server.ts`
+  (veja a skill `alterar-modelo`).
 
-- **Ownership**: nunca `findUnique({ where: { id } })` solto. Sempre
-  `findFirst({ where: { id, professorId: session.userId } })` (ou
-  `studentId`), ou um helper de `backend/src/lib/ownership.ts`. No PATCH/DELETE,
-  busque primeiro, valide, e só então `update`/`delete` pelo `id` verificado.
-- **Senha**: o client Prisma já omite `password` globalmente — não use
-  `omit: { password: false }` fora do fluxo de login.
-- **Listas potencialmente grandes**: `parsePagination(c)` de
-  `backend/src/lib/pagination.ts` e passe `take`/`skip` ao `findMany`.
-- **Sem try/catch decorativo**: o `onError` global cobre o 500.
+## 5. Como a função é "registrada"
 
-## 3. Registrar e documentar
+Não há registro central. **Exportar a função já basta** — o cliente importa de
+`web_v2/src/lib/api/<dominio>.functions.ts` e a chama (veja a skill
+`consumir-api` para o lado do cliente). Sem `index.ts`, sem `openapi.ts`.
 
-1. Em `backend/src/index.ts`: `app.route("/api/coisas", coisaRoutes);` (rotas
-   aninhadas seguem o padrão `"/api/lessons/:lessonId/vocabulary"`).
-2. Em `backend/src/openapi.ts`: adicione o path/operação na spec — `/docs` é a
-   documentação viva da API; endpoint sem doc é endpoint que não existe.
+## 6. Antes de entregar
 
-## 4. Antes de entregar
-
-1. `npm run build` (dentro de `backend/`) passa (tsc strict, sem `any`)?
-2. Toda query escopada por `session.userId`?
-3. Erros seguem `{ error: string }` com status semântico e texto em pt-BR?
-4. Rota registrada em `index.ts` **e** documentada em `openapi.ts`?
-5. Teste manual rápido: `npm run dev` (dentro de `backend/`) e um `curl` no endpoint novo
-   (token via `POST /api/auth/login`).
+1. `npx tsc --noEmit` (dentro de `web_v2/`) passa — sem `any`, sem erro de tipo?
+2. Input validado por Zod via `.inputValidator(schema)` (mensagens pt-BR)?
+3. Operação autenticada começa com `requireSession()`?
+4. Toda query de dado de usuário escopada por `ownerId: session.userId`
+   (`findFirst`, nunca `findUnique` solto)?
+5. Erros são `Response` lançada com `{ error }` e status semântico (400/401/404/409)?
+6. Módulo só importa `*.server.ts` (prisma/session) — nada de `.server.ts` vazando
+   para componente de UI.

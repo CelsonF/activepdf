@@ -1,86 +1,141 @@
 ---
 name: consumir-api
 description: >
-  Passo a passo para consumir a API do ActivePDF (Hono na porta 4000) a partir
-  do front-end Next.js 14. Use sempre que a tarefa for buscar ou enviar dados —
-  carregar lista numa página, submeter formulário, criar um route handler
-  proxy, tratar erro de request ou tipar resposta da API. Garante uso de
-  serverFetch/proxyRequest, do contrato de erro { error: string } e dos tipos
-  compartilhados em frontend/src/types.ts.
+  Passo a passo para consumir o back-end do Grifo (activepdf) a partir do
+  front-end — que agora são server functions do TanStack Start chamadas direto
+  (não há mais Hono na porta 4000, nem proxy /api/*, nem fetch relativo). Use
+  sempre que a tarefa for buscar ou enviar dados numa rota/componente: carregar
+  lista, submeter formulário, tratar loading (skeleton) e ler o erro no contrato
+  { error }. Cobre tanto a chamada direta quanto o wrapper em TanStack Query.
 ---
 
-# Consumir a API — Next.js → Hono (ActivePDF)
+# Consumir server functions (Grifo — TanStack Start)
 
-A API é um serviço separado (`backend/`, Hono, porta 4000). O browser **nunca
-fala direto com ela** — todo acesso passa pelo servidor Next, que injeta o
-token da sessão (cookie `activepdf_session`) como `Authorization: Bearer`.
+> **Não existe mais API HTTP separada.** Sem Hono na porta 4000, sem catch-all
+> `/api/[...path]`, sem `serverFetch`/`proxyRequest`, sem `fetch("/api/...")`
+> relativo. O back-end são **server functions** (`createServerFn`) em
+> `web_v2/src/lib/api/*.functions.ts`: você as **importa e chama direto** —
+> o TanStack Start cuida do transporte (a função roda no servidor, mesmo chamada
+> de um componente do cliente).
 
-## Os dois caminhos (e quando usar cada um)
+## 1. Chamar uma server function
 
-| Contexto | Helper | Onde mora |
-|---|---|---|
-| Server Component / página carregando dados | `serverFetch<T>(path)` | `frontend/src/lib/api.ts` |
-| Client Component que precisa de fetch (form, ação) | `fetch("/api/...")` relativo → catch-all `frontend/src/app/api/[...path]/route.ts` | `frontend/src/lib/proxy.ts` |
-
-Não invente um terceiro caminho: nada de `fetch("http://localhost:4000/...")`
-em componente, nem de ler o cookie manualmente.
-
-## 1. Carregar dados em página (Server Component)
+Importe e chame. Input vai dentro de `{ data: ... }`; sem input, chame sem args:
 
 ```tsx
-import { serverFetch } from "@/lib/api";
-import type { Subject } from "@/types";
+import { listDocuments, createDocument } from "@/lib/api/documents.functions";
 
-export default async function SubjectsPage() {
-  const subjects = await serverFetch<Subject[]>("/api/subjects");
-  // listas da API são arrays puros
-  return <SubjectList subjects={subjects} />;
+// leitura (GET) — sem input
+const docs = await listDocuments();
+
+// mutação (POST) — input no campo `data`
+const novo = await createDocument({ data: { title, pdfName, pdfData } });
+```
+
+O retorno já é o objeto/array tipado que a `.handler` devolveu — sem
+`res.json()`, sem checar `res.ok`.
+
+## 2. Tratar erro — contrato `{ error }`
+
+A server function **lança uma `Response`** em caso de erro (401/404/409…). No
+cliente isso vira uma exceção: capture com `try/catch` e leia o corpo `{ error }`:
+
+```tsx
+try {
+  await createDocument({ data: payload });
+} catch (e) {
+  // a Response lançada chega como erro; o corpo é { error: string } em pt-BR
+  const message =
+    e instanceof Response ? (await e.json()).error : "Erro inesperado";
+  setError(message);
 }
 ```
 
-- `serverFetch` lança o body de erro (`{ error: string }`) quando `!res.ok` —
-  trate com `try/catch` quando a página tiver fallback, ou deixe propagar
-  para o `error.tsx` do segmento.
-- O tipo `T` vem de `frontend/src/types.ts`; se o shape ainda não existe lá, crie-o
-  espelhando a resposta real do backend (confira em `backend/src/routes/` ou
-  em `http://localhost:4000/docs`).
+- Erro é **sempre** `{ error: string }` (mensagem pt-BR, pronta para a UI).
+- Status: 400 validação, 401 sessão, 404 não encontrado, 409 conflito.
+- Sucesso de deleção é `{ ok: true }`; listas são arrays puros; create devolve o
+  objeto criado.
 
-## 2. Mutação a partir de Client Component
+## 3. Loading = skeleton (regra do projeto)
 
-**Já existe um catch-all** em `frontend/src/app/api/[...path]/route.ts` que repassa
-qualquer `/api/*` (GET/POST/PATCH/PUT/DELETE, com query string) para o
-backend via `proxyRequest`. Na maioria dos casos **não crie route handler
-novo** — só faça o fetch relativo do client:
+Estado assíncrono **nunca** usa spinner bloqueante. Use `<Skeleton>` de
+`@/components/ui/skeleton` com a **geometria real** do conteúdo. No editor
+(`tool.tsx`) o skeleton **sobrepõe** o canvas (`absolute inset-0`) — nunca
+substitui o `canvasRef` (ele precisa ficar montado):
 
 ```tsx
-const res = await fetch("/api/subjects", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ name }),
-});
-const data = await res.json();
-if (!res.ok) {
-  setError((data as { error?: string }).error ?? "Erro desconhecido");
-  return;
+<div className="relative">
+  <canvas ref={canvasRef} />
+  {pdfLoading && (
+    <div className="absolute inset-0">
+      <PdfSkeleton />
+    </div>
+  )}
+</div>
+```
+
+## 4. Padrão direto com `useState`/`useEffect`
+
+É o padrão hoje exercido no código (o editor persiste em `localStorage`; quando
+for ler do servidor, o shape é este):
+
+```tsx
+const [docs, setDocs] = useState<Awaited<ReturnType<typeof listDocuments>> | null>(null);
+const [error, setError] = useState<string | null>(null);
+
+useEffect(() => {
+  listDocuments()
+    .then(setDocs)
+    .catch(async (e) =>
+      setError(e instanceof Response ? (await e.json()).error : "Erro inesperado"),
+    );
+}, []);
+
+if (error) return <ErrorState message={error} />;
+if (!docs) return <ListSkeleton />;   // skeleton, não spinner
+return <DocList docs={docs} />;
+```
+
+## 5. Wrapper opcional em TanStack Query
+
+O `QueryClient` já é provido em `web_v2/src/router.tsx`/`__root.tsx`, então você
+pode embrulhar a server function em `useQuery`/`useMutation` quando quiser cache,
+revalidação ou estados prontos. (Nenhuma rota faz isso hoje — adote quando a tela
+precisar de cache/refetch, não por padrão.)
+
+```tsx
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { listDocuments, deleteDocument } from "@/lib/api/documents.functions";
+
+function useDocuments() {
+  return useQuery({ queryKey: ["documents"], queryFn: () => listDocuments() });
+}
+
+function useDeleteDocument() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => deleteDocument({ data: { id } }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["documents"] }),
+  });
 }
 ```
 
-- O catch-all devolve o status original do backend — não reembrulhe a resposta.
-- Só crie um route handler específico (ex.: `frontend/src/app/api/exercises/route.ts`)
-  quando precisar de lógica extra antes/depois do proxy; o Next prioriza a
-  rota específica sobre o catch-all, então não há conflito.
+- `queryFn`/`mutationFn` apenas chamam a server function — não recrie fetch.
+- O `isPending`/`isLoading` do hook controla o **skeleton** (não spinner).
+- O `error` do hook é a `Response` lançada — leia `.error` do corpo como na §2.
 
-## 3. Contrato com o backend (não quebrar)
+## 6. Rota só de cliente (editor)
 
-- Erro é **sempre** `{ error: string }` (mensagem em pt-BR, já pronta para a
-  UI). Status: 400 validação, 401 sessão, 404 não encontrado, 409 conflito.
-- Sucesso de DELETE é `{ ok: true }`.
-- Criação retorna o objeto criado com status 201.
-- Listas são arrays puros; paginação é opt-in via `?take=&skip=`.
+O editor de PDF é browser-only: a rota declara `ssr: false`
+(`createFileRoute("/tool")({ ssr: false, ... })`). Documentos anônimos persistem
+em `localStorage` (`grifo:tool:docs`); só os de conta logada passam pelas server
+functions de `documents.functions.ts`.
 
-## 4. Antes de entregar
+## 7. Antes de entregar
 
-1. Nenhum componente client falando direto com `localhost:4000`?
-2. Resposta tipada com tipo de `frontend/src/types.ts` (sem `any`)?
-3. Erro tratado lendo `.error` do body, exibido com os padrões da UI?
-4. `npx tsc --noEmit` (dentro de `frontend/`) passa?
+1. Nenhum `fetch("/api/...")`, nenhum `serverFetch`/`proxyRequest`, nenhuma URL de
+   `localhost:4000` — só import + chamada da server function?
+2. Input passado como `{ data: ... }`; retorno usado direto (sem `res.json()`)?
+3. Erro lido do corpo `{ error }` da `Response` e exibido nos padrões da UI?
+4. Loading com **skeleton** espelhando a geometria real (sem spinner bloqueante)?
+5. `npx tsc --noEmit` (dentro de `web_v2/`) passa, sem `any`?

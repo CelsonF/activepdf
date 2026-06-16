@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Grifo (activepdf) — Regras do Projeto
 
 > Este arquivo é lido automaticamente em toda conversa. São as regras
@@ -20,6 +24,37 @@
 ---
 
 # App (`web_v2/`)
+
+## Comandos
+
+App (rodar **de dentro de `web_v2/`**):
+
+| Ação | Comando |
+|---|---|
+| Dev (SSR, porta 3000) | `npm run dev` |
+| Build de produção | `npm run build` (preset Vercel via Nitro — ver Deploy) |
+| Preview do build | `npm run preview` |
+| Lint | `npm run lint` (ESLint flat config) |
+| Format | `npm run format` (Prettier) |
+| **Type-check (gate de entrega)** | `npx tsc --noEmit` |
+
+Banco de dados — **o Prisma está instalado na RAIZ do repo, não em `web_v2/`**.
+O schema fica em `web_v2/prisma/schema.prisma` e gera o client em
+`web_v2/src/generated/prisma/`. Rode **da raiz** sempre com `--schema`:
+
+```bash
+npx prisma generate --schema=web_v2/prisma/schema.prisma   # gera o client (necessário no 1º setup)
+npx prisma migrate dev --schema=web_v2/prisma/schema.prisma --name <nome>
+npx prisma studio --schema=web_v2/prisma/schema.prisma
+```
+
+> Ainda **não há pasta `prisma/migrations/`**: a primeira `migrate dev` cria a
+> migration inicial. `BACKEND_SETUP.md` cita `npm run db:generate`/`db:migrate`,
+> mas **esses scripts não existem** — use os comandos `npx prisma` acima.
+
+Ambiente: `cp web_v2/.env.example web_v2/.env` e preencha `DATABASE_URL`
+(Neon/Supabase, ou `docker-compose up -d` na raiz → Postgres em `localhost:5433`,
+user/senha/db = `activepdf`) e `JWT_SECRET` (`openssl rand -base64 32`).
 
 ## Stack (não trocar sem pedir)
 
@@ -57,7 +92,7 @@
 
 ## Não fazer (back-end)
 
-- Editar `src/generated/prisma/` à mão (use `npm run db:generate`).
+- Editar `src/generated/prisma/` à mão (regenere com `npx prisma generate --schema=web_v2/prisma/schema.prisma`).
 - Editar migrations já commitadas (crie uma nova).
 - Confiar no `mimeType` enviado pelo client para arquivos (validar magic bytes).
 - `any` em dados de request; `console.log` com PII.
@@ -164,6 +199,31 @@ web_v2/
 > `docs/design-system-grifo.md` — siga-os ao criar essas telas (algumas
 > seções ainda referenciam a estrutura antiga; tratar como referência visual,
 > não como caminho de arquivo literal).
+
+## i18n e SEO
+
+- Três locales em `src/lib/i18n.ts`: `pt` (padrão, **sem prefixo** na URL),
+  `en` e `es` (prefixados: `/en`, `/es`). Use `localePath(locale, path)` e
+  `localePrefix()` — nunca monte a URL com prefixo na mão.
+- Rotas localizadas são arquivos irmãos: `index.tsx` (pt) + `en.tsx` + `es.tsx`;
+  o dashboard idem (`dashboard.tsx` + `en.dashboard.tsx` + `es.dashboard.tsx`).
+  Ao mexer numa tela traduzida, ajuste as três variantes.
+- SEO/infra geradas por rota: `sitemap[.]xml.ts`, `og[.]png.tsx` (OG image via
+  `@vercel/og`), `blog.*.tsx` (artigos). `BASE_URL` canônico mora no `i18n.ts`.
+- `src/lib/route-heads.ts` centraliza `<head>` (title/meta/canonical) por rota.
+
+## SSR e deploy (Vercel)
+
+- Entry de servidor customizado: `src/server.ts` (wrapper de erro de SSR), apontado
+  pelo `vite.config.ts` (`tanstackStart.server.entry = "server"`).
+- O build sai no **Vercel Build Output API** porque `vite.config.ts` força
+  `nitro.preset = "vercel"` — o preset padrão do `@lovable.dev/vite-tanstack-config`
+  é Cloudflare e **não** emite `.vercel/output`, o que dá 404 em todas as rotas.
+  Não troque o preset sem ajustar o alvo de deploy.
+- **Não** adicione plugins Vite manualmente (tanstackStart, react, tailwind,
+  tsconfig-paths, nitro…): o config do Lovable já os inclui; duplicar quebra o app.
+- Captura de erro client/SSR: `src/lib/error-capture.ts`,
+  `lovable-error-reporting.ts`, `error-page.ts`.
 
 ## Não fazer
 
