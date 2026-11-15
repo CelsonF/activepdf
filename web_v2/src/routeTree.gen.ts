@@ -9,40 +9,20 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as ToolRouteImport } from './routes/tool'
-import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
-import { Route as OgDotpngRouteImport } from './routes/og[.]png'
-import { Route as EsRouteImport } from './routes/es'
-import { Route as EnRouteImport } from './routes/en'
-import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as EsDashboardRouteImport } from './routes/es.dashboard'
-import { Route as EnDashboardRouteImport } from './routes/en.dashboard'
+import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as EnRouteImport } from './routes/en'
+import { Route as EsRouteImport } from './routes/es'
+import { Route as OgDotpngRouteImport } from './routes/og[.]png'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as ToolRouteImport } from './routes/tool'
 import { Route as BlogComoCriarApostilasInterativasPdfRouteImport } from './routes/blog.como-criar-apostilas-interativas-pdf'
+import { Route as EnDashboardRouteImport } from './routes/en.dashboard'
+import { Route as EsDashboardRouteImport } from './routes/es.dashboard'
 
-const ToolRoute = ToolRouteImport.update({
-  id: '/tool',
-  path: '/tool',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
-  id: '/sitemap.xml',
-  path: '/sitemap.xml',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OgDotpngRoute = OgDotpngRouteImport.update({
-  id: '/og.png',
-  path: '/og.png',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EsRoute = EsRouteImport.update({
-  id: '/es',
-  path: '/es',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const EnRoute = EnRouteImport.update({
-  id: '/en',
-  path: '/en',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const DashboardRoute = DashboardRouteImport.update({
@@ -50,20 +30,30 @@ const DashboardRoute = DashboardRouteImport.update({
   path: '/dashboard',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const EnRoute = EnRouteImport.update({
+  id: '/en',
+  path: '/en',
   getParentRoute: () => rootRouteImport,
 } as any)
-const EsDashboardRoute = EsDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => EsRoute,
+const EsRoute = EsRouteImport.update({
+  id: '/es',
+  path: '/es',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const EnDashboardRoute = EnDashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => EnRoute,
+const OgDotpngRoute = OgDotpngRouteImport.update({
+  id: '/og.png',
+  path: '/og.png',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ToolRoute = ToolRouteImport.update({
+  id: '/tool',
+  path: '/tool',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const BlogComoCriarApostilasInterativasPdfRoute =
   BlogComoCriarApostilasInterativasPdfRouteImport.update({
@@ -71,6 +61,16 @@ const BlogComoCriarApostilasInterativasPdfRoute =
     path: '/blog/como-criar-apostilas-interativas-pdf',
     getParentRoute: () => rootRouteImport,
   } as any)
+const EnDashboardRoute = EnDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => EnRoute,
+} as any)
+const EsDashboardRoute = EsDashboardRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => EsRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -161,39 +161,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/tool': {
-      id: '/tool'
-      path: '/tool'
-      fullPath: '/tool'
-      preLoaderRoute: typeof ToolRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/sitemap.xml': {
-      id: '/sitemap.xml'
-      path: '/sitemap.xml'
-      fullPath: '/sitemap.xml'
-      preLoaderRoute: typeof SitemapDotxmlRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/og.png': {
-      id: '/og.png'
-      path: '/og.png'
-      fullPath: '/og.png'
-      preLoaderRoute: typeof OgDotpngRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/es': {
-      id: '/es'
-      path: '/es'
-      fullPath: '/es'
-      preLoaderRoute: typeof EsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/en': {
-      id: '/en'
-      path: '/en'
-      fullPath: '/en'
-      preLoaderRoute: typeof EnRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/dashboard': {
@@ -203,19 +175,47 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/en': {
+      id: '/en'
+      path: '/en'
+      fullPath: '/en'
+      preLoaderRoute: typeof EnRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/es/dashboard': {
-      id: '/es/dashboard'
-      path: '/dashboard'
-      fullPath: '/es/dashboard'
-      preLoaderRoute: typeof EsDashboardRouteImport
-      parentRoute: typeof EsRoute
+    '/es': {
+      id: '/es'
+      path: '/es'
+      fullPath: '/es'
+      preLoaderRoute: typeof EsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/og.png': {
+      id: '/og.png'
+      path: '/og.png'
+      fullPath: '/og.png'
+      preLoaderRoute: typeof OgDotpngRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/tool': {
+      id: '/tool'
+      path: '/tool'
+      fullPath: '/tool'
+      preLoaderRoute: typeof ToolRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/blog/como-criar-apostilas-interativas-pdf': {
+      id: '/blog/como-criar-apostilas-interativas-pdf'
+      path: '/blog/como-criar-apostilas-interativas-pdf'
+      fullPath: '/blog/como-criar-apostilas-interativas-pdf'
+      preLoaderRoute: typeof BlogComoCriarApostilasInterativasPdfRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/en/dashboard': {
       id: '/en/dashboard'
@@ -224,12 +224,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof EnDashboardRouteImport
       parentRoute: typeof EnRoute
     }
-    '/blog/como-criar-apostilas-interativas-pdf': {
-      id: '/blog/como-criar-apostilas-interativas-pdf'
-      path: '/blog/como-criar-apostilas-interativas-pdf'
-      fullPath: '/blog/como-criar-apostilas-interativas-pdf'
-      preLoaderRoute: typeof BlogComoCriarApostilasInterativasPdfRouteImport
-      parentRoute: typeof rootRouteImport
+    '/es/dashboard': {
+      id: '/es/dashboard'
+      path: '/dashboard'
+      fullPath: '/es/dashboard'
+      preLoaderRoute: typeof EsDashboardRouteImport
+      parentRoute: typeof EsRoute
     }
   }
 }
