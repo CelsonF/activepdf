@@ -16,7 +16,6 @@ export interface ToolDict {
   saved: string;
   openMenu: string;
   menuLabel: string;
-  saveCurrentPage: string;
   exportFilled: string;
   exportTemplate: string;
   exportPagePng: string;
@@ -25,6 +24,20 @@ export interface ToolDict {
   pageEnd: string;
   to: string;
   exportBtn: string;
+  export: string;
+  changePdf: string;
+  dropHere: string;
+  dropHint: string;
+  fitWidth: string;
+  currentPage: string;
+  fieldsOnPage: string;
+  noFieldsOnPage: string;
+  emptyValue: string;
+  shortcuts: string;
+  kbdDelete: string;
+  kbdDeselect: string;
+  kbdNudge: string;
+  kbdSave: string;
   uploadPdf: string;
   tools: string;
   text: string;
@@ -68,9 +81,8 @@ const pt: ToolDict = {
   fill: "Preencher",
   save: "Salvar",
   saved: "Salvo!",
-  openMenu: "Abrir menu de salvamento e exportação",
-  menuLabel: "Opções de salvamento e exportação",
-  saveCurrentPage: "Salvar página atual",
+  openMenu: "Abrir menu de exportação",
+  menuLabel: "Opções de exportação",
   exportFilled: "Exportar PDF preenchido",
   exportTemplate: "Exportar com campos para preencher",
   exportPagePng: "Exportar página atual (PNG)",
@@ -79,6 +91,20 @@ const pt: ToolDict = {
   pageEnd: "Página final",
   to: "até",
   exportBtn: "Exportar",
+  export: "Exportar",
+  changePdf: "Trocar PDF",
+  dropHere: "Solte o PDF para abrir",
+  dropHint: "ou arraste um arquivo PDF para esta área",
+  fitWidth: "Ajustar à largura",
+  currentPage: "Página atual",
+  fieldsOnPage: "Campos nesta página",
+  noFieldsOnPage: "Nenhum campo nesta página ainda. Escolha uma ferramenta e arraste sobre o PDF.",
+  emptyValue: "vazio",
+  shortcuts: "Atalhos",
+  kbdDelete: "remover campo",
+  kbdDeselect: "desmarcar",
+  kbdNudge: "mover 1px (⇧ 10px)",
+  kbdSave: "salvar",
   uploadPdf: "Carregar PDF",
   tools: "Ferramentas",
   text: "Texto",
@@ -106,7 +132,8 @@ const pt: ToolDict = {
   zoomOut: "Diminuir zoom",
   zoomIn: "Aumentar zoom",
   emptyTitle: "Carregue um PDF para começar",
-  emptyDesc: "Adicione campos arrastáveis, escreva anotações ao lado e exporte como PDF preenchido ou imagem.",
+  emptyDesc:
+    "Adicione campos arrastáveis, escreva anotações ao lado e exporte como PDF preenchido ou imagem.",
   selectPdf: "Selecionar PDF",
   srTitle: "Editor de Práticas em PDF",
   bold: "Negrito",
@@ -122,9 +149,8 @@ const en: ToolDict = {
   fill: "Fill",
   save: "Save",
   saved: "Saved!",
-  openMenu: "Open save and export menu",
-  menuLabel: "Save and export options",
-  saveCurrentPage: "Save current page",
+  openMenu: "Open export menu",
+  menuLabel: "Export options",
   exportFilled: "Export filled PDF",
   exportTemplate: "Export with fillable fields",
   exportPagePng: "Export current page (PNG)",
@@ -133,6 +159,20 @@ const en: ToolDict = {
   pageEnd: "End page",
   to: "to",
   exportBtn: "Export",
+  export: "Export",
+  changePdf: "Change PDF",
+  dropHere: "Drop the PDF to open it",
+  dropHint: "or drag a PDF file into this area",
+  fitWidth: "Fit to width",
+  currentPage: "Current page",
+  fieldsOnPage: "Fields on this page",
+  noFieldsOnPage: "No fields on this page yet. Pick a tool and drag over the PDF.",
+  emptyValue: "empty",
+  shortcuts: "Shortcuts",
+  kbdDelete: "remove field",
+  kbdDeselect: "deselect",
+  kbdNudge: "nudge 1px (⇧ 10px)",
+  kbdSave: "save",
   uploadPdf: "Upload PDF",
   tools: "Tools",
   text: "Text",
@@ -176,9 +216,8 @@ const es: ToolDict = {
   fill: "Rellenar",
   save: "Guardar",
   saved: "¡Guardado!",
-  openMenu: "Abrir menú de guardado y exportación",
-  menuLabel: "Opciones de guardado y exportación",
-  saveCurrentPage: "Guardar página actual",
+  openMenu: "Abrir menú de exportación",
+  menuLabel: "Opciones de exportación",
   exportFilled: "Exportar PDF rellenado",
   exportTemplate: "Exportar con campos rellenables",
   exportPagePng: "Exportar página actual (PNG)",
@@ -187,6 +226,21 @@ const es: ToolDict = {
   pageEnd: "Página final",
   to: "a",
   exportBtn: "Exportar",
+  export: "Exportar",
+  changePdf: "Cambiar PDF",
+  dropHere: "Suelta el PDF para abrirlo",
+  dropHint: "o arrastra un archivo PDF a esta área",
+  fitWidth: "Ajustar al ancho",
+  currentPage: "Página actual",
+  fieldsOnPage: "Campos en esta página",
+  noFieldsOnPage:
+    "Aún no hay campos en esta página. Elige una herramienta y arrastra sobre el PDF.",
+  emptyValue: "vacío",
+  shortcuts: "Atajos",
+  kbdDelete: "eliminar campo",
+  kbdDeselect: "deseleccionar",
+  kbdNudge: "mover 1px (⇧ 10px)",
+  kbdSave: "guardar",
   uploadPdf: "Cargar PDF",
   tools: "Herramientas",
   text: "Texto",
@@ -214,7 +268,8 @@ const es: ToolDict = {
   zoomOut: "Alejar",
   zoomIn: "Acercar",
   emptyTitle: "Carga un PDF para empezar",
-  emptyDesc: "Añade campos arrastrables, escribe notas al lado y exporta como PDF rellenado o imagen.",
+  emptyDesc:
+    "Añade campos arrastrables, escribe notas al lado y exporta como PDF rellenado o imagen.",
   selectPdf: "Seleccionar PDF",
   srTitle: "Editor de Prácticas en PDF",
   bold: "Negrita",
