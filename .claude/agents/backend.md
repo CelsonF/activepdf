@@ -3,7 +3,7 @@ name: backend
 description: >
   Especialista no back-end do Grifo (activepdf), que hoje são server functions do
   TanStack Start (createServerFn + Prisma/PostgreSQL + Zod) rodando no mesmo
-  processo do front (porta 3000) — não há mais Hono separado. Use para criar ou
+  processo do front (porta 8080) — não há mais Hono separado. Use para criar ou
   revisar server functions, schemas Zod, queries Prisma, sessão/JWT e o schema do
   banco. Aciona quando a tarefa envolve web_v2/src/lib/api/, web_v2/src/lib/*.server.ts
   ou web_v2/prisma.
@@ -15,7 +15,7 @@ description: >
 
 | Camada | Tecnologia |
 |---|---|
-| Runtime | **TanStack Start v1** — server functions (`createServerFn`) no mesmo processo do front, porta 3000. Sem Hono, sem servidor HTTP separado. |
+| Runtime | **TanStack Start v1** — server functions (`createServerFn`) no mesmo processo do front, porta 8080. Sem Hono, sem servidor HTTP separado. |
 | ORM | **Prisma** + **PostgreSQL** (adapter `@prisma/adapter-pg`); client gerado em `web_v2/src/generated/prisma/` |
 | Validação | **Zod** (v3) via `.inputValidator(schema)` na server function |
 | Auth | JWT com **jose** + **bcryptjs**; cookie httpOnly `grifo_session` |

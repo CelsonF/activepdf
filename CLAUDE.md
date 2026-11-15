@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 > **inegociáveis** para escrever código neste repositório.
 >
 > Layout: **um único app** em `web_v2/` (TanStack Start — front-end SSR +
-> back-end via server functions, mesmo processo, porta 3000). Não há mais
+> back-end via server functions, mesmo processo, porta 8080). Não há mais
 > `backend/`, `frontend/` nem `web/` — foram removidos em 16/jun/2026 para
 > eliminar duplicação; `web_v2/` é o único projeto vivo.
 >
@@ -31,7 +31,7 @@ App (rodar **de dentro de `web_v2/`**):
 
 | Ação | Comando |
 |---|---|
-| Dev (SSR, porta 3000) | `npm run dev` |
+| Dev (SSR, porta 8080 — fixa, imposta pelo `@lovable.dev/vite-tanstack-config`) | `npm run dev` |
 | Build de produção | `npm run build` (preset Vercel via Nitro — ver Deploy) |
 | Preview do build | `npm run preview` |
 | Lint | `npm run lint` (ESLint flat config) |

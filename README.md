@@ -31,7 +31,7 @@ Editor de PDF baseado em browser — carregue qualquer PDF, adicione campos pree
 
 ```
 activepdf/
-  web_v2/                   # único app vivo (porta 3000)
+  web_v2/                   # único app vivo (porta 8080)
     prisma/
       schema.prisma          # modelos User e Document
     src/
@@ -82,7 +82,7 @@ npx prisma migrate dev --schema=web_v2/prisma/schema.prisma --name init
 
 # 6. Dev server
 cd web_v2 && npm run dev
-# → http://localhost:3000
+# → http://localhost:8080 (porta fixa do @lovable.dev/vite-tanstack-config)
 ```
 
 ## Comandos
