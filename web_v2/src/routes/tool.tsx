@@ -1,7 +1,15 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ExportMenu } from "@/components/tool/export-menu";
+import { FieldList } from "@/components/tool/field-list";
+import { ShortcutHints } from "@/components/tool/shortcut-hints";
+import { ViewerToolbar } from "@/components/tool/viewer-toolbar";
+import { clampScale } from "@/components/tool/zoom";
+import { useEditorShortcuts } from "@/hooks/use-editor-shortcuts";
+import { usePdfDrop } from "@/hooks/use-pdf-drop";
 import { BASE_URL } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { ogImageMeta, ogImageUrl } from "@/lib/route-heads";
 import {
   TOOL_LOCALES,
@@ -20,22 +28,15 @@ import {
   Hash,
   PenLine,
   StickyNote,
-  Download,
-  FileImage,
   Trash2,
-  ChevronLeft,
-  ChevronRight,
+  Check,
   Save,
   Search,
   Highlighter,
   Bold,
   Italic,
   List,
-  ZoomIn,
-  ZoomOut,
   ChevronDown,
-  FileText,
-  SquarePen,
   Globe,
 } from "lucide-react";
 
@@ -122,10 +123,6 @@ function ToolPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [docList, setDocList] = useState<string[]>([]);
   const [search, setSearch] = useState("");
-  const [showExportMenu, setShowExportMenu] = useState(false);
-  const exportMenuRef = useRef<HTMLDivElement | null>(null);
-  const [rangeStart, setRangeStart] = useState<string>("1");
-  const [rangeEnd, setRangeEnd] = useState<string>("1");
   const [savedFlash, setSavedFlash] = useState(false);
   const [locale, setLocale] = useState<ToolLocale>("pt");
   const [showLangMenu, setShowLangMenu] = useState(false);
@@ -190,37 +187,44 @@ function ToolPage() {
     })();
   }, []);
 
-  // Close export dropdown when clicking outside
-  useEffect(() => {
-    if (!showExportMenu) return;
-    const onDocClick = (e: MouseEvent) => {
-      if (exportMenuRef.current && !exportMenuRef.current.contains(e.target as Node)) {
-        setShowExportMenu(false);
-      }
-    };
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowExportMenu(false);
-    };
-    document.addEventListener("mousedown", onDocClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("mousedown", onDocClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [showExportMenu]);
+  const mainRef = useRef<HTMLElement | null>(null);
 
-  // Sync range defaults to current document
-  useEffect(() => {
-    setRangeStart("1");
-    setRangeEnd(String(numPages || 1));
-  }, [numPages, pdfName]);
+  // Scale that makes the given page fill the canvas area's width.
+  const computeFitScale = async (pageNum: number): Promise<number | null> => {
+    const main = mainRef.current;
+    const doc = pdfDocRef.current;
+    if (!main || !doc) return null;
+    const pdfPage = await doc.getPage(pageNum);
+    const baseWidth: number = pdfPage.getViewport({ scale: 1 }).width;
+    const cs = getComputedStyle(main);
+    const available =
+      main.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight) - 2;
+    if (available <= 0 || baseWidth <= 0) return null;
+    return clampScale(Math.floor((available / baseWidth) * 100) / 100);
+  };
+
+  const fitToWidth = async () => {
+    const fit = await computeFitScale(page);
+    if (fit) setScale(fit);
+  };
 
   // Open file
   const onFile = async (file: File) => {
     const buf = new Uint8Array(await file.arrayBuffer());
+    // Load the document before touching state, so the render effect never
+    // runs against the previous PDF (or with numPages = 0).
+    const pdfjs = await import("pdfjs-dist");
+    const doc = await pdfjs.getDocument({ data: buf.slice(0) }).promise;
+    pdfDocRef.current = doc;
+    // Open at "fit to width" (capped so wide screens don't get a giant page).
+    const fit = await computeFitScale(1);
+    // React batches the updates below into a single render.
+    if (fit) setScale(Math.min(fit, 1.5));
     setPdfBytes(buf);
     setPdfName(file.name);
     setPage(1);
+    setSelectedId(null);
+    setNumPages(doc.numPages);
     // Restore saved metadata if present
     const store = loadStore();
     const saved = store[file.name];
@@ -231,31 +235,49 @@ function ToolPage() {
       setFields([]);
       setNotes({});
     }
-    const pdfjs = await import("pdfjs-dist");
-    const doc = await pdfjs.getDocument({ data: buf.slice(0) }).promise;
-    pdfDocRef.current = doc;
-    setNumPages(doc.numPages);
   };
+
+  const { isDragging, handlers: dropHandlers } = usePdfDrop((file) => void onFile(file));
 
   // Render page
   useEffect(() => {
     if (!pdfDocRef.current || !canvasRef.current) return;
     setPdfLoading(true);
     let cancelled = false;
+    // pdf.js refuses two render() calls on the same canvas, so a newer render
+    // (zoom/page change) must cancel the one still in flight.
+    let task: { promise: Promise<unknown>; cancel: () => void } | null = null;
     (async () => {
       const pdfPage = await pdfDocRef.current.getPage(page);
+      if (cancelled) return;
       const viewport = pdfPage.getViewport({ scale });
       const canvas = canvasRef.current!;
       const ctx = canvas.getContext("2d")!;
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
+      // Render at device pixel ratio so text stays crisp on retina screens;
+      // the CSS size (and pageSizeRef) stays in layout pixels.
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = Math.floor(viewport.width * dpr);
+      canvas.height = Math.floor(viewport.height * dpr);
+      canvas.style.width = `${viewport.width}px`;
+      canvas.style.height = `${viewport.height}px`;
       pageSizeRef.current = { w: viewport.width, h: viewport.height };
-      if (cancelled) return;
-      await pdfPage.render({ canvasContext: ctx, viewport, canvas }).promise;
+      const renderTask = pdfPage.render({
+        canvasContext: ctx,
+        viewport,
+        canvas,
+        transform: dpr !== 1 ? [dpr, 0, 0, dpr, 0, 0] : undefined,
+      });
+      task = renderTask;
+      try {
+        await renderTask.promise;
+      } catch {
+        return; // RenderingCancelledException — a newer render took over
+      }
       if (!cancelled) setPdfLoading(false);
     })();
     return () => {
       cancelled = true;
+      task?.cancel();
     };
   }, [page, scale, pdfBytes, numPages]);
 
@@ -269,10 +291,10 @@ function ToolPage() {
     const id = crypto.randomUUID();
     drawingRef.current = { startX: x, startY: y, id };
     const defaultLabel: Record<FieldType, string> = {
-      text: "Texto",
-      checkbox: "Caixa",
-      date: "Data",
-      number: "Número",
+      text: t.text,
+      checkbox: t.checkbox,
+      date: t.date,
+      number: t.number,
     };
     setFields((f) => [
       ...f,
@@ -359,6 +381,30 @@ function ToolPage() {
     setSavedFlash(true);
     window.setTimeout(() => setSavedFlash(false), 1600);
   };
+
+  const nudgeField = (id: string, dxPx: number, dyPx: number) => {
+    const pw = pageSizeRef.current.w || 1;
+    const ph = pageSizeRef.current.h || 1;
+    setFields((f) =>
+      f.map((fd) =>
+        fd.id === id
+          ? {
+              ...fd,
+              x: clamp01(fd.x + dxPx / pw, 1 - fd.w),
+              y: clamp01(fd.y + dyPx / ph, 1 - fd.h),
+            }
+          : fd,
+      ),
+    );
+  };
+
+  useEditorShortcuts({
+    selectionActive: mode === "edit" && selectedId !== null,
+    onDelete: () => selectedId && deleteField(selectedId),
+    onDeselect: () => setSelectedId(null),
+    onNudge: (dx, dy) => selectedId && nudgeField(selectedId, dx, dy),
+    onSave: saveDoc,
+  });
 
   // Export a page range as PDF with values flattened
   const exportPdfRange = async (startRaw: number, endRaw: number) => {
@@ -578,6 +624,8 @@ function ToolPage() {
     out.height = base.height;
     const ctx = out.getContext("2d")!;
     ctx.drawImage(base, 0, 0);
+    // Canvas is rendered at devicePixelRatio; scale field font sizes to match.
+    const ratio = base.width / (pageSizeRef.current.w || base.width);
     // Draw fields
     ctx.textBaseline = "middle";
     for (const fd of fields.filter((f) => f.page === page)) {
@@ -586,20 +634,21 @@ function ToolPage() {
       const w = fd.w * base.width;
       const h = fd.h * base.height;
       ctx.strokeStyle = "rgba(64,90,210,0.9)";
-      ctx.lineWidth = 1;
+      ctx.lineWidth = ratio;
       ctx.strokeRect(x, y, w, h);
       ctx.fillStyle = "#101427";
       if (fd.type === "checkbox") {
         if (fd.value === "true" || fd.value === "1") {
+          ctx.font = `${14 * ratio}px Inter, sans-serif`;
           ctx.fillText("✓", x + w * 0.2, y + h / 2);
         }
       } else if (fd.value) {
-        ctx.font = `${fd.fontSize ?? 14}px Inter, sans-serif`;
+        ctx.font = `${(fd.fontSize ?? 14) * ratio}px Inter, sans-serif`;
         ctx.save();
         ctx.beginPath();
-        ctx.rect(x + 2, y, w - 4, h);
+        ctx.rect(x + 2 * ratio, y, w - 4 * ratio, h);
         ctx.clip();
-        ctx.fillText(fd.value, x + 4, y + h / 2);
+        ctx.fillText(fd.value, x + 4 * ratio, y + h / 2);
         ctx.restore();
       }
     }
@@ -636,7 +685,7 @@ function ToolPage() {
             {pdfName || t.noPdf}
           </span>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
           <div ref={langMenuRef} className="relative">
             <button
               type="button"
@@ -647,7 +696,7 @@ function ToolPage() {
               className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border border-ink/10 bg-secondary px-2.5 py-1.5 text-xs font-medium text-ink/80 transition hover:bg-ink/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 sm:text-sm"
             >
               <Globe className="h-3.5 w-3.5" aria-hidden />
-              <span className="uppercase">{locale}</span>
+              <span className="hidden uppercase sm:inline">{locale}</span>
               <ChevronDown className="h-3 w-3" aria-hidden />
             </button>
             {showLangMenu && (
@@ -677,7 +726,9 @@ function ToolPage() {
             <button
               onClick={() => setMode("edit")}
               className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition sm:px-3 sm:text-sm ${
-                mode === "edit" ? "bg-primary text-primary-foreground" : "text-ink/70 hover:bg-ink/5"
+                mode === "edit"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-ink/70 hover:bg-ink/5"
               }`}
             >
               <PenLine className="h-3.5 w-3.5" />{" "}
@@ -687,122 +738,47 @@ function ToolPage() {
             <button
               onClick={() => setMode("fill")}
               className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium transition sm:px-3 sm:text-sm ${
-                mode === "fill" ? "bg-primary text-primary-foreground" : "text-ink/70 hover:bg-ink/5"
+                mode === "fill"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-ink/70 hover:bg-ink/5"
               }`}
             >
               <CheckSquare className="h-3.5 w-3.5" /> {t.fill}
             </button>
           </div>
-          <div ref={exportMenuRef} className="relative">
-            <button
-              onClick={() => setShowExportMenu((s) => !s)}
-              disabled={!pdfBytes}
-              aria-haspopup="menu"
-              aria-expanded={showExportMenu}
-              aria-label={t.openMenu}
-              className="inline-flex min-h-9 items-center gap-1.5 rounded-xl bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-transform hover:scale-[1.02] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40 disabled:opacity-50 sm:px-3.5 sm:text-sm"
-            >
-              <Save className="h-3.5 w-3.5" />
-              <span>{savedFlash ? t.saved : t.save}</span>
-              <ChevronDown className="h-3 w-3" />
-            </button>
-            {showExportMenu && (
-              <div
-                role="menu"
-                aria-label={t.menuLabel}
-                className="absolute right-0 top-full z-50 mt-1.5 w-[18rem] max-w-[calc(100vw-1.5rem)] rounded-xl border border-border bg-card p-1 shadow-lg"
-              >
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    setShowExportMenu(false);
-                    saveDoc();
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-ink hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none"
-                >
-                  <Save className="h-4 w-4 text-ink/60" aria-hidden />
-                  {t.saveCurrentPage}
-                </button>
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    setShowExportMenu(false);
-                    exportPdf();
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-ink hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none"
-                >
-                  <FileText className="h-4 w-4 text-ink/60" aria-hidden />
-                  {t.exportFilled}
-                </button>
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    setShowExportMenu(false);
-                    exportPdfTemplate();
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-ink hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none"
-                >
-                  <SquarePen className="h-4 w-4 text-ink/60" aria-hidden />
-                  {t.exportTemplate}
-                </button>
-                <button
-                  role="menuitem"
-                  onClick={() => {
-                    setShowExportMenu(false);
-                    exportPageImage();
-                  }}
-                  className="flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs font-medium text-ink hover:bg-secondary focus-visible:bg-secondary focus-visible:outline-none"
-                >
-                  <FileImage className="h-4 w-4 text-ink/60" aria-hidden />
-                  {t.exportPagePng}
-                </button>
-                <div className="my-1 h-px bg-border" role="separator" />
-                <div className="px-2.5 py-2">
-                  <div className="mb-1.5 flex items-center gap-2 text-xs font-medium text-ink">
-                    <Download className="h-4 w-4 text-ink/60" aria-hidden />
-                    {t.exportRange}
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <label className="sr-only" htmlFor="range-start">{t.pageStart}</label>
-                    <input
-                      id="range-start"
-                      type="number"
-                      min={1}
-                      max={numPages || 1}
-                      value={rangeStart}
-                      onChange={(e) => setRangeStart(e.target.value)}
-                      className="w-16 rounded-lg border border-border bg-secondary px-2 py-1 text-center text-xs outline-none focus:border-ink"
-                    />
-                    <span className="text-xs text-ink/50">{t.to}</span>
-                    <label className="sr-only" htmlFor="range-end">{t.pageEnd}</label>
-                    <input
-                      id="range-end"
-                      type="number"
-                      min={1}
-                      max={numPages || 1}
-                      value={rangeEnd}
-                      onChange={(e) => setRangeEnd(e.target.value)}
-                      className="w-16 rounded-lg border border-border bg-secondary px-2 py-1 text-center text-xs outline-none focus:border-ink"
-                    />
-                    <span className="text-xs text-ink/50">/ {numPages}</span>
-                    <button
-                      onClick={() => {
-                        setShowExportMenu(false);
-                        exportPdfRange(Number(rangeStart) || 1, Number(rangeEnd) || 1);
-                      }}
-                      className="ml-auto inline-flex min-h-8 items-center gap-1 rounded-lg bg-primary px-2.5 py-1 text-xs font-semibold text-primary-foreground hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ink/40"
-                    >
-                      {t.exportBtn}
-                    </button>
-                  </div>
-                </div>
-              </div>
+          <button
+            type="button"
+            onClick={saveDoc}
+            disabled={!pdfBytes}
+            title={`${t.save} (${t.kbdSave})`}
+            className="inline-flex min-h-9 items-center gap-1.5 rounded-xl border-2 border-ink bg-surface px-3 py-1 text-xs font-semibold text-ink transition-transform hover:scale-[1.02] disabled:pointer-events-none disabled:opacity-40 sm:text-sm"
+          >
+            {savedFlash ? (
+              <Check className="h-3.5 w-3.5 text-pen-green" aria-hidden />
+            ) : (
+              <Save className="h-3.5 w-3.5" aria-hidden />
             )}
-          </div>
+            <span aria-live="polite" className="sr-only sm:not-sr-only">
+              {savedFlash ? t.saved : t.save}
+            </span>
+          </button>
+          <ExportMenu
+            disabled={!pdfBytes}
+            numPages={numPages}
+            onExportFilled={() => void exportPdf()}
+            onExportTemplate={() => void exportPdfTemplate()}
+            onExportPng={() => void exportPageImage()}
+            onExportRange={(start, end) => void exportPdfRange(start, end)}
+            labels={t}
+          />
         </div>
       </header>
 
-      <div className="flex flex-1 flex-col lg:flex-row lg:overflow-hidden">
+      <div
+        className="relative flex flex-1 flex-col lg:flex-row lg:overflow-hidden"
+        {...dropHandlers}
+      >
+        {isDragging && <DropOverlay label={t.dropHere} />}
         {/* Left sidebar */}
         <aside className="order-2 flex w-full shrink-0 flex-col border-b border-border bg-card lg:order-1 lg:w-64 lg:overflow-y-auto lg:border-b-0 lg:border-r">
           <div className="border-b border-border p-5">
@@ -810,21 +786,29 @@ function ToolPage() {
               <span className="font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
                 PDF
               </span>
-              <div className="mt-3 flex items-center justify-center rounded-2xl border-2 border-dashed border-ink/20 bg-accent p-4 text-center hover:border-ink cursor-pointer transition-colors">
-                <input
-                  type="file"
-                  accept="application/pdf"
-                  className="hidden"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    if (f) onFile(f);
-                  }}
-                />
-                <div className="flex flex-col items-center gap-1.5 text-xs font-medium text-ink/70">
-                  <Upload className="h-5 w-5 text-ink" />
-                  {t.uploadPdf}
+              <input
+                type="file"
+                accept="application/pdf"
+                className="sr-only"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) onFile(f);
+                  e.target.value = "";
+                }}
+              />
+              {pdfBytes ? (
+                <div className="mt-3 flex cursor-pointer items-center gap-2 rounded-xl border border-border px-3 py-2 text-xs font-medium text-ink/80 transition-colors hover:border-ink hover:bg-secondary">
+                  <Upload className="h-3.5 w-3.5 shrink-0" />
+                  {t.changePdf}
                 </div>
-              </div>
+              ) : (
+                <div className="mt-3 flex cursor-pointer items-center justify-center rounded-2xl border-2 border-dashed border-ink/20 bg-accent p-4 text-center transition-colors hover:border-ink">
+                  <div className="flex flex-col items-center gap-1.5 text-xs font-medium text-ink/70">
+                    <Upload className="h-5 w-5 text-ink" />
+                    {t.uploadPdf}
+                  </div>
+                </div>
+              )}
             </label>
           </div>
 
@@ -856,9 +840,8 @@ function ToolPage() {
                 </button>
               ))}
             </div>
-            <p className="mt-3 text-[11px] leading-snug text-ink/50">
-              {t.toolsHint}
-            </p>
+            <p className="mt-3 text-[11px] leading-snug text-ink/50">{t.toolsHint}</p>
+            <ShortcutHints labels={t} />
           </div>
 
           <div className="flex-1 overflow-y-auto p-5">
@@ -882,7 +865,9 @@ function ToolPage() {
                 <li
                   key={n}
                   className={`group flex items-center justify-between rounded-xl px-2.5 py-2 text-xs font-medium ${
-                    n === pdfName ? "bg-primary text-primary-foreground" : "text-ink/70 hover:bg-secondary"
+                    n === pdfName
+                      ? "bg-primary text-primary-foreground"
+                      : "text-ink/70 hover:bg-secondary"
                   }`}
                 >
                   <button
@@ -900,8 +885,10 @@ function ToolPage() {
                     {n}
                   </button>
                   <button
+                    type="button"
                     aria-label={t.deleteDoc(n)}
-                    className="opacity-0 group-hover:opacity-100"
+                    title={t.deleteDoc(n)}
+                    className="rounded-md p-1 transition-opacity focus-visible:opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                     onClick={() => {
                       const store = loadStore();
                       delete store[n];
@@ -909,105 +896,74 @@ function ToolPage() {
                       setDocList(Object.keys(store));
                     }}
                   >
-                    <Trash2 className="h-3 w-3 text-pen-red" />
+                    <Trash2
+                      className={cn(
+                        "h-3 w-3",
+                        n === pdfName ? "text-primary-foreground" : "text-pen-red",
+                      )}
+                    />
                   </button>
                 </li>
               ))}
-              {filteredDocs.length === 0 && (
-                <li className="text-[11px] text-ink/40">{t.noDocs}</li>
-              )}
+              {filteredDocs.length === 0 && <li className="text-[11px] text-ink/40">{t.noDocs}</li>}
             </ul>
           </div>
         </aside>
 
         {/* PDF Canvas */}
-        <main className="order-1 min-h-[60vh] flex-1 overflow-auto bg-muted p-3 sm:p-6 lg:order-2 lg:min-h-0">
+        <main
+          ref={mainRef}
+          className="order-1 min-h-[60vh] flex-1 overflow-auto bg-muted p-3 sm:p-6 lg:order-2 lg:min-h-0"
+        >
           {!pdfBytes ? (
             <EmptyState onPick={onFile} t={t} />
           ) : (
-            <div className="mx-auto w-fit">
+            <>
               <h1 className="sr-only">{t.srTitle}</h1>
-              <div className="mb-3 flex items-center justify-center gap-3 rounded-2xl border border-border bg-card px-4 py-2 shadow-sm">
-                <button
-                  onClick={() => setPage((p) => Math.max(1, p - 1))}
-                  aria-label={t.prevPage}
-                  className="rounded-lg p-1.5 hover:bg-secondary disabled:opacity-30"
-                  disabled={page <= 1}
-                >
-                  <ChevronLeft className="h-4 w-4" />
-                </button>
-                <div className="font-mono text-sm">
-                  <input
-                    type="number"
-                    value={page}
-                    onChange={(e) =>
-                      setPage(Math.min(numPages, Math.max(1, Number(e.target.value) || 1)))
-                    }
-                    className="w-14 rounded-lg border border-border bg-secondary px-1 py-0.5 text-center font-mono"
-                  />
-                  <span className="text-ink/50"> / {numPages}</span>
-                </div>
-                <button
-                  onClick={() => setPage((p) => Math.min(numPages, p + 1))}
-                  aria-label={t.nextPage}
-                  className="rounded-lg p-1.5 hover:bg-secondary disabled:opacity-30"
-                  disabled={page >= numPages}
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              </div>
-              <div className="relative inline-block overflow-hidden rounded-2xl shadow-xl ring-1 ring-ink/10">
-                <canvas ref={canvasRef} className="block bg-white" />
-                <div
-                  ref={overlayRef}
-                  className="absolute inset-0"
-                  style={{ cursor: mode === "edit" ? "crosshair" : "default" }}
-                  onMouseDown={onOverlayMouseDown}
-                  onMouseMove={onOverlayMouseMove}
-                  onMouseUp={onOverlayMouseUp}
-                  onMouseLeave={onOverlayMouseUp}
-                >
-                  {pageFields.map((fd) => (
-                    <FieldBox
-                      key={fd.id}
-                      field={fd}
-                      mode={mode}
-                      selected={selectedId === fd.id}
-                      onSelect={() => setSelectedId(fd.id)}
-                      onChange={(patch) => updateField(fd.id, patch)}
-                    />
-                  ))}
-                </div>
-                {pdfLoading && (
-                  <div className="absolute inset-0">
-                    <PdfSkeleton />
+              <ViewerToolbar
+                className="sticky top-0 z-20 mx-auto mb-4"
+                page={page}
+                numPages={numPages}
+                scale={scale}
+                onPageChange={(p) => {
+                  setPage(p);
+                  setSelectedId(null);
+                }}
+                onScaleChange={setScale}
+                onFitWidth={() => void fitToWidth()}
+                labels={t}
+              />
+              <div className="mx-auto w-fit">
+                <div className="relative inline-block overflow-hidden rounded-2xl shadow-xl ring-1 ring-ink/10">
+                  <canvas ref={canvasRef} className="block bg-white" />
+                  <div
+                    ref={overlayRef}
+                    className="absolute inset-0"
+                    style={{ cursor: mode === "edit" ? "crosshair" : "default" }}
+                    onMouseDown={onOverlayMouseDown}
+                    onMouseMove={onOverlayMouseMove}
+                    onMouseUp={onOverlayMouseUp}
+                    onMouseLeave={onOverlayMouseUp}
+                  >
+                    {pageFields.map((fd) => (
+                      <FieldBox
+                        key={fd.id}
+                        field={fd}
+                        mode={mode}
+                        selected={selectedId === fd.id}
+                        onSelect={() => setSelectedId(fd.id)}
+                        onChange={(patch) => updateField(fd.id, patch)}
+                      />
+                    ))}
                   </div>
-                )}
-              </div>
-              <div className="mt-3 flex items-center justify-center gap-3 rounded-2xl border border-border bg-card px-4 py-2 shadow-sm">
-                <button
-                  onClick={() => setScale((s) => Math.max(0.3, +(s - 0.1).toFixed(1)))}
-                  aria-label={t.zoomOut}
-                  className="rounded-lg p-1.5 hover:bg-secondary disabled:opacity-30"
-                  disabled={scale <= 0.3}
-                  title={t.zoomOut}
-                >
-                  <ZoomOut className="h-4 w-4" />
-                </button>
-                <div className="min-w-[3rem] text-center font-mono text-sm">
-                  {Math.round(scale * 100)}%
+                  {pdfLoading && (
+                    <div className="absolute inset-0">
+                      <PdfSkeleton />
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => setScale((s) => Math.min(3, +(s + 0.1).toFixed(1)))}
-                  aria-label={t.zoomIn}
-                  className="rounded-lg p-1.5 hover:bg-secondary disabled:opacity-30"
-                  disabled={scale >= 3}
-                  title={t.zoomIn}
-                >
-                  <ZoomIn className="h-4 w-4" />
-                </button>
               </div>
-            </div>
+            </>
           )}
         </main>
 
@@ -1060,16 +1016,28 @@ function ToolPage() {
                   }
                 />
                 <div className="text-xs text-ink/60">
-                  {t.type}: <span className="font-medium text-ink">{selected.type}</span> · {t.page}{" "}
-                  {selected.page}
+                  {t.type}: <span className="font-medium text-ink">{t[selected.type]}</span> ·{" "}
+                  {t.page} {selected.page}
                 </div>
-                <button
-                  onClick={() => deleteField(selected.id)}
-                  className="inline-flex items-center gap-1 rounded-xl border border-pen-red/30 px-2.5 py-1.5 text-xs font-medium text-pen-red hover:bg-pen-red/10"
-                >
-                  <Trash2 className="h-3 w-3" /> {t.removeField}
-                </button>
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => deleteField(selected.id)}
+                    className="inline-flex items-center gap-1 rounded-xl border border-pen-red/30 px-2.5 py-1.5 text-xs font-medium text-pen-red hover:bg-pen-red/10"
+                  >
+                    <Trash2 className="h-3 w-3" /> {t.removeField}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedId(null)}
+                    className="rounded-lg px-2 py-1.5 text-xs text-ink/50 first-letter:uppercase hover:bg-secondary hover:text-ink"
+                  >
+                    {t.kbdDeselect} <kbd className="font-mono text-[10px]">Esc</kbd>
+                  </button>
+                </div>
               </div>
+            ) : pdfBytes ? (
+              <FieldList fields={pageFields} onSelect={setSelectedId} labels={t} />
             ) : (
               <p className="text-xs text-ink/50">{t.selectField}</p>
             )}
@@ -1303,30 +1271,36 @@ function NotesEditor({
   return (
     <div className="flex min-h-0 flex-1 flex-col rounded-md border border-ink/10">
       <div className="flex items-center gap-1 border-b border-ink/10 p-1">
-        <button onClick={() => exec("bold")} className="rounded p-1 hover:bg-ink/5" title={t.bold}>
-          <Bold className="h-3.5 w-3.5" />
-        </button>
-        <button
-          onClick={() => exec("italic")}
-          className="rounded p-1 hover:bg-ink/5"
-          title={t.italic}
-        >
-          <Italic className="h-3.5 w-3.5" />
-        </button>
-        <button
-          onClick={() => exec("insertUnorderedList")}
-          className="rounded p-1 hover:bg-ink/5"
-          title={t.list}
-        >
-          <List className="h-3.5 w-3.5" />
-        </button>
+        {(
+          [
+            { cmd: "bold", icon: Bold, label: t.bold },
+            { cmd: "italic", icon: Italic, label: t.italic },
+            { cmd: "insertUnorderedList", icon: List, label: t.list },
+          ] as const
+        ).map(({ cmd, icon: Icon, label }) => (
+          <button
+            key={cmd}
+            type="button"
+            // Keep the selection inside the editor while clicking the button.
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={() => exec(cmd)}
+            className="rounded-md p-1.5 text-ink/70 hover:bg-ink/5 hover:text-ink"
+            title={label}
+            aria-label={label}
+          >
+            <Icon className="h-3.5 w-3.5" />
+          </button>
+        ))}
       </div>
       <div
         ref={ref}
         contentEditable
         suppressContentEditableWarning
+        role="textbox"
+        aria-multiline="true"
+        aria-label={t.notesPlaceholder}
         onInput={(e) => onChange((e.target as HTMLDivElement).innerHTML)}
-        className="flex-1 overflow-y-auto p-3 text-sm leading-relaxed outline-none [&_ul]:ml-4 [&_ul]:list-disc"
+        className="min-h-40 flex-1 overflow-y-auto p-3 text-sm leading-relaxed outline-none empty:before:pointer-events-none empty:before:text-ink/40 empty:before:content-[attr(data-placeholder)] [&_ul]:ml-4 [&_ul]:list-disc"
         data-placeholder={t.notesPlaceholder}
       />
     </div>
@@ -1335,10 +1309,7 @@ function NotesEditor({
 
 function PdfSkeleton() {
   return (
-    <div
-      className="flex flex-col gap-4 rounded-2xl bg-card p-8 shadow-inner"
-      style={{ width: 560, height: 792 }}
-    >
+    <div className="flex h-full w-full flex-col gap-4 overflow-hidden bg-card p-8">
       <Skeleton className="h-8 w-3/4 rounded-lg" />
       <div className="mt-4 space-y-3">
         <Skeleton className="h-4 w-full rounded-md" />
@@ -1369,29 +1340,47 @@ function EmptyState({
   t,
 }: {
   onPick: (f: File) => void;
-  t: { emptyTitle: string; emptyDesc: string; selectPdf: string };
+  t: { emptyTitle: string; emptyDesc: string; selectPdf: string; dropHint: string };
 }) {
   return (
-    <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center text-center">
-      <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
-        <Upload className="h-7 w-7" />
+    <div className="flex h-full items-center justify-center">
+      <div className="flex w-full max-w-lg flex-col items-center rounded-3xl border-2 border-dashed border-ink/15 bg-card/60 px-6 py-12 text-center sm:px-10">
+        <div className="mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg">
+          <Upload className="h-7 w-7" />
+        </div>
+        <h2 className="font-display text-2xl text-ink sm:text-3xl">{t.emptyTitle}</h2>
+        <p className="mt-3 max-w-sm text-sm text-ink/60">{t.emptyDesc}</p>
+        <label className="mt-7 inline-flex cursor-pointer items-center gap-2 rounded-xl bg-primary px-5 py-2.5 text-sm font-semibold text-primary-foreground transition-transform focus-within:ring-2 focus-within:ring-ring focus-within:ring-offset-2 hover:scale-[1.02]">
+          <Upload className="h-4 w-4" /> {t.selectPdf}
+          <input
+            type="file"
+            accept="application/pdf"
+            className="sr-only"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) onPick(f);
+            }}
+          />
+        </label>
+        <p className="mt-3 font-mono text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          {t.dropHint}
+        </p>
       </div>
-      <h2 className="font-display text-2xl text-ink">{t.emptyTitle}</h2>
-      <p className="mt-2 text-sm text-ink/60">
-        {t.emptyDesc}
-      </p>
-      <label className="mt-6 inline-flex cursor-pointer items-center gap-2 rounded-md bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground hover:opacity-90">
-        <Upload className="h-4 w-4" /> {t.selectPdf}
-        <input
-          type="file"
-          accept="application/pdf"
-          className="hidden"
-          onChange={(e) => {
-            const f = e.target.files?.[0];
-            if (f) onPick(f);
-          }}
-        />
-      </label>
+    </div>
+  );
+}
+
+function DropOverlay({ label }: { label: string }) {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-40 flex items-center justify-center bg-primary/10 p-6 backdrop-blur-[2px]">
+      <div className="flex h-full w-full items-center justify-center rounded-3xl border-2 border-dashed border-primary">
+        <div className="flex items-center gap-3 rounded-2xl bg-card px-5 py-4 shadow-xl">
+          <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Upload className="h-5 w-5" />
+          </span>
+          <span className="font-display text-lg text-ink">{label}</span>
+        </div>
+      </div>
     </div>
   );
 }
